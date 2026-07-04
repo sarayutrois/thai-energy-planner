@@ -1,10 +1,14 @@
 import { FileUp } from "lucide-react";
+import { AnalysisStartContextCard } from "@/components/analysis-start-context-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadProfileImporter } from "@/components/load-profile-importer";
 import { MainNav } from "@/components/main-nav";
+import { getAnalysisStartContext, type AnalysisStartSearchParams } from "@/lib/analysis-start";
 
-export default function ImportLoadPage() {
+export default async function ImportLoadPage({ searchParams }: { searchParams?: Promise<AnalysisStartSearchParams> }) {
+  const startContext = getAnalysisStartContext((await searchParams) ?? {}, "interval");
+
   return (
     <main className="min-h-screen">
       <MainNav />
@@ -17,6 +21,8 @@ export default function ImportLoadPage() {
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
           รองรับ CSV/XLSX พร้อม Column Mapping, interval 15/30/60 นาที และ Data Preview ก่อน import จริง
         </p>
+
+        <AnalysisStartContextCard {...startContext} />
 
         <Card className="mt-6">
           <CardHeader>

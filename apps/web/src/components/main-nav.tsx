@@ -1,16 +1,15 @@
 import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, Settings, SunMedium, UploadCloud } from "lucide-react";
-import { Button } from "@/components/ui/button";
 
 const navItems = [
-  { label: "วิเคราะห์", href: "#workflow", icon: Gauge },
+  { label: "วิเคราะห์", href: "/analysis/new", icon: Gauge },
   { label: "Tariff", href: "/tariff-demo", icon: Calculator },
   { label: "Load Data", href: "/analysis/load-data", icon: UploadCloud },
   { label: "เปรียบเทียบ", href: "/analysis/scenarios", icon: BarChart3 },
   { label: "Solar", href: "/analysis/solar", icon: SunMedium },
   { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
   { label: "EV", href: "/analysis/ev", icon: PlugZap },
-  { label: "รายงาน", href: "#reports", icon: FileText },
-  { label: "Admin", href: "#admin", icon: Settings }
+  { label: "รายงาน", href: "/analysis/reports", icon: FileText },
+  { label: "Admin", href: "/admin/tariffs", icon: Settings }
 ];
 
 export function MainNav() {
@@ -35,7 +34,12 @@ export function MainNav() {
             </a>
           ))}
         </nav>
-        <Button size="sm">เริ่มวิเคราะห์</Button>
+        <a
+          className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
+          href="/analysis/new"
+        >
+          เริ่มวิเคราะห์
+        </a>
       </div>
     </header>
   );

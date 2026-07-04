@@ -1,130 +1,182 @@
-import React from "react";
+import { BarChart3, CheckCircle2, FileText, ShieldCheck } from "lucide-react";
+import { createReportFileName } from "@thai-energy-planner/report-engine";
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { MainNav } from "@/components/main-nav";
+import { ReportActions } from "./report-actions";
 
 const savedReportPreview = {
-  title: "Q1 Solar Feasibility Report",
-  createdAt: "2025-01-10T10:00:00Z",
+  title: "Solar feasibility demo",
+  createdAt: "2026-07-05T09:00:00+07:00",
   engineVersion: "0.1.0",
   executiveSummary:
-    "Based on the saved analysis snapshot, switching to TOU combined with a 5kWp Solar installation is projected to improve annual energy costs with a multi-year payback.",
+    "รายงานตัวอย่างนี้แสดงโครงสร้างสำหรับส่งต่อผลวิเคราะห์ โดยใช้ snapshot เดิมของ tariff และ assumptions เพื่อให้ผลย้อนหลังตรวจสอบได้",
   tariffSnapshot: {
-    versionLabel: "v1.0.0-draft",
-    status: "PUBLISHED",
-    source: "PEA API (saved at analysis time)",
-    effectiveFrom: "2025-01-01",
-    capturedAt: "2025-01-10T10:00:00Z"
+    versionLabel: "demo-phase2-draft",
+    status: "DRAFT",
+    source: "Synthetic demo tariff for engine validation",
+    effectiveFrom: "2026-01-01",
+    capturedAt: "2026-07-05T09:00:00+07:00"
   },
   assumptions: [
-    { label: "Tariff charges", value: "Captured in saved tariff snapshot" },
-    { label: "Tax and Ft inputs", value: "Captured in saved tariff snapshot" },
-    { label: "Solar assumptions", value: "Captured in saved analysis inputs" }
+    { label: "ข้อมูลบิล", value: "ใช้ตัวอย่างบิลย้อนหลังจาก demo dataset" },
+    { label: "Tariff", value: "ยังเป็น demo draft ไม่ใช่อัตราทางการ" },
+    { label: "Solar", value: "ใช้ profile ตัวอย่างและสมมติฐานการลงทุนเบื้องต้น" }
   ],
   scenarioRows: [
-    { name: "Current Normal", monthlyBill: "4,500 THB", annualBill: "54,000 THB", savings: "-" },
-    { name: "TOU + Solar 5kWp", monthlyBill: "2,800 THB", annualBill: "33,600 THB", savings: "20,400 THB (37%)" }
+    { name: "Current Normal", monthlyBill: "4,500 บาท", annualBill: "54,000 บาท", savings: "-" },
+    { name: "TOU + Solar 5 kWp", monthlyBill: "2,800 บาท", annualBill: "33,600 บาท", savings: "20,400 บาท (37%)" }
   ],
-  calculationNote:
-    "Calculation uses calculation-engine results stored with the report snapshot. Tariff values are read from the frozen tariff snapshot captured with the analysis.",
   recommendation:
-    "Proceed with Solar 5kWp installation and apply for TOU tariff change. Ensure load shifting of high-power appliances to daytime."
+    "ใช้รายงานนี้เป็นตัวอย่างรูปแบบการสื่อสารก่อน ต่อไปควรเชื่อมข้อมูลจริงจาก guided bill workflow และ tariff ที่ตรวจสอบแล้ว"
 };
 
 export default async function AnalysisReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const fileName = createReportFileName(savedReportPreview.title, "2026-07-05", "pdf");
   const tariffSnapshot = savedReportPreview.tariffSnapshot;
+
   return (
-    <div className="p-8 max-w-5xl mx-auto">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Report Preview: {id}</h1>
-        <div className="space-x-4 flex">
-          <button className="bg-blue-600 text-white px-4 py-2 rounded shadow hover:bg-blue-700">Export PDF</button>
-          <button className="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700">Export CSV</button>
-          <button className="bg-gray-600 text-white px-4 py-2 rounded shadow hover:bg-gray-700">Export JSON</button>
-          <button className="bg-slate-800 text-white px-4 py-2 rounded shadow hover:bg-slate-900">Print</button>
-        </div>
-      </div>
-      
-      <div className="bg-white p-10 rounded shadow print:shadow-none print:p-0">
-        
-        <div className="mb-8 border-b pb-4 flex justify-between">
-          <div>
-            <h2 className="text-3xl font-bold mb-2 text-slate-800">{savedReportPreview.title}</h2>
-            <p className="text-gray-600">Analysis Date: {new Date(savedReportPreview.createdAt).toLocaleDateString()}</p>
-          </div>
-          <div className="text-right text-sm text-gray-500">
-            <p>Engine Version: {savedReportPreview.engineVersion}</p>
-          </div>
+    <main className="min-h-screen bg-background">
+      <MainNav />
+      <section className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 lg:py-10">
+        <div className="mb-5 flex flex-wrap gap-2 print:hidden">
+          <Badge>Report Preview</Badge>
+          <Badge variant="outline">{id}</Badge>
+          <Badge variant="warning">Demo data</Badge>
         </div>
 
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-3 border-b pb-2">Executive Summary</h3>
-          <p className="text-gray-700">
-            {savedReportPreview.executiveSummary}
-          </p>
+        <div className="mb-6 flex flex-col gap-4 md:flex-row md:items-start md:justify-between print:hidden">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-normal">รายงานตัวอย่าง</h1>
+            <p className="mt-2 max-w-3xl leading-7 text-muted-foreground">
+              โครงรายงานสำหรับส่งต่อให้ลูกค้า ทีม หรือใช้แนบการตัดสินใจลงทุน
+            </p>
+          </div>
+          <ReportActions />
         </div>
 
-        <div className="grid grid-cols-2 gap-8 mb-8">
-          <div>
-            <h3 className="text-lg font-semibold mb-2 bg-gray-100 p-2 rounded">Tariff Snapshot Used</h3>
-            <ul className="text-gray-700 space-y-1 mt-2">
-              <li><strong>Version:</strong> {tariffSnapshot.versionLabel}</li>
-              <li><strong>Status:</strong> {tariffSnapshot.status}</li>
-              <li><strong>Source:</strong> {tariffSnapshot.source}</li>
-              <li><strong>Effective Date:</strong> {tariffSnapshot.effectiveFrom}</li>
-              <li><strong>Captured At:</strong> {new Date(tariffSnapshot.capturedAt).toLocaleString()}</li>
-            </ul>
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold mb-2 bg-gray-100 p-2 rounded">Assumptions & Variables</h3>
-            <ul className="text-gray-700 space-y-1 mt-2">
-              {savedReportPreview.assumptions.map((item) => (
-                <li key={item.label}><strong>{item.label}:</strong> {item.value}</li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-3 border-b pb-2">Scenario Comparison</h3>
-          <table className="w-full text-left border-collapse border">
-            <thead>
-              <tr className="bg-gray-50">
-                <th className="border p-2">Scenario</th>
-                <th className="border p-2">Monthly Bill (Avg)</th>
-                <th className="border p-2">Annual Bill</th>
-                <th className="border p-2">Savings</th>
-              </tr>
-            </thead>
-            <tbody>
-              {savedReportPreview.scenarioRows.map((row, index) => (
-                <tr key={row.name} className={index === 1 ? "bg-green-50" : undefined}>
-                  <td className="border p-2">{row.name}</td>
-                  <td className="border p-2">{row.monthlyBill}</td>
-                  <td className="border p-2">{row.annualBill}</td>
-                  <td className={index === 1 ? "border p-2 text-green-700" : "border p-2"}>{row.savings}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+        <article className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none">
+          <header className="border-b border-border pb-5">
+            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+              <div>
+                <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-md bg-primary text-primary-foreground">
+                  <FileText aria-hidden="true" className="h-5 w-5" />
+                </div>
+                <h2 className="text-3xl font-semibold tracking-normal">{savedReportPreview.title}</h2>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  สร้างเมื่อ {new Date(savedReportPreview.createdAt).toLocaleString("th-TH")}
+                </p>
+              </div>
+              <div className="rounded-md border border-border bg-muted/35 p-4 text-sm">
+                <p className="font-medium">Engine version</p>
+                <p className="mt-1 text-muted-foreground">{savedReportPreview.engineVersion}</p>
+                <p className="mt-3 font-medium">Filename</p>
+                <p className="mt-1 text-muted-foreground">{fileName}</p>
+              </div>
+            </div>
+          </header>
 
-        <div className="mb-8">
-          <h3 className="text-xl font-semibold mb-3 border-b pb-2">Calculation Breakdown</h3>
-          <p className="text-gray-700 text-sm">
-            {savedReportPreview.calculationNote}
-          </p>
-        </div>
-        
-        <div className="mb-8 bg-blue-50 p-4 rounded border border-blue-200">
-          <h3 className="text-lg font-bold text-blue-800 mb-2">Recommendations</h3>
-          <p className="text-blue-900">
-            {savedReportPreview.recommendation}
-          </p>
-        </div>
-        
-        <div className="text-xs text-gray-500 mt-12 italic border-t pt-4 text-center">
-          Disclaimer: This report is an estimation based on the provided inputs, assumptions, and historical data. Actual results may vary due to weather, behavior changes, and future tariff updates.
-        </div>
-      </div>
+          <section className="grid gap-5 py-5">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle2 aria-hidden="true" className="h-5 w-5 text-success" />
+                  Executive summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="leading-7 text-muted-foreground">{savedReportPreview.executiveSummary}</p>
+              </CardContent>
+            </Card>
+
+            <div className="grid gap-5 lg:grid-cols-2">
+              <Card>
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <ShieldCheck aria-hidden="true" className="h-5 w-5 text-primary" />
+                    Tariff snapshot
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3">
+                  <InfoRow label="Version" value={tariffSnapshot.versionLabel} />
+                  <InfoRow label="Status" value={tariffSnapshot.status} />
+                  <InfoRow label="Source" value={tariffSnapshot.source} />
+                  <InfoRow label="Effective from" value={tariffSnapshot.effectiveFrom} />
+                  <InfoRow label="Captured at" value={new Date(tariffSnapshot.capturedAt).toLocaleString("th-TH")} />
+                </CardContent>
+              </Card>
+
+              <Card>
+                <CardHeader>
+                  <CardTitle>Assumptions</CardTitle>
+                </CardHeader>
+                <CardContent className="grid gap-3">
+                  {savedReportPreview.assumptions.map((item) => (
+                    <InfoRow key={item.label} label={item.label} value={item.value} />
+                  ))}
+                </CardContent>
+              </Card>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary" />
+                  Scenario comparison
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="overflow-x-auto rounded-md border border-border">
+                  <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                    <thead className="bg-muted text-muted-foreground">
+                      <tr>
+                        <th className="px-3 py-2 font-medium">Scenario</th>
+                        <th className="px-3 py-2 font-medium">ค่าไฟเฉลี่ย/เดือน</th>
+                        <th className="px-3 py-2 font-medium">ค่าไฟ/ปี</th>
+                        <th className="px-3 py-2 font-medium">ประหยัด</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {savedReportPreview.scenarioRows.map((row, index) => (
+                        <tr key={row.name} className={index === 1 ? "border-t border-border bg-success/10" : "border-t border-border"}>
+                          <td className="px-3 py-2 font-medium">{row.name}</td>
+                          <td className="px-3 py-2">{row.monthlyBill}</td>
+                          <td className="px-3 py-2">{row.annualBill}</td>
+                          <td className="px-3 py-2">{row.savings}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-primary/40 bg-primary/5">
+              <CardHeader>
+                <CardTitle>Recommendation</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="leading-7 text-foreground">{savedReportPreview.recommendation}</p>
+              </CardContent>
+            </Card>
+
+            <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
+              ผลลัพธ์เป็นการประเมินจากข้อมูลและสมมติฐานที่ให้ไว้ ผลจริงอาจเปลี่ยนตามพฤติกรรม สภาพอากาศ ราคาอุปกรณ์
+              และ tariff ในอนาคต รายงาน demo นี้ยังไม่ใช่ใบเสนอราคาหรือคำยืนยันทางการ
+            </p>
+          </section>
+        </article>
+      </section>
+    </main>
+  );
+}
+
+function InfoRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-md border border-border bg-muted/35 p-3">
+      <p className="text-xs font-medium text-muted-foreground">{label}</p>
+      <p className="mt-1 text-sm leading-6 text-foreground">{value}</p>
     </div>
   );
 }

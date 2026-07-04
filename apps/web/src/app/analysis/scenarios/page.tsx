@@ -1,12 +1,51 @@
-import { BarChart3, FilePlus2, GitCompare, ReceiptText } from "lucide-react";
+import { ArrowRight, BarChart3, FilePlus2, GitCompare, ReceiptText, SunMedium, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
 
 const scenarioRoutes = [
-  { href: "/analysis/scenarios/new", label: "สร้าง Scenario", icon: FilePlus2 },
-  { href: "/analysis/scenarios/compare", label: "เปรียบเทียบ", icon: GitCompare },
-  { href: "/analysis/scenarios/results", label: "ผลลัพธ์ Demo", icon: ReceiptText }
+  {
+    href: "/analysis/scenarios/results",
+    label: "ดูผล Normal / TOU demo",
+    description: "เริ่มจากผลตัวอย่างเพื่อเข้าใจว่าการย้ายโหลดไป off-peak ช่วยได้แค่ไหน",
+    icon: ReceiptText,
+    badge: "เริ่มตรงนี้"
+  },
+  {
+    href: "/analysis/scenarios/new",
+    label: "ตั้งค่า Scenario",
+    description: "ปรับสัดส่วนโหลดที่ย้ายเวลา และเลือกช่วงเวลาที่ต้องการจำลอง",
+    icon: FilePlus2,
+    badge: "ปรับค่า"
+  },
+  {
+    href: "/analysis/scenarios/compare",
+    label: "เปรียบเทียบหลายทางเลือก",
+    description: "ดูตารางเปรียบเทียบ Normal, TOU และ load shifting ในมุมค่าไฟ",
+    icon: GitCompare,
+    badge: "เทียบ"
+  }
+];
+
+const recommendedOrder = [
+  {
+    title: "1. เทียบ Normal / TOU",
+    description: "ดูว่าค่าไฟปัจจุบันเหมาะกับมิเตอร์แบบไหน และต้องย้ายโหลดมากแค่ไหนถึงคุ้ม",
+    href: "/analysis/scenarios/results",
+    icon: Zap
+  },
+  {
+    title: "2. ลอง Solar",
+    description: "ถ้ามีโหลดกลางวันหรือค่าไฟสูง ให้ประเมิน Solar ขนาดเริ่มต้นและคืนทุน",
+    href: "/analysis/solar",
+    icon: SunMedium
+  },
+  {
+    title: "3. ทำรายงาน",
+    description: "เมื่อได้คำตอบเบื้องต้นแล้ว เปิดรายงานเพื่อดูโครงสรุปและ assumptions",
+    href: "/analysis/reports",
+    icon: BarChart3
+  }
 ];
 
 export default function ScenariosPage() {
@@ -15,25 +54,47 @@ export default function ScenariosPage() {
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
-          <Badge>Phase 4</Badge>
-          <Badge variant="outline">Scenario Engine</Badge>
+          <Badge>Scenario Comparison</Badge>
+          <Badge variant="outline">Normal / TOU</Badge>
           <Badge variant="warning">ใช้ demo tariff draft</Badge>
         </div>
-        <h1 className="mt-4 text-3xl font-semibold tracking-normal">Scenario Comparison Engine</h1>
-        <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-          เปรียบเทียบมิเตอร์ปกติ TOU และ load shifting โดยคำนวณผ่าน Tariff Engine และ Load Data Engine เดิม
-        </p>
+        <div className="mt-4 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div>
+            <h1 className="text-3xl font-semibold tracking-normal">เลือกทางเลือกค่าไฟที่ควรลอง</h1>
+            <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
+              หลังจากมีบิลหรือ load profile แล้ว ขั้นนี้ช่วยตอบว่าใช้มิเตอร์ปกติดีไหม ควรลอง TOU ไหม
+              และต้องย้ายโหลดช่วงไหนถึงจะเห็นผล
+            </p>
+          </div>
+          <Card className="border-primary/40 bg-primary/5">
+            <CardHeader>
+              <CardTitle>คำเตือนเรื่องข้อมูล</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm leading-6 text-muted-foreground">
+                หน้านี้ยังใช้ demo tariff draft เพื่อสาธิต engine ก่อนนำไปใช้จริงต้องแทนด้วย tariff ที่ตรวจสอบ source และวันที่แล้ว
+              </p>
+            </CardContent>
+          </Card>
+        </div>
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {scenarioRoutes.map((route) => (
             <a key={route.href} href={route.href} className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-ring">
               <Card className="h-full transition hover:border-primary">
                 <CardHeader>
-                  <route.icon aria-hidden="true" className="h-6 w-6 text-primary" />
+                  <div className="flex items-start justify-between gap-3">
+                    <route.icon aria-hidden="true" className="h-6 w-6 text-primary" />
+                    <Badge variant={route.badge === "เริ่มตรงนี้" ? "success" : "outline"}>{route.badge}</Badge>
+                  </div>
                   <CardTitle>{route.label}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <p className="text-sm text-muted-foreground">เปิดหน้าทดสอบ Phase 4</p>
+                  <p className="text-sm leading-6 text-muted-foreground">{route.description}</p>
+                  <span className="mt-5 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                    เปิดดู
+                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                  </span>
                 </CardContent>
               </Card>
             </a>
@@ -44,12 +105,17 @@ export default function ScenariosPage() {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary" />
-              ขอบเขต Phase 4
+              ลำดับที่แนะนำ
             </CardTitle>
           </CardHeader>
-          <CardContent className="grid gap-3 text-sm leading-6 text-muted-foreground md:grid-cols-2">
-            <p>รองรับ Current Normal, Current TOU, Switch to TOU, Load Shift to Off-Peak และ Custom Load Shift structure</p>
-            <p>ยังไม่คำนวณ Solar, Battery หรือ EV แต่สามารถ flag ข้อมูลที่เหมาะสำหรับ Phase ถัดไปได้</p>
+          <CardContent className="grid gap-3 md:grid-cols-3">
+            {recommendedOrder.map((item) => (
+              <a key={item.href} className="rounded-md border border-border p-4 transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring" href={item.href}>
+                <item.icon aria-hidden="true" className="h-5 w-5 text-primary" />
+                <p className="mt-3 font-semibold">{item.title}</p>
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+              </a>
+            ))}
           </CardContent>
         </Card>
       </section>

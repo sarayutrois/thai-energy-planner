@@ -1,10 +1,13 @@
 import { PlugZap } from "lucide-react";
 import { applianceCatalog, demoAppliances, simulateApplianceLoadProfile } from "@thai-energy-planner/calculation-engine";
+import { AnalysisStartContextCard } from "@/components/analysis-start-context-card";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
+import { getAnalysisStartContext, type AnalysisStartSearchParams } from "@/lib/analysis-start";
 
-export default function AppliancesPage() {
+export default async function AppliancesPage({ searchParams }: { searchParams?: Promise<AnalysisStartSearchParams> }) {
+  const startContext = getAnalysisStartContext((await searchParams) ?? {}, "appliances");
   const simulation = simulateApplianceLoadProfile({
     appliances: demoAppliances,
     date: "2026-01-05"
@@ -22,6 +25,8 @@ export default function AppliancesPage() {
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
           สูตรพื้นฐาน: power_kw × quantity × duty_cycle × interval_hours รองรับช่วงเวลาข้ามวัน เช่น 22:00-06:00
         </p>
+
+        <AnalysisStartContextCard {...startContext} />
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
           <Metric label="kWh/วัน" value={formatNumber(simulation.kwhPerDay)} />
