@@ -5,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadDashboardCharts } from "@/components/load-dashboard-charts";
 import { MainNav } from "@/components/main-nav";
+import { LocalBillSummary } from "./local-bill-summary";
 
 export default function LoadDashboardPage() {
   const simulation = simulateApplianceLoadProfile({
@@ -25,6 +26,8 @@ export default function LoadDashboardPage() {
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
           แสดง metric หลักและกราฟเบื้องต้นจาก demo appliance profile โดยแยก Peak/Off-Peak ผ่าน Tariff Engine
         </p>
+
+        <LocalBillSummary />
 
         <div className="mt-6 grid gap-3 md:grid-cols-4">
           <Metric title="Total kWh" tooltip="พลังงานไฟฟ้ารวมในช่วงข้อมูล" value={formatNumber(summary.totalKwh)} />
