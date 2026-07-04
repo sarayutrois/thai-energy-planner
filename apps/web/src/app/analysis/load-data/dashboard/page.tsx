@@ -1,9 +1,7 @@
-import { Gauge } from "lucide-react";
 import { demoAppliances, simulateApplianceLoadProfile, summarizeLoadProfile } from "@thai-energy-planner/calculation-engine";
 import { demoTouTariff } from "@thai-energy-planner/tariff-engine";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { LoadDashboardCharts } from "@/components/load-dashboard-charts";
+import { LoadDashboardChartCard } from "@/components/load-dashboard-chart-card";
 import { MainNav } from "@/components/main-nav";
 import { LocalBillSummary } from "./local-bill-summary";
 
@@ -40,17 +38,7 @@ export default function LoadDashboardPage() {
           <Metric title="Peak/Off-Peak" tooltip="ใช้ selectTouPeriod จาก Tariff Engine" value={`${formatNumber(summary.peakPeriodKwh)} / ${formatNumber(summary.offPeakPeriodKwh)}`} />
         </div>
 
-        <Card className="mt-5">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Gauge aria-hidden="true" className="h-5 w-5 text-primary" />
-              Load charts
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <LoadDashboardCharts summary={summary} />
-          </CardContent>
-        </Card>
+        <LoadDashboardChartCard summary={summary} />
       </section>
     </main>
   );
