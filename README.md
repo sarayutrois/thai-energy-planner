@@ -23,6 +23,28 @@ data/tariffs                   Tariff seed template แบบ draft
 data/demo-load-profiles        CSV load profile ตัวอย่าง
 ```
 
+## Project Status
+
+The project is currently completing **Phase 8 (Final QA & Deployment Prep)**.
+- **Phase 1:** Core Data Models & Load Profiles (Completed)
+- **Phase 2:** Financial Engine & Tariff Builder (Completed)
+- **Phase 3:** Current Bill Analysis (Completed)
+- **Phase 4:** Scenario Comparison (Completed)
+- **Phase 5:** Solar PV Integration (Completed)
+- **Phase 6:** BESS & EV Integration (Completed)
+- **Phase 7:** Reporting & Admin Control (Completed)
+- **Phase 8:** Final QA & Deployment Prep (Completed)
+
+## Documentation
+
+Comprehensive documentation is available in the `docs/` directory:
+- [Architecture](docs/architecture.md)
+- [Calculation Engine](docs/calculation-engine.md)
+- [Tariff Management](docs/tariff-management.md)
+- [Testing Strategy](docs/testing.md)
+- [Deployment Guide](docs/deployment.md)
+- [Production Checklist](docs/production-checklist.md)
+
 ## เริ่มใช้งานในเครื่อง
 
 1. ติดตั้ง dependencies
