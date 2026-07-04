@@ -4,6 +4,7 @@ import { AlertTriangle, ArrowRight, Download, FileText, Plus, ReceiptText, Rotat
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
+import { exportToCsv } from "@thai-energy-planner/report-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisStartHref, type AnalysisAudience } from "@/lib/analysis-start";
@@ -123,11 +124,38 @@ export function GuidedBillWorkspace({
     downloadJsonFile("thai-energy-planner-bills.json", payload);
   }
 
+  function exportWorkspaceCsv() {
+    downloadTextFile(
+      "thai-energy-planner-bills.csv",
+      exportToCsv(
+        rows.map((row) => ({
+          authority: row.authority,
+          energyKwh: row.energyKwh,
+          meterMode: row.meterMode,
+          month: row.month,
+          totalCostThb: row.totalCostThb
+        }))
+      ),
+      "text/csv;charset=utf-8"
+    );
+  }
+
   async function importWorkspace(file: File | undefined) {
     if (!file) return;
 
     try {
       const text = await file.text();
+      if (file.name.toLowerCase().endsWith(".csv") || text.trimStart().startsWith("month,")) {
+        const importedRows = parseBillCsv(text);
+        if (importedRows.length === 0) {
+          setSaveStatus("ไฟล์ CSV ไม่มีข้อมูลบิลที่นำเข้าได้");
+          return;
+        }
+        setRows(importedRows);
+        setSaveStatus("นำเข้า CSV แล้ว");
+        return;
+      }
+
       const parsed = JSON.parse(text) as Partial<StoredBillWorkspace>;
       if (!Array.isArray(parsed.rows) || parsed.rows.length === 0) {
         setSaveStatus("ไฟล์ไม่มีข้อมูลบิลที่นำเข้าได้");
@@ -226,7 +254,15 @@ export function GuidedBillWorkspace({
                 type="button"
               >
                 <Download aria-hidden="true" className="h-4 w-4" />
-                Export ข้อมูลบิล
+                Export JSON
+              </button>
+              <button
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={exportWorkspaceCsv}
+                type="button"
+              >
+                <Download aria-hidden="true" className="h-4 w-4" />
+                Export CSV
               </button>
               <button
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
@@ -234,10 +270,10 @@ export function GuidedBillWorkspace({
                 type="button"
               >
                 <Upload aria-hidden="true" className="h-4 w-4" />
-                Import JSON
+                Import JSON/CSV
               </button>
               <input
-                accept="application/json,.json"
+                accept="application/json,text/csv,.json,.csv"
                 className="hidden"
                 onChange={(event) => {
                   void importWorkspace(event.target.files?.[0]);
@@ -473,7 +509,11 @@ function loadStoredRows(initialBills: MonthlyBillInput[], audience: AnalysisAudi
 }
 
 function downloadJsonFile(fileName: string, payload: StoredBillWorkspace) {
-  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+  downloadTextFile(fileName, JSON.stringify(payload, null, 2), "application/json;charset=utf-8");
+}
+
+function downloadTextFile(fileName: string, content: string, type: string) {
+  const blob = new Blob([content], { type });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -482,6 +522,79 @@ function downloadJsonFile(fileName: string, payload: StoredBillWorkspace) {
   link.click();
   link.remove();
   URL.revokeObjectURL(url);
+}
+
+function parseBillCsv(csv: string): EditableBillRow[] {
+  const rows = parseCsvRows(csv).filter((row) => row.some((cell) => cell.trim() !== ""));
+  const [headers, ...dataRows] = rows;
+  if (!headers) return [];
+
+  const normalizedHeaders = headers.map((header) => header.trim());
+  const columnIndex = (name: string) => normalizedHeaders.findIndex((header) => header === name);
+  const monthIndex = columnIndex("month");
+  const energyIndex = columnIndex("energyKwh");
+  const costIndex = columnIndex("totalCostThb");
+  const authorityIndex = columnIndex("authority");
+  const meterModeIndex = columnIndex("meterMode");
+
+  if (monthIndex < 0 || energyIndex < 0 || costIndex < 0) return [];
+
+  return dataRows.map((row) => {
+    const authority = row[authorityIndex]?.trim();
+    const meterMode = row[meterModeIndex]?.trim();
+    return {
+      id: crypto.randomUUID(),
+      authority: authority === "MEA" ? "MEA" : "PEA",
+      energyKwh: row[energyIndex]?.trim() ?? "",
+      meterMode: meterMode === "tou" ? "tou" : "normal",
+      month: row[monthIndex]?.trim() ?? "",
+      totalCostThb: row[costIndex]?.trim() ?? ""
+    };
+  });
+}
+
+function parseCsvRows(csv: string): string[][] {
+  const rows: string[][] = [];
+  let currentRow: string[] = [];
+  let currentCell = "";
+  let insideQuotes = false;
+
+  for (let index = 0; index < csv.length; index += 1) {
+    const char = csv[index];
+    const nextChar = csv[index + 1];
+
+    if (char === '"' && insideQuotes && nextChar === '"') {
+      currentCell += '"';
+      index += 1;
+      continue;
+    }
+
+    if (char === '"') {
+      insideQuotes = !insideQuotes;
+      continue;
+    }
+
+    if (char === "," && !insideQuotes) {
+      currentRow.push(currentCell);
+      currentCell = "";
+      continue;
+    }
+
+    if ((char === "\n" || char === "\r") && !insideQuotes) {
+      if (char === "\r" && nextChar === "\n") index += 1;
+      currentRow.push(currentCell);
+      rows.push(currentRow);
+      currentRow = [];
+      currentCell = "";
+      continue;
+    }
+
+    currentCell += char;
+  }
+
+  currentRow.push(currentCell);
+  rows.push(currentRow);
+  return rows;
 }
 
 function toBillInput(row: EditableBillRow): MonthlyBillInput {
