@@ -49,6 +49,7 @@ export function getSolarDemo(params: SolarSearchParams): {
 } {
   const validationMessages: string[] = [];
   const profile = normalizeSolarProfile(getSingleParam(params.profile));
+  const demoInput = createDemoSolarInput(profile);
   const systemSizeKwp = getNumberParam(params.systemSizeKwp, profile === "daytime_shop" ? 8 : 5, 0.1, "ขนาด Solar", validationMessages);
   const capexThb = getNumberParam(params.capexThb, systemSizeKwp * 42000, 0, "CAPEX", validationMessages);
   const exportEnabled = getBooleanParam(params.exportEnabled, true);
@@ -63,7 +64,7 @@ export function getSolarDemo(params: SolarSearchParams): {
     projectLifeYears: getNumberParam(params.projectLifeYears, 20, 1, "อายุโครงการ", validationMessages),
     discountRatePercent: getNumberParam(params.discountRatePercent, 6, 0, "discount rate", validationMessages),
     exportEnabled,
-    exportRateThbPerKwh: getNumberParam(params.exportRateThbPerKwh, 0.8, 0, "อัตรารับซื้อไฟ", validationMessages),
+    exportRateThbPerKwh: getNumberParam(params.exportRateThbPerKwh, demoInput.exportPolicy.exportRateThbPerKwh, 0, "อัตรารับซื้อไฟ", validationMessages),
     validationMessages
   };
   const input = createDemoSolarInput(profile, {
