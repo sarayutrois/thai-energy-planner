@@ -1,0 +1,21 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: thai-energy-planner-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: thai_energy
+      POSTGRES_PASSWORD: thai_energy_password
+      POSTGRES_DB: thai_energy_planner
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U thai_energy -d thai_energy_planner"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+volumes:
+  postgres-data:

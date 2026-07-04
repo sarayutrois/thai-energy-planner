@@ -1,0 +1,44 @@
+{
+  "status": "draft",
+  "authority": "PEA",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "sourceUrl": "https://example.com/thai-energy-planner/demo-tariff-not-real",
+  "verifiedAt": null,
+  "verifiedBy": null,
+  "notes": "Synthetic demo tariff for Phase 2 engine tests only. These numbers are not official PEA or MEA rates.",
+  "roundingPolicy": {
+    "moneyDecimalPlaces": 2,
+    "energyDecimalPlaces": 6,
+    "demandDecimalPlaces": 6,
+    "roundingMode": "half_up",
+    "roundAt": "component"
+  },
+  "normal": {
+    "serviceChargeThb": "10",
+    "energyRateTiers": [
+      { "fromKwh": "0", "toKwh": "100", "rateThbPerKwh": "1.00", "sortOrder": 1 },
+      { "fromKwh": "100", "toKwh": "200", "rateThbPerKwh": "2.00", "sortOrder": 2 },
+      { "fromKwh": "200", "toKwh": null, "rateThbPerKwh": "3.00", "sortOrder": 3 }
+    ]
+  },
+  "tou": {
+    "serviceChargeThb": "10",
+    "periods": [
+      { "label": "Demo Peak Weekday", "periodType": "peak", "startTime": "09:00", "endTime": "22:00", "daysOfWeek": [1, 2, 3, 4, 5], "appliesOnHolidays": false, "rateThbPerKwh": "5.00" },
+      { "label": "Demo Off-Peak Late Night", "periodType": "off_peak", "startTime": "22:00", "endTime": "24:00", "daysOfWeek": [1, 2, 3, 4, 5], "appliesOnHolidays": false, "rateThbPerKwh": "2.00" },
+      { "label": "Demo Off-Peak Morning", "periodType": "off_peak", "startTime": "00:00", "endTime": "09:00", "daysOfWeek": [1, 2, 3, 4, 5], "appliesOnHolidays": false, "rateThbPerKwh": "2.00" },
+      { "label": "Demo Off-Peak Weekend", "periodType": "off_peak", "startTime": "00:00", "endTime": "24:00", "daysOfWeek": [0, 6], "appliesOnHolidays": false, "rateThbPerKwh": "2.00" },
+      { "label": "Demo Off-Peak Holiday", "periodType": "off_peak", "startTime": "00:00", "endTime": "24:00", "daysOfWeek": [], "appliesOnHolidays": true, "rateThbPerKwh": "2.00" }
+    ]
+  },
+  "ftPeriods": [
+    { "effectiveFrom": "2026-01-01", "effectiveTo": null, "ftThbPerKwh": "0.50", "sourceUrl": "https://example.com/thai-energy-planner/demo-tariff-not-real", "verifiedAt": null }
+  ],
+  "taxRates": [
+    { "name": "Demo VAT", "ratePercent": "7", "effectiveFrom": "2026-01-01", "effectiveTo": null }
+  ],
+  "holidays": [
+    { "date": "2026-01-01", "nameTh": "วันหยุดตัวอย่าง", "nameEn": "Demo holiday", "isSubstitute": false, "sourceUrl": "https://example.com/thai-energy-planner/demo-tariff-not-real" }
+  ]
+}

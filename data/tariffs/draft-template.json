@@ -1,0 +1,11 @@
+{
+  "status": "draft",
+  "authority": "PEA",
+  "effectiveFrom": "2026-01-01",
+  "effectiveTo": null,
+  "sourceUrl": null,
+  "verifiedAt": null,
+  "verifiedBy": null,
+  "notes": "Template only. Do not use for production calculation until official tariff rates are verified.",
+  "rates": []
+}

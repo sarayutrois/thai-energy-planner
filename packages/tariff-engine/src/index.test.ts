@@ -1,0 +1,202 @@
+import { describe, expect, it } from "vitest";
+import {
+  calculateNormalBill,
+  calculateNormalBillFromVersions,
+  calculateTouBill,
+  demoNormalTariff,
+  demoTouTariff,
+  selectTariffVersion
+} from "./index";
+import type { TariffVersionConfig } from "./index";
+
+function cloneTariff(tariff: TariffVersionConfig): TariffVersionConfig {
+  return structuredClone(tariff) as TariffVersionConfig;
+}
+
+describe("tariff version selection", () => {
+  it("selects the matching verified version by bill date", () => {
+    const older = {
+      ...cloneTariff(demoNormalTariff),
+      id: "older",
+      status: "verified" as const,
+      effectiveFrom: "2025-01-01",
+      effectiveTo: "2025-12-31"
+    };
+    const current = {
+      ...cloneTariff(demoNormalTariff),
+      id: "current",
+      status: "verified" as const,
+      effectiveFrom: "2026-01-01",
+      effectiveTo: null
+    };
+
+    const selected = selectTariffVersion({
+      authority: "PEA",
+      customerSegment: "residential",
+      meterMode: "normal",
+      billDate: "2026-05-01",
+      versions: [older, current]
+    });
+
+    expect(selected?.id).toBe("current");
+  });
+
+  it("can include draft versions explicitly for developer demo calculation", () => {
+    const selected = selectTariffVersion({
+      authority: "PEA",
+      customerSegment: "residential",
+      meterMode: "normal",
+      billDate: "2026-05-01",
+      versions: [demoNormalTariff],
+      allowedStatuses: ["draft"]
+    });
+
+    expect(selected?.status).toBe("draft");
+  });
+});
+
+describe("normal tariff calculation", () => {
+  it("calculates tiered energy, Ft, VAT, and breakdown from configuration", () => {
+    const result = calculateNormalBill({
+      tariffVersion: demoNormalTariff,
+      billDate: "2026-02-01",
+      energyKwh: "250",
+      snapshotCapturedAt: "2026-07-04T00:00:00.000Z"
+    });
+
+    expect(result.baseEnergyCharge).toBe("450.00");
+    expect(result.ftCharge).toBe("125.00");
+    expect(result.serviceCharge).toBe("10.00");
+    expect(result.subtotalBeforeVat).toBe("585.00");
+    expect(result.vat).toBe("40.95");
+    expect(result.grandTotal).toBe("625.95");
+    expect(result.effectiveRatePerKwh).toBe("2.503800");
+    expect(result.tariffSnapshot.tariffVersion.energyRateTiers).toHaveLength(3);
+  });
+
+  it("does not spill units into the next tier at an exact tier boundary", () => {
+    const result = calculateNormalBill({
+      tariffVersion: demoNormalTariff,
+      billDate: "2026-02-01",
+      energyKwh: "100"
+    });
+
+    expect(result.baseEnergyCharge).toBe("100.00");
+  });
+
+  it("applies component rounding before VAT according to policy", () => {
+    const tariff = cloneTariff(demoNormalTariff);
+    tariff.energyRateTiers = [{ fromKwh: "0", toKwh: null, rateThbPerKwh: "0.333", sortOrder: 1 }];
+    const ftPeriod = tariff.ftPeriods[0];
+    if (!ftPeriod) {
+      throw new Error("Expected demo tariff to include an Ft period");
+    }
+    tariff.ftPeriods = [{ ...ftPeriod, ftThbPerKwh: "0" }];
+    tariff.serviceChargeThb = "0";
+
+    const result = calculateNormalBill({
+      tariffVersion: tariff,
+      billDate: "2026-02-01",
+      energyKwh: "1"
+    });
+
+    expect(result.baseEnergyCharge).toBe("0.33");
+    expect(result.vat).toBe("0.02");
+    expect(result.grandTotal).toBe("0.35");
+  });
+
+  it("calculates through version selection for a bill date", () => {
+    const result = calculateNormalBillFromVersions({
+      authority: "PEA",
+      customerSegment: "residential",
+      allowedStatuses: ["draft"],
+      versions: [demoNormalTariff],
+      billDate: "2026-05-01",
+      energyKwh: "100"
+    });
+
+    expect(result.tariffVersionId).toBe(demoNormalTariff.id);
+  });
+});
+
+describe("TOU tariff calculation", () => {
+  it("classifies weekday peak intervals", () => {
+    const result = calculateTouBill({
+      tariffVersion: demoTouTariff,
+      intervals: [{ timestamp: "2026-01-05T10:00:00+07:00", energyKwh: "10" }]
+    });
+
+    expect(result.peakEnergyKwh).toBe("10.000000");
+    expect(result.peakEnergyCharge).toBe("50.00");
+    expect(result.offPeakEnergyCharge).toBe("0.00");
+  });
+
+  it("classifies weekday off-peak intervals", () => {
+    const result = calculateTouBill({
+      tariffVersion: demoTouTariff,
+      intervals: [{ timestamp: "2026-01-05T23:00:00+07:00", energyKwh: "10" }]
+    });
+
+    expect(result.offPeakEnergyKwh).toBe("10.000000");
+    expect(result.offPeakEnergyCharge).toBe("20.00");
+  });
+
+  it("classifies Saturday and Sunday as off-peak by configuration", () => {
+    const result = calculateTouBill({
+      tariffVersion: demoTouTariff,
+      intervals: [
+        { timestamp: "2026-01-03T10:00:00+07:00", energyKwh: "5" },
+        { timestamp: "2026-01-04T10:00:00+07:00", energyKwh: "5" }
+      ]
+    });
+
+    expect(result.peakEnergyKwh).toBe("0.000000");
+    expect(result.offPeakEnergyKwh).toBe("10.000000");
+    expect(result.offPeakEnergyCharge).toBe("20.00");
+  });
+
+  it("uses the holiday table to override weekday peak periods", () => {
+    const result = calculateTouBill({
+      tariffVersion: demoTouTariff,
+      intervals: [{ timestamp: "2026-01-01T10:00:00+07:00", energyKwh: "10" }]
+    });
+
+    expect(result.intervalTraces[0]?.isHoliday).toBe(true);
+    expect(result.intervalTraces[0]?.periodType).toBe("off_peak");
+    expect(result.offPeakEnergyCharge).toBe("20.00");
+  });
+
+  it("handles timestamps that cross day boundaries", () => {
+    const result = calculateTouBill({
+      tariffVersion: demoTouTariff,
+      intervals: [
+        { timestamp: "2026-01-05T23:30:00+07:00", energyKwh: "1" },
+        { timestamp: "2026-01-06T10:00:00+07:00", energyKwh: "1" }
+      ]
+    });
+
+    expect(result.offPeakEnergyCharge).toBe("2.00");
+    expect(result.peakEnergyCharge).toBe("5.00");
+  });
+
+  it("includes Ft, VAT, and a breakdown whose total matches grand total", () => {
+    const result = calculateTouBill({
+      tariffVersion: demoTouTariff,
+      intervals: [
+        { timestamp: "2026-01-05T10:00:00+07:00", energyKwh: "10" },
+        { timestamp: "2026-01-05T23:00:00+07:00", energyKwh: "10" }
+      ]
+    });
+
+    expect(result.peakEnergyCharge).toBe("50.00");
+    expect(result.offPeakEnergyCharge).toBe("20.00");
+    expect(result.ftCharge).toBe("10.00");
+    expect(result.serviceCharge).toBe("10.00");
+    expect(result.subtotalBeforeVat).toBe("90.00");
+    expect(result.vat).toBe("6.30");
+    expect(result.grandTotal).toBe("96.30");
+
+    const grandTotalLine = result.lineItems.find((item) => item.component === "grandTotal");
+    expect(grandTotalLine?.amountThb).toBe(result.grandTotal);
+  });
+});

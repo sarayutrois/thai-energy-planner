@@ -1,0 +1,1119 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  USER
+  ADMIN
+}
+
+enum TariffStatus {
+  DRAFT
+  VERIFIED
+  PUBLISHED
+  RETIRED
+}
+
+enum Authority {
+  PEA
+  MEA
+}
+
+enum CustomerSegment {
+  RESIDENTIAL
+  SMALL_BUSINESS
+  MEDIUM_BUSINESS
+  LARGE_BUSINESS
+}
+
+enum MeterMode {
+  NORMAL
+  TOU
+}
+
+enum LoadSource {
+  BILL
+  CSV
+  XLSX
+  APPLIANCE
+  DEMO
+}
+
+enum ImportJobStatus {
+  DRAFT
+  PREVIEWED
+  IMPORTED
+  FAILED
+}
+
+enum ImportIssueSeverity {
+  WARNING
+  ERROR
+}
+
+enum ScenarioKind {
+  CURRENT_NORMAL
+  CURRENT_TOU
+  SWITCH_TO_TOU_NO_BEHAVIOR_CHANGE
+  LOAD_SHIFT_TO_OFF_PEAK
+  CUSTOM_LOAD_SHIFT
+  BASELINE_NORMAL
+  TOU_NO_SHIFT
+  TOU_LOAD_SHIFT
+  NORMAL_SOLAR
+  TOU_SOLAR
+  SOLAR_BATTERY
+  TOU_SOLAR_BATTERY
+  EV_CURRENT_CHARGING
+  EV_OFF_PEAK_CHARGING
+}
+
+enum ReportFormat {
+  PDF
+  CSV
+  JSON
+  PRINT
+}
+
+model User {
+  id             String         @id @default(cuid())
+  email          String?        @unique
+  name           String?
+  role           UserRole       @default(USER)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+  organizations  Organization[]
+  analysisRuns   AnalysisRun[]
+  auditLogs       AuditLog[]
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  ownerId   String?
+  owner     User?    @relation(fields: [ownerId], references: [id], onDelete: SetNull)
+  sites     Site[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Site {
+  id             String          @id @default(cuid())
+  organizationId String?
+  organization   Organization?   @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  name           String
+  province       String?
+  customerSegment CustomerSegment @default(RESIDENTIAL)
+  authority      Authority?
+  timezone       String          @default("Asia/Bangkok")
+  meters         Meter[]
+  appliances     Appliance[]
+  solarProfiles  SolarProfile[]
+  analysisRuns   AnalysisRun[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model Meter {
+  id          String            @id @default(cuid())
+  siteId      String
+  site        Site              @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name        String
+  authority   Authority
+  mode        MeterMode         @default(NORMAL)
+  meterSize   String?
+  voltage     String?
+  bills       ElectricityBill[]
+  loadProfiles LoadProfile[]
+  analysisRuns AnalysisRun[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+}
+
+model ElectricityBill {
+  id             String   @id @default(cuid())
+  meterId        String
+  meter          Meter    @relation(fields: [meterId], references: [id], onDelete: Cascade)
+  billMonth      DateTime
+  energyKwh      Decimal  @db.Decimal(14, 4)
+  totalCostThb   Decimal  @db.Decimal(14, 4)
+  ftThbPerKwh    Decimal? @db.Decimal(10, 6)
+  serviceCharge  Decimal? @db.Decimal(12, 4)
+  vatThb         Decimal? @db.Decimal(12, 4)
+  rawBillData    Json?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([meterId, billMonth])
+}
+
+model LoadProfile {
+  id             String         @id @default(cuid())
+  meterId        String?
+  meter          Meter?         @relation(fields: [meterId], references: [id], onDelete: Cascade)
+  name           String
+  source         LoadSource
+  intervalMinutes Int
+  timezone       String         @default("Asia/Bangkok")
+  qualityScore   Int?
+  validationSummary Json?
+  intervals      LoadInterval[]
+  importJobs     ImportJob[]
+  analysisRuns   AnalysisRun[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+}
+
+model LoadInterval {
+  id             String      @id @default(cuid())
+  loadProfileId  String
+  loadProfile    LoadProfile @relation(fields: [loadProfileId], references: [id], onDelete: Cascade)
+  timestamp      DateTime
+  energyKwh      Decimal     @db.Decimal(14, 6)
+  powerKw        Decimal?    @db.Decimal(14, 6)
+  voltage        Decimal?    @db.Decimal(10, 4)
+  powerFactor    Decimal?    @db.Decimal(6, 5)
+  metadata       Json?
+
+  @@unique([loadProfileId, timestamp])
+  @@index([timestamp])
+  @@index([loadProfileId, timestamp])
+}
+
+model Appliance {
+  id             String              @id @default(cuid())
+  siteId         String
+  site           Site                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String
+  category       String
+  powerWatt      Decimal             @db.Decimal(12, 4)
+  quantity       Int                 @default(1)
+  loadFactor     Decimal?            @db.Decimal(6, 5)
+  schedules      ApplianceSchedule[]
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+}
+
+model ApplianceSchedule {
+  id                String    @id @default(cuid())
+  applianceId       String
+  appliance         Appliance @relation(fields: [applianceId], references: [id], onDelete: Cascade)
+  startTime         String
+  endTime           String
+  daysOfWeek        Int[]
+  workingDayOnly    Boolean   @default(false)
+  holidayOnly       Boolean   @default(false)
+  seasonalMonths    Int[]
+  hoursPerDay       Decimal?  @db.Decimal(6, 2)
+  daysPerWeek       Decimal?  @db.Decimal(6, 2)
+}
+
+model ImportJob {
+  id                 String                  @id @default(cuid())
+  loadProfileId      String?
+  loadProfile        LoadProfile?            @relation(fields: [loadProfileId], references: [id], onDelete: SetNull)
+  source             LoadSource
+  status             ImportJobStatus         @default(DRAFT)
+  originalFileName   String?
+  fileMimeType       String?
+  fileSizeBytes      Int?
+  intervalMinutes    Int?
+  timezone           String                  @default("Asia/Bangkok")
+  columnMapping      Json
+  previewSummary     Json?
+  rowCount           Int                     @default(0)
+  importedRowCount   Int                     @default(0)
+  issues             ImportValidationIssue[]
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime                @updatedAt
+
+  @@index([loadProfileId])
+  @@index([status, createdAt])
+}
+
+model ImportValidationIssue {
+  id          String              @id @default(cuid())
+  importJobId String
+  importJob   ImportJob           @relation(fields: [importJobId], references: [id], onDelete: Cascade)
+  severity    ImportIssueSeverity
+  code        String
+  messageTh   String
+  rowNumber   Int?
+  field       String?
+  value       String?
+  createdAt   DateTime            @default(now())
+
+  @@index([importJobId, severity])
+  @@index([code])
+}
+
+model TariffPlan {
+  id              String           @id @default(cuid())
+  authority       Authority
+  customerSegment CustomerSegment
+  meterMode       MeterMode
+  voltageLevel    String?
+  name            String
+  versions        TariffVersion[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+
+  @@index([authority, customerSegment, meterMode])
+}
+
+model TariffVersion {
+  id               String             @id @default(cuid())
+  tariffPlanId     String
+  tariffPlan       TariffPlan         @relation(fields: [tariffPlanId], references: [id], onDelete: Cascade)
+  status           TariffStatus       @default(DRAFT)
+  versionLabel     String
+  effectiveFrom    DateTime
+  effectiveTo      DateTime?
+  authority        Authority
+  sourceUrl        String?
+  verifiedAt       DateTime?
+  verifiedBy       String?
+  notes            String?
+  serviceChargeThb Decimal?           @db.Decimal(12, 4)
+  roundingPolicy   Json?
+  tariffSnapshot   Json?
+  energyRateTiers  EnergyRateTier[]
+  touPeriods       TouPeriod[]
+  demandRates      DemandRate[]
+  ftPeriods        FtPeriod[]
+  taxRates         TaxRate[]
+  policyIncentives PolicyIncentive[]
+  analysisRuns     AnalysisRun[]
+  snapshots         TariffSnapshot[]
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime           @updatedAt
+
+  @@index([tariffPlanId, status, effectiveFrom, effectiveTo])
+  @@index([authority, effectiveFrom])
+}
+
+model EnergyRateTier {
+  id              String        @id @default(cuid())
+  tariffVersionId String
+  tariffVersion   TariffVersion @relation(fields: [tariffVersionId], references: [id], onDelete: Cascade)
+  fromKwh         Decimal       @db.Decimal(14, 4)
+  toKwh           Decimal?      @db.Decimal(14, 4)
+  rateThbPerKwh   Decimal       @db.Decimal(12, 6)
+  sortOrder       Int
+}
+
+model TouPeriod {
+  id              String        @id @default(cuid())
+  tariffVersionId String
+  tariffVersion   TariffVersion @relation(fields: [tariffVersionId], references: [id], onDelete: Cascade)
+  label           String
+  periodType      String        @default("off_peak")
+  startTime       String
+  endTime         String
+  daysOfWeek      Int[]
+  includesHoliday Boolean       @default(false)
+  rateThbPerKwh   Decimal       @db.Decimal(12, 6)
+}
+
+model DemandRate {
+  id              String        @id @default(cuid())
+  tariffVersionId String
+  tariffVersion   TariffVersion @relation(fields: [tariffVersionId], references: [id], onDelete: Cascade)
+  label           String
+  rateThbPerKw    Decimal       @db.Decimal(12, 6)
+  startTime       String?
+  endTime         String?
+  daysOfWeek      Int[]
+}
+
+model FtPeriod {
+  id              String        @id @default(cuid())
+  tariffVersionId String
+  tariffVersion   TariffVersion @relation(fields: [tariffVersionId], references: [id], onDelete: Cascade)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  ftThbPerKwh     Decimal       @db.Decimal(12, 6)
+  sourceUrl       String?
+  verifiedAt      DateTime?
+}
+
+model TaxRate {
+  id              String        @id @default(cuid())
+  tariffVersionId String
+  tariffVersion   TariffVersion @relation(fields: [tariffVersionId], references: [id], onDelete: Cascade)
+  name            String
+  ratePercent     Decimal       @db.Decimal(8, 5)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+}
+
+model Holiday {
+  id            String    @id @default(cuid())
+  date          DateTime
+  nameTh        String
+  nameEn        String?
+  isSubstitute  Boolean   @default(false)
+  authority     String?
+  sourceUrl     String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@unique([date, nameTh])
+  @@index([date])
+}
+
+model PolicyIncentive {
+  id              String        @id @default(cuid())
+  tariffVersionId String
+  tariffVersion   TariffVersion @relation(fields: [tariffVersionId], references: [id], onDelete: Cascade)
+  name            String
+  description     String
+  valueType       String
+  value           Decimal?      @db.Decimal(14, 6)
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+}
+
+model SolarProfile {
+  id             String          @id @default(cuid())
+  siteId         String?
+  site           Site?           @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  name           String
+  province       String?
+  method         String
+  intervalMinutes Int?
+  assumptions    Json
+  scenarios      SolarScenario[]
+  generationProfiles SolarGenerationProfile[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+model SolarScenario {
+  id                String     @id @default(cuid())
+  solarProfileId    String?
+  solarProfile      SolarProfile? @relation(fields: [solarProfileId], references: [id], onDelete: SetNull)
+  analysisRunId     String?
+  loadProfileId     String?
+  tariffPlanId      String?
+  tariffVersionId   String?
+  scenarioName      String?
+  systemSizeKwp     Decimal    @db.Decimal(10, 4)
+  panelWatt         Decimal?   @db.Decimal(10, 4)
+  numberOfPanels    Int?
+  inverterSizeKw    Decimal?   @db.Decimal(10, 4)
+  roofAreaSqm       Decimal?   @db.Decimal(12, 4)
+  roofAzimuth       Decimal?   @db.Decimal(8, 3)
+  roofTilt          Decimal?   @db.Decimal(8, 3)
+  province          String?
+  systemLossPercent Decimal?   @db.Decimal(8, 5)
+  shadingLossPercent Decimal?  @db.Decimal(8, 5)
+  degradationPercentPerYear Decimal? @db.Decimal(8, 5)
+  capex             Decimal?   @db.Decimal(14, 4)
+  oAndMCostPerYear  Decimal?   @db.Decimal(14, 4)
+  inverterReplacementCost Decimal? @db.Decimal(14, 4)
+  inverterReplacementYear Int?
+  projectLifeYears  Int?
+  exportEnabled     Boolean    @default(false)
+  exportRate        Decimal?   @db.Decimal(12, 6)
+  exportLimitKw     Decimal?   @db.Decimal(12, 4)
+  installCostThb    Decimal?   @db.Decimal(14, 4)
+  assumptions       Json
+  assumptionsSnapshot Json?
+  tariffSnapshot    Json?
+  systemConfig      SolarSystemConfig?
+  generationProfiles SolarGenerationProfile[]
+  sizingOptions     SolarSizingOption[]
+  financialResults  FinancialResult[]
+  sensitivityResults SensitivityResult[]
+  scenarios         Scenario[]
+
+  @@index([analysisRunId])
+  @@index([loadProfileId])
+  @@index([tariffVersionId])
+}
+
+model SolarSystemConfig {
+  id                         String        @id @default(cuid())
+  solarScenarioId            String        @unique
+  solarScenario              SolarScenario @relation(fields: [solarScenarioId], references: [id], onDelete: Cascade)
+  systemSizeKwp              Decimal       @db.Decimal(10, 4)
+  panelWatt                  Decimal?      @db.Decimal(10, 4)
+  numberOfPanels             Int?
+  inverterSizeKw             Decimal?      @db.Decimal(10, 4)
+  roofAreaSqm                Decimal?      @db.Decimal(12, 4)
+  roofAzimuth                Decimal?      @db.Decimal(8, 3)
+  roofTilt                   Decimal?      @db.Decimal(8, 3)
+  systemLossPercent          Decimal       @db.Decimal(8, 5)
+  shadingLossPercent         Decimal       @db.Decimal(8, 5)
+  degradationPercentPerYear  Decimal       @db.Decimal(8, 5)
+  exportEnabled              Boolean       @default(false)
+  exportRate                 Decimal?      @db.Decimal(12, 6)
+  exportLimitKw              Decimal?      @db.Decimal(12, 4)
+  createdAt                  DateTime      @default(now())
+  updatedAt                  DateTime      @updatedAt
+}
+
+model SolarGenerationProfile {
+  id                 String                    @id @default(cuid())
+  solarProfileId     String?
+  solarProfile       SolarProfile?             @relation(fields: [solarProfileId], references: [id], onDelete: SetNull)
+  solarScenarioId    String?
+  solarScenario      SolarScenario?            @relation(fields: [solarScenarioId], references: [id], onDelete: SetNull)
+  name               String
+  method             String
+  status             String                    @default("demo")
+  sourceUrl          String?
+  province           String?
+  intervalMinutes    Int
+  annualGenerationKwh Decimal?                 @db.Decimal(14, 6)
+  monthlyGeneration  Json
+  assumptions        Json
+  intervals          SolarGenerationInterval[]
+  createdAt          DateTime                  @default(now())
+
+  @@index([solarProfileId])
+  @@index([solarScenarioId])
+}
+
+model SolarGenerationInterval {
+  id                         String                 @id @default(cuid())
+  solarGenerationProfileId   String
+  solarGenerationProfile     SolarGenerationProfile @relation(fields: [solarGenerationProfileId], references: [id], onDelete: Cascade)
+  timestamp                  DateTime
+  generationKwh              Decimal                @db.Decimal(14, 6)
+  powerKw                    Decimal?               @db.Decimal(14, 6)
+
+  @@unique([solarGenerationProfileId, timestamp])
+  @@index([timestamp])
+}
+
+model SolarSizingOption {
+  id                         String        @id @default(cuid())
+  solarScenarioId            String
+  solarScenario              SolarScenario @relation(fields: [solarScenarioId], references: [id], onDelete: Cascade)
+  systemSizeKwp              Decimal       @db.Decimal(10, 4)
+  annualGenerationKwh        Decimal       @db.Decimal(14, 6)
+  selfConsumedKwh            Decimal       @db.Decimal(14, 6)
+  exportedKwh                Decimal       @db.Decimal(14, 6)
+  selfConsumptionRatio       Decimal       @db.Decimal(8, 5)
+  annualSavingsThb           Decimal       @db.Decimal(14, 4)
+  exportRevenueThb           Decimal       @db.Decimal(14, 4)
+  capexThb                   Decimal       @db.Decimal(14, 4)
+  paybackYears               Decimal?      @db.Decimal(10, 4)
+  npvThb                     Decimal?      @db.Decimal(14, 4)
+  irrPercent                 Decimal?      @db.Decimal(10, 4)
+  roiPercent                 Decimal?      @db.Decimal(10, 4)
+  recommendationTag          String?
+  trace                      Json
+
+  @@index([solarScenarioId])
+  @@index([systemSizeKwp])
+}
+
+model BatteryScenario {
+  id                    String     @id @default(cuid())
+  capacityKwh           Decimal    @db.Decimal(12, 4)
+  usableCapacityKwh     Decimal    @db.Decimal(12, 4)
+  minSocPercent         Decimal    @db.Decimal(8, 5)
+  maxSocPercent         Decimal    @db.Decimal(8, 5)
+  initialSocPercent     Decimal    @db.Decimal(8, 5)
+  chargePowerKw         Decimal    @db.Decimal(12, 4)
+  dischargePowerKw      Decimal    @db.Decimal(12, 4)
+  roundTripEfficiency   Decimal    @db.Decimal(8, 5)
+  controlMode           String
+  assumptions           Json
+  config                BatteryConfig?
+  dispatchIntervals     BatteryDispatchInterval[]
+  financialResults      BatteryFinancialResult[]
+  recommendations       BatteryRecommendation[]
+  operationSummaries    BatteryOperationSummary[]
+  scenarios             Scenario[]
+}
+
+model BatteryConfig {
+  id                         String          @id @default(cuid())
+  batteryScenarioId          String          @unique
+  batteryScenario            BatteryScenario @relation(fields: [batteryScenarioId], references: [id], onDelete: Cascade)
+  capacityKwh                Decimal         @db.Decimal(12, 4)
+  usableCapacityKwh          Decimal         @db.Decimal(12, 4)
+  initialSocPercent          Decimal         @db.Decimal(8, 5)
+  minSocPercent              Decimal         @db.Decimal(8, 5)
+  maxSocPercent              Decimal         @db.Decimal(8, 5)
+  chargePowerKw              Decimal         @db.Decimal(12, 4)
+  dischargePowerKw           Decimal         @db.Decimal(12, 4)
+  chargeEfficiency           Decimal         @db.Decimal(8, 5)
+  dischargeEfficiency        Decimal         @db.Decimal(8, 5)
+  roundTripEfficiency        Decimal         @db.Decimal(8, 5)
+  degradationPercentPerYear  Decimal?        @db.Decimal(8, 5)
+  cycleLife                  Int?
+  capexThb                   Decimal?        @db.Decimal(14, 4)
+  oAndMCostPerYear           Decimal?        @db.Decimal(14, 4)
+  replacementCostThb         Decimal?        @db.Decimal(14, 4)
+  replacementYear            Int?
+  backupReservePercent       Decimal         @db.Decimal(8, 5)
+  dispatchStrategy           String
+  sourceStatus               String          @default("demo")
+  sourceUrl                  String?
+  notes                      String?
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+}
+
+model BatteryDispatchInterval {
+  id                         String          @id @default(cuid())
+  batteryScenarioId          String
+  batteryScenario            BatteryScenario @relation(fields: [batteryScenarioId], references: [id], onDelete: Cascade)
+  timestamp                  DateTime
+  loadKwh                    Decimal         @db.Decimal(14, 6)
+  solarKwh                   Decimal         @db.Decimal(14, 6)
+  availableSolarSurplusKwh   Decimal         @db.Decimal(14, 6)
+  socBeforeKwh               Decimal         @db.Decimal(14, 6)
+  socAfterKwh                Decimal         @db.Decimal(14, 6)
+  chargeKwh                  Decimal         @db.Decimal(14, 6)
+  dischargeKwh               Decimal         @db.Decimal(14, 6)
+  chargeFromSolarKwh         Decimal         @db.Decimal(14, 6)
+  chargeFromGridKwh          Decimal         @db.Decimal(14, 6)
+  dischargeToLoadKwh         Decimal         @db.Decimal(14, 6)
+  gridImportBeforeKwh        Decimal         @db.Decimal(14, 6)
+  gridImportAfterKwh         Decimal         @db.Decimal(14, 6)
+  gridExportBeforeKwh        Decimal         @db.Decimal(14, 6)
+  gridExportAfterKwh         Decimal         @db.Decimal(14, 6)
+  curtailedKwh               Decimal         @db.Decimal(14, 6)
+  trace                      Json
+
+  @@unique([batteryScenarioId, timestamp])
+  @@index([timestamp])
+}
+
+model BatteryOperationSummary {
+  id                         String          @id @default(cuid())
+  batteryScenarioId          String
+  batteryScenario            BatteryScenario @relation(fields: [batteryScenarioId], references: [id], onDelete: Cascade)
+  dispatchStrategy           String
+  totalChargedKwh            Decimal         @db.Decimal(14, 6)
+  totalDischargedKwh         Decimal         @db.Decimal(14, 6)
+  chargedFromSolarKwh        Decimal         @db.Decimal(14, 6)
+  chargedFromGridKwh         Decimal         @db.Decimal(14, 6)
+  dischargedToLoadKwh        Decimal         @db.Decimal(14, 6)
+  gridImportBeforeKwh        Decimal         @db.Decimal(14, 6)
+  gridImportAfterKwh         Decimal         @db.Decimal(14, 6)
+  gridExportBeforeKwh        Decimal         @db.Decimal(14, 6)
+  gridExportAfterKwh         Decimal         @db.Decimal(14, 6)
+  peakDemandBeforeKw         Decimal         @db.Decimal(14, 6)
+  peakDemandAfterKw          Decimal         @db.Decimal(14, 6)
+  selfConsumptionBeforeRatio Decimal?        @db.Decimal(8, 5)
+  selfConsumptionAfterRatio  Decimal?        @db.Decimal(8, 5)
+  backupReserveKwh           Decimal         @db.Decimal(14, 6)
+  estimatedBackupHours       Decimal?        @db.Decimal(12, 4)
+  energyBalanceDeltaKwh      Decimal         @db.Decimal(14, 6)
+  createdAt                  DateTime        @default(now())
+
+  @@index([batteryScenarioId])
+}
+
+model BatteryFinancialResult {
+  id                         String          @id @default(cuid())
+  batteryScenarioId          String
+  batteryScenario            BatteryScenario @relation(fields: [batteryScenarioId], references: [id], onDelete: Cascade)
+  billBeforeBatteryThb       Decimal         @db.Decimal(14, 4)
+  billAfterBatteryThb        Decimal         @db.Decimal(14, 4)
+  annualBillSavingsThb       Decimal         @db.Decimal(14, 4)
+  increasedSelfConsumptionKwh Decimal?       @db.Decimal(14, 6)
+  exportRevenueReductionThb  Decimal?        @db.Decimal(14, 4)
+  simplePaybackYears         Decimal?        @db.Decimal(10, 4)
+  discountedPaybackYears     Decimal?        @db.Decimal(10, 4)
+  roiPercent                 Decimal?        @db.Decimal(10, 4)
+  npvThb                     Decimal?        @db.Decimal(14, 4)
+  irrPercent                 Decimal?        @db.Decimal(10, 4)
+  costPerUsableKwh           Decimal?        @db.Decimal(12, 6)
+  costPerCycle               Decimal?        @db.Decimal(12, 6)
+  assumptionsSnapshot        Json
+  trace                      Json
+  createdAt                  DateTime        @default(now())
+
+  @@index([batteryScenarioId])
+}
+
+model BatteryRecommendation {
+  id                         String          @id @default(cuid())
+  batteryScenarioId          String
+  batteryScenario            BatteryScenario @relation(fields: [batteryScenarioId], references: [id], onDelete: Cascade)
+  type                       String
+  title                      String
+  explanation                String
+  confidence                 String
+  supportingMetrics          Json
+  limitations                Json
+  nextAction                 String
+  createdAt                  DateTime        @default(now())
+
+  @@index([batteryScenarioId])
+}
+
+model EvScenario {
+  id                 String     @id @default(cuid())
+  dailyDistanceKm    Decimal    @db.Decimal(10, 4)
+  efficiencyKmPerKwh Decimal    @db.Decimal(10, 4)
+  vehicleBatteryKwh  Decimal    @db.Decimal(10, 4)
+  chargerPowerKw     Decimal    @db.Decimal(10, 4)
+  arrivalTime        String
+  departureTime      String
+  travelDaysPerWeek  Int
+  targetSocPercent   Decimal    @db.Decimal(8, 5)
+  chargingStrategy   String
+  assumptions        Json
+  config             EvConfig?
+  chargingSchedules  EvChargingSchedule[]
+  chargingIntervals  EvChargingInterval[]
+  financialResults   EvFinancialResult[]
+  recommendations    EvRecommendation[]
+  scenarios          Scenario[]
+}
+
+model EvConfig {
+  id                         String     @id @default(cuid())
+  evScenarioId               String     @unique
+  evScenario                 EvScenario @relation(fields: [evScenarioId], references: [id], onDelete: Cascade)
+  vehicleName                String
+  batteryCapacityKwh         Decimal    @db.Decimal(10, 4)
+  efficiencyKmPerKwh         Decimal    @db.Decimal(10, 4)
+  dailyDistanceKm            Decimal    @db.Decimal(10, 4)
+  weeklyDrivingDays          Int
+  chargerPowerKw             Decimal    @db.Decimal(10, 4)
+  chargerEfficiency          Decimal    @db.Decimal(8, 5)
+  arrivalTime                String
+  departureTime              String
+  targetSocPercent           Decimal    @db.Decimal(8, 5)
+  initialSocPercent          Decimal    @db.Decimal(8, 5)
+  minSocPercent              Decimal    @db.Decimal(8, 5)
+  chargingDays               Json
+  outsideChargingCostPerKwh  Decimal?   @db.Decimal(12, 6)
+  allowSolarCharging         Boolean    @default(false)
+  allowOffPeakCharging       Boolean    @default(true)
+  allowSmartCharging         Boolean    @default(true)
+  sourceStatus               String     @default("demo")
+  sourceUrl                  String?
+  notes                      String?
+  createdAt                  DateTime   @default(now())
+  updatedAt                  DateTime   @updatedAt
+}
+
+model EvChargingSchedule {
+  id                 String     @id @default(cuid())
+  evScenarioId       String
+  evScenario         EvScenario @relation(fields: [evScenarioId], references: [id], onDelete: Cascade)
+  strategy           String
+  arrivalTime        String
+  departureTime      String
+  targetEnergyKwh    Decimal    @db.Decimal(14, 6)
+  completedEnergyKwh Decimal    @db.Decimal(14, 6)
+  isComplete         Boolean
+  warnings           Json
+  trace              Json
+  createdAt          DateTime   @default(now())
+
+  @@index([evScenarioId])
+}
+
+model EvChargingInterval {
+  id                 String     @id @default(cuid())
+  evScenarioId       String
+  evScenario         EvScenario @relation(fields: [evScenarioId], references: [id], onDelete: Cascade)
+  timestamp          DateTime
+  strategy           String
+  energyKwh          Decimal    @db.Decimal(14, 6)
+  powerKw            Decimal    @db.Decimal(14, 6)
+  source             String
+  costThb            Decimal?   @db.Decimal(14, 4)
+  isAtHome           Boolean
+  trace              Json
+
+  @@index([evScenarioId, timestamp])
+}
+
+model EvFinancialResult {
+  id                         String     @id @default(cuid())
+  evScenarioId               String
+  evScenario                 EvScenario @relation(fields: [evScenarioId], references: [id], onDelete: Cascade)
+  addedEvKwh                 Decimal    @db.Decimal(14, 6)
+  chargingCostThb            Decimal    @db.Decimal(14, 4)
+  monthlyBillIncreaseThb     Decimal    @db.Decimal(14, 4)
+  annualBillIncreaseThb      Decimal    @db.Decimal(14, 4)
+  averageCostPerKm           Decimal?   @db.Decimal(12, 6)
+  costPer100Km               Decimal?   @db.Decimal(12, 6)
+  gridImportIncreaseKwh      Decimal    @db.Decimal(14, 6)
+  peakDemandIncreaseKw       Decimal    @db.Decimal(14, 6)
+  bestChargingStrategy       String?
+  savingsVsImmediateThb      Decimal?   @db.Decimal(14, 4)
+  assumptionsSnapshot        Json
+  trace                      Json
+  createdAt                  DateTime   @default(now())
+
+  @@index([evScenarioId])
+}
+
+model EvRecommendation {
+  id                         String     @id @default(cuid())
+  evScenarioId               String
+  evScenario                 EvScenario @relation(fields: [evScenarioId], references: [id], onDelete: Cascade)
+  type                       String
+  title                      String
+  explanation                String
+  confidence                 String
+  supportingMetrics          Json
+  limitations                Json
+  nextAction                 String
+  createdAt                  DateTime   @default(now())
+
+  @@index([evScenarioId])
+}
+
+model FinancialAssumption {
+  id                   String     @id @default(cuid())
+  projectYears          Int
+  discountRatePercent   Decimal    @db.Decimal(8, 5)
+  electricityEscalation Decimal    @db.Decimal(8, 5)
+  inflationPercent      Decimal?   @db.Decimal(8, 5)
+  oAndMEscalation       Decimal?   @db.Decimal(8, 5)
+  degradationRatePercent Decimal?   @db.Decimal(8, 5)
+  taxRatePercent        Decimal?    @db.Decimal(8, 5)
+  loanAmountThb         Decimal?    @db.Decimal(14, 4)
+  interestRatePercent   Decimal?    @db.Decimal(8, 5)
+  loanTermYears         Int?
+  subsidyAmountThb      Decimal?    @db.Decimal(14, 4)
+  meterChangeCostThb    Decimal?    @db.Decimal(14, 4)
+  otherInitialCostThb   Decimal?    @db.Decimal(14, 4)
+  loanAssumptions       Json?
+  incentiveAssumptions  Json?
+  scenarios             Scenario[]
+  financialResults      FinancialResult[]
+}
+
+model FinancialResult {
+  id                         String                @id @default(cuid())
+  solarScenarioId            String?
+  solarScenario              SolarScenario?         @relation(fields: [solarScenarioId], references: [id], onDelete: SetNull)
+  financialAssumptionId      String?
+  financialAssumption        FinancialAssumption?   @relation(fields: [financialAssumptionId], references: [id], onDelete: SetNull)
+  initialInvestmentThb       Decimal               @db.Decimal(14, 4)
+  simplePaybackYears         Decimal?              @db.Decimal(10, 4)
+  discountedPaybackYears     Decimal?              @db.Decimal(10, 4)
+  roiPercent                 Decimal?              @db.Decimal(10, 4)
+  npvThb                     Decimal?              @db.Decimal(14, 4)
+  irrPercent                 Decimal?              @db.Decimal(10, 4)
+  lcoeThbPerKwh              Decimal?              @db.Decimal(12, 6)
+  totalBenefitThb            Decimal?              @db.Decimal(14, 4)
+  totalCostThb               Decimal?              @db.Decimal(14, 4)
+  cashFlows                  CashFlow[]
+  assumptionsSnapshot        Json
+  createdAt                  DateTime              @default(now())
+
+  @@index([solarScenarioId])
+  @@index([financialAssumptionId])
+}
+
+model CashFlow {
+  id                    String          @id @default(cuid())
+  financialResultId     String
+  financialResult       FinancialResult @relation(fields: [financialResultId], references: [id], onDelete: Cascade)
+  year                  Int
+  billSavingsThb        Decimal         @db.Decimal(14, 4)
+  exportRevenueThb      Decimal         @db.Decimal(14, 4)
+  oAndMCostThb          Decimal         @db.Decimal(14, 4)
+  replacementCostThb    Decimal         @db.Decimal(14, 4)
+  incentiveThb          Decimal         @db.Decimal(14, 4)
+  loanPaymentThb        Decimal         @db.Decimal(14, 4)
+  netCashFlowThb        Decimal         @db.Decimal(14, 4)
+  cumulativeCashFlowThb Decimal         @db.Decimal(14, 4)
+  presentValueThb       Decimal         @db.Decimal(14, 4)
+
+  @@unique([financialResultId, year])
+}
+
+model SensitivityResult {
+  id                 String         @id @default(cuid())
+  solarScenarioId    String?
+  solarScenario      SolarScenario? @relation(fields: [solarScenarioId], references: [id], onDelete: SetNull)
+  factor             String
+  variantLabel       String
+  inputValue         Decimal?       @db.Decimal(14, 6)
+  paybackYears       Decimal?       @db.Decimal(10, 4)
+  npvThb             Decimal?       @db.Decimal(14, 4)
+  impactScore        Decimal?       @db.Decimal(14, 6)
+  trace              Json
+
+  @@index([solarScenarioId])
+  @@index([factor])
+}
+
+model IncentivePolicy {
+  id             String    @id @default(cuid())
+  name           String
+  status         String    @default("draft")
+  valueType      String
+  value          Decimal?  @db.Decimal(14, 6)
+  sourceUrl      String?
+  authority      String?
+  effectiveFrom  DateTime
+  effectiveTo    DateTime?
+  verifiedAt     DateTime?
+  notes          String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([status, effectiveFrom])
+}
+
+model AnalysisRun {
+  id                String          @id @default(cuid())
+  userId            String?
+  user              User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  siteId            String?
+  site              Site?           @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  meterId           String?
+  meter             Meter?          @relation(fields: [meterId], references: [id], onDelete: SetNull)
+  loadProfileId     String?
+  loadProfile       LoadProfile?    @relation(fields: [loadProfileId], references: [id], onDelete: SetNull)
+  tariffVersionId   String?
+  tariffVersion     TariffVersion?  @relation(fields: [tariffVersionId], references: [id], onDelete: SetNull)
+  name              String
+  engineVersion     String
+  tariffSnapshot    Json
+  tariffSnapshotRecord TariffSnapshot?
+  inputSnapshot     Json
+  assumptions       Json
+  scenarios         Scenario[]
+  scenarioInputSnapshots ScenarioInputSnapshot[]
+  scenarioComparisons ScenarioComparison[]
+  generatedReports  GeneratedReport[]
+  recommendations   Recommendation[]
+  createdAt         DateTime        @default(now())
+
+  @@index([userId, createdAt])
+  @@index([siteId, createdAt])
+  @@index([meterId, createdAt])
+  @@index([loadProfileId, createdAt])
+}
+
+model TariffSnapshot {
+  id              String         @id @default(cuid())
+  analysisRunId   String?        @unique
+  analysisRun     AnalysisRun?   @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  tariffVersionId String?
+  tariffVersion   TariffVersion? @relation(fields: [tariffVersionId], references: [id], onDelete: SetNull)
+  engineVersion   String
+  snapshotHash    String
+  status          TariffStatus
+  authority       Authority
+  effectiveFrom   DateTime
+  effectiveTo     DateTime?
+  sourceUrl       String?
+  verifiedAt      DateTime?
+  verifiedBy      String?
+  payload         Json
+  createdAt       DateTime       @default(now())
+
+  @@index([tariffVersionId])
+  @@index([snapshotHash])
+  @@index([status, authority])
+}
+
+model Scenario {
+  id                    String               @id @default(cuid())
+  analysisRunId          String
+  analysisRun            AnalysisRun          @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  kind                  ScenarioKind
+  name                  String
+  inputSnapshot          ScenarioInputSnapshot?
+  solarScenarioId        String?
+  solarScenario          SolarScenario?       @relation(fields: [solarScenarioId], references: [id], onDelete: SetNull)
+  batteryScenarioId      String?
+  batteryScenario        BatteryScenario?     @relation(fields: [batteryScenarioId], references: [id], onDelete: SetNull)
+  evScenarioId           String?
+  evScenario             EvScenario?          @relation(fields: [evScenarioId], references: [id], onDelete: SetNull)
+  financialAssumptionId  String?
+  financialAssumption    FinancialAssumption? @relation(fields: [financialAssumptionId], references: [id], onDelete: SetNull)
+  result                 ScenarioResult?
+  calculationBreakdowns  CalculationBreakdown[]
+  loadShiftRules         LoadShiftRule[]
+  baselineComparisons    ScenarioComparison[]  @relation("BaselineScenario")
+  candidateComparisons   ScenarioComparison[]  @relation("CandidateScenario")
+  sortOrder              Int                  @default(0)
+
+  @@index([analysisRunId, kind])
+}
+
+model ScenarioResult {
+  id                   String   @id @default(cuid())
+  scenarioId           String   @unique
+  scenario             Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  totalKwh             Decimal? @db.Decimal(14, 6)
+  peakKwh              Decimal? @db.Decimal(14, 6)
+  offPeakKwh           Decimal? @db.Decimal(14, 6)
+  baseEnergyCharge     Decimal? @db.Decimal(14, 4)
+  peakEnergyCharge     Decimal? @db.Decimal(14, 4)
+  offPeakEnergyCharge  Decimal? @db.Decimal(14, 4)
+  demandCharge         Decimal? @db.Decimal(14, 4)
+  ftCharge             Decimal? @db.Decimal(14, 4)
+  serviceCharge        Decimal? @db.Decimal(14, 4)
+  vat                  Decimal? @db.Decimal(14, 4)
+  grandTotal           Decimal? @db.Decimal(14, 4)
+  effectiveRatePerKwh  Decimal? @db.Decimal(12, 6)
+  monthlyEstimatedBill Decimal? @db.Decimal(14, 4)
+  annualEstimatedBill  Decimal? @db.Decimal(14, 4)
+  savingsMonthly       Decimal? @db.Decimal(14, 4)
+  savingsAnnual        Decimal? @db.Decimal(14, 4)
+  savingsPercent       Decimal? @db.Decimal(10, 4)
+  paybackMonths        Decimal? @db.Decimal(10, 4)
+  assumptions          Json?
+  calculationTrace     Json?
+  monthlyCostThb       Decimal? @db.Decimal(14, 4)
+  annualCostThb        Decimal? @db.Decimal(14, 4)
+  investmentThb        Decimal? @db.Decimal(14, 4)
+  annualSavingThb      Decimal? @db.Decimal(14, 4)
+  exportRevenueThb     Decimal? @db.Decimal(14, 4)
+  paybackYears         Decimal? @db.Decimal(10, 4)
+  discountedPaybackYears Decimal? @db.Decimal(10, 4)
+  roiPercent           Decimal? @db.Decimal(10, 4)
+  npvThb               Decimal? @db.Decimal(14, 4)
+  irrPercent           Decimal? @db.Decimal(10, 4)
+  selfConsumptionRatio Decimal? @db.Decimal(8, 5)
+  gridImportKwh        Decimal? @db.Decimal(14, 4)
+  gridExportKwh        Decimal? @db.Decimal(14, 4)
+  billBeforeSolar      Decimal? @db.Decimal(14, 4)
+  billAfterSolar       Decimal? @db.Decimal(14, 4)
+  billSavings          Decimal? @db.Decimal(14, 4)
+  exportRevenue        Decimal? @db.Decimal(14, 4)
+  netAnnualBenefit     Decimal? @db.Decimal(14, 4)
+  annualSolarGenerationKwh Decimal? @db.Decimal(14, 4)
+  co2ReductionKg       Decimal? @db.Decimal(14, 4)
+  rawResult            Json
+}
+
+model ScenarioInputSnapshot {
+  id                  String      @id @default(cuid())
+  analysisRunId       String
+  analysisRun         AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  scenarioId          String?     @unique
+  scenario            Scenario?   @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  kind                ScenarioKind
+  loadProfileSnapshot Json
+  tariffSnapshot      Json
+  assumptions         Json
+  validationSummary   Json?
+  createdAt           DateTime    @default(now())
+
+  @@index([analysisRunId])
+  @@index([kind])
+}
+
+model LoadShiftRule {
+  id                   String   @id @default(cuid())
+  scenarioId           String
+  scenario             Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  name                 String
+  enabled              Boolean  @default(true)
+  sourceStartTime      String?
+  sourceEndTime        String?
+  targetStartTime      String?
+  targetEndTime        String?
+  shiftKwhPerDay       Decimal? @db.Decimal(14, 6)
+  shiftKwhPerMonth     Decimal? @db.Decimal(14, 6)
+  shiftPercentOfPeak   Decimal? @db.Decimal(8, 5)
+  maxShiftKwh          Decimal? @db.Decimal(14, 6)
+  maxPostShiftPowerKw  Decimal? @db.Decimal(14, 6)
+  preservesTotalKwh    Boolean  @default(true)
+  assumptions          Json?
+  createdAt            DateTime @default(now())
+
+  @@index([scenarioId])
+}
+
+model ScenarioComparison {
+  id                         String      @id @default(cuid())
+  analysisRunId              String
+  analysisRun                AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  baselineScenarioId         String
+  baselineScenario           Scenario    @relation("BaselineScenario", fields: [baselineScenarioId], references: [id], onDelete: Cascade)
+  candidateScenarioId        String
+  candidateScenario          Scenario    @relation("CandidateScenario", fields: [candidateScenarioId], references: [id], onDelete: Cascade)
+  monthlySavingsThb          Decimal?    @db.Decimal(14, 4)
+  annualSavingsThb           Decimal?    @db.Decimal(14, 4)
+  savingsPercent             Decimal?    @db.Decimal(10, 4)
+  paybackMonths              Decimal?    @db.Decimal(10, 4)
+  offPeakRatioBefore         Decimal?    @db.Decimal(8, 5)
+  offPeakRatioAfter          Decimal?    @db.Decimal(8, 5)
+  requiredShiftKwhPerMonth   Decimal?    @db.Decimal(14, 6)
+  recommendation             Json
+  createdAt                  DateTime    @default(now())
+
+  @@index([analysisRunId])
+  @@index([baselineScenarioId])
+  @@index([candidateScenarioId])
+  @@unique([baselineScenarioId, candidateScenarioId])
+}
+
+model CalculationBreakdown {
+  id          String   @id @default(cuid())
+  scenarioId  String
+  scenario    Scenario @relation(fields: [scenarioId], references: [id], onDelete: Cascade)
+  component   String
+  labelTh     String
+  amountThb   Decimal? @db.Decimal(14, 4)
+  quantity    Decimal? @db.Decimal(14, 6)
+  unit        String?
+  formulaRef  String?
+  trace       Json
+  sortOrder   Int      @default(0)
+}
+
+model Recommendation {
+  id              String      @id @default(cuid())
+  analysisRunId   String
+  analysisRun     AnalysisRun @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  type            String?
+  priority        Int?
+  titleTh         String
+  bodyTh          String
+  reasonTh        String
+  explanation     String?
+  supportingData  Json
+  assumptions     Json
+  confidence      String
+  limitations     String[]
+  nextAction      String?
+  sortOrder       Int         @default(0)
+}
+
+model GeneratedReport {
+  id             String       @id @default(cuid())
+  analysisRunId  String
+  analysisRun    AnalysisRun  @relation(fields: [analysisRunId], references: [id], onDelete: Cascade)
+  format         ReportFormat
+  fileName       String
+  storageUrl     String?
+  generatedAt    DateTime     @default(now())
+  metadata       Json
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action      String
+  entityType  String
+  entityId    String?
+  before      Json?
+  after       Json?
+  ipHash      String?
+  createdAt   DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([createdAt])
+}
