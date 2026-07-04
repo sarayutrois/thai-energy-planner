@@ -74,7 +74,17 @@ export function LocalBillReport() {
               สร้างเมื่อ {new Date(snapshot.createdAt).toLocaleString("th-TH")} · {audienceLabels[snapshot.audience]}
             </p>
           </div>
-          <ReportActions />
+          <ReportActions
+            csvRows={snapshot.rows.map((row) => ({
+              authority: row.authority,
+              energyKwh: row.energyKwh,
+              meterMode: row.meterMode,
+              month: row.month,
+              totalCostThb: row.totalCostThb
+            }))}
+            fileBaseName="thai-energy-planner-bill-summary"
+            jsonData={snapshot}
+          />
         </div>
       </header>
 

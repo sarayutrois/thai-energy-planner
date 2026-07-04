@@ -70,7 +70,16 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
               โครงรายงานสำหรับส่งต่อให้ลูกค้า ทีม หรือใช้แนบการตัดสินใจลงทุน
             </p>
           </div>
-          <ReportActions />
+          <ReportActions
+            csvRows={savedReportPreview.scenarioRows.map((row) => ({
+              annualBill: row.annualBill,
+              monthlyBill: row.monthlyBill,
+              savings: row.savings,
+              scenario: row.name
+            }))}
+            fileBaseName="thai-energy-planner-demo-report"
+            jsonData={savedReportPreview}
+          />
         </div>
 
         <article className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none">
