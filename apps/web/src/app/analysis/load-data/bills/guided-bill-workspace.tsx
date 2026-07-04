@@ -1,7 +1,7 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, FileText, Plus, ReceiptText, RotateCcw, Trash2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { AlertTriangle, ArrowRight, Download, FileText, Plus, ReceiptText, RotateCcw, Trash2, Upload } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
@@ -39,6 +39,7 @@ export function GuidedBillWorkspace({
 }) {
   const [rows, setRows] = useState<EditableBillRow[]>(() => loadStoredRows(initialBills, audience));
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const bills = useMemo(() => rows.map(toBillInput), [rows]);
   const validation = useMemo(() => validateMonthlyBills(bills), [bills]);
@@ -113,6 +114,44 @@ export function GuidedBillWorkspace({
     setRows(initialBills.map(toEditableRow));
   }
 
+  function exportWorkspace() {
+    const payload: StoredBillWorkspace = {
+      audience,
+      rows,
+      updatedAt: new Date().toISOString()
+    };
+    downloadJsonFile("thai-energy-planner-bills.json", payload);
+  }
+
+  async function importWorkspace(file: File | undefined) {
+    if (!file) return;
+
+    try {
+      const text = await file.text();
+      const parsed = JSON.parse(text) as Partial<StoredBillWorkspace>;
+      if (!Array.isArray(parsed.rows) || parsed.rows.length === 0) {
+        setSaveStatus("ไฟล์ไม่มีข้อมูลบิลที่นำเข้าได้");
+        return;
+      }
+
+      setRows(
+        parsed.rows.map((row) => ({
+          id: row.id || crypto.randomUUID(),
+          month: row.month ?? "",
+          energyKwh: row.energyKwh ?? "",
+          totalCostThb: row.totalCostThb ?? "",
+          authority: row.authority === "MEA" ? "MEA" : "PEA",
+          meterMode: row.meterMode === "tou" ? "tou" : "normal"
+        }))
+      );
+      setSaveStatus("นำเข้าข้อมูลบิลแล้ว");
+    } catch {
+      setSaveStatus("นำเข้าไฟล์ไม่สำเร็จ");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  }
+
   function createLocalReport() {
     const averageMonthlyCostThb = summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
     const snapshot: LocalBillReportSnapshot = {
@@ -181,6 +220,31 @@ export function GuidedBillWorkspace({
               >
                 ตัวอย่างร้านค้า
               </button>
+              <button
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={exportWorkspace}
+                type="button"
+              >
+                <Download aria-hidden="true" className="h-4 w-4" />
+                Export ข้อมูลบิล
+              </button>
+              <button
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={() => fileInputRef.current?.click()}
+                type="button"
+              >
+                <Upload aria-hidden="true" className="h-4 w-4" />
+                Import JSON
+              </button>
+              <input
+                accept="application/json,.json"
+                className="hidden"
+                onChange={(event) => {
+                  void importWorkspace(event.target.files?.[0]);
+                }}
+                ref={fileInputRef}
+                type="file"
+              />
               <button
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 onClick={resetWorkspace}
@@ -406,6 +470,18 @@ function loadStoredRows(initialBills: MonthlyBillInput[], audience: AnalysisAudi
   } catch {
     return initialBills.map(toEditableRow);
   }
+}
+
+function downloadJsonFile(fileName: string, payload: StoredBillWorkspace) {
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  URL.revokeObjectURL(url);
 }
 
 function toBillInput(row: EditableBillRow): MonthlyBillInput {
