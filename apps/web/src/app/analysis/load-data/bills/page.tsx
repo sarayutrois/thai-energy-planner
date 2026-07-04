@@ -7,6 +7,7 @@ import { MainNav } from "@/components/main-nav";
 export default function BillsPage() {
   const validation = validateMonthlyBills(demoManualBills);
   const summary = summarizeBills(demoManualBills);
+  const billsByMonth = new Map(validation.bills.map((bill) => [bill.month, bill]));
 
   return (
     <main className="min-h-screen">
@@ -70,18 +71,21 @@ export default function BillsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {summary.monthlyTrend.map((row) => (
-                    <tr key={row.month} className="border-t border-border">
-                      <td className="px-3 py-2">{row.month}</td>
-                      <td className="px-3 py-2">PEA</td>
-                      <td className="px-3 py-2">Normal</td>
-                      <td className="px-3 py-2">{formatNumber(row.energyKwh)}</td>
-                      <td className="px-3 py-2">{formatNumber(row.totalCostThb)}</td>
-                      <td className="px-3 py-2">0.50</td>
-                      <td className="px-3 py-2">demo</td>
-                      <td className="px-3 py-2">{row.averageCostPerKwh ? formatNumber(row.averageCostPerKwh) : "-"}</td>
-                    </tr>
-                  ))}
+                  {summary.monthlyTrend.map((row) => {
+                    const bill = billsByMonth.get(row.month);
+                    return (
+                      <tr key={row.month} className="border-t border-border">
+                        <td className="px-3 py-2">{row.month}</td>
+                        <td className="px-3 py-2">{bill?.authority ?? "-"}</td>
+                        <td className="px-3 py-2">{bill?.meterMode ?? "-"}</td>
+                        <td className="px-3 py-2">{formatNumber(row.energyKwh)}</td>
+                        <td className="px-3 py-2">{formatNumber(row.totalCostThb)}</td>
+                        <td className="px-3 py-2">{bill?.ftThbPerKwh === undefined ? "-" : formatNumber(bill.ftThbPerKwh)}</td>
+                        <td className="px-3 py-2">{bill?.vatThb === undefined ? "-" : formatNumber(bill.vatThb)}</td>
+                        <td className="px-3 py-2">{row.averageCostPerKwh ? formatNumber(row.averageCostPerKwh) : "-"}</td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>

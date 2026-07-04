@@ -1,7 +1,36 @@
 import React from "react";
 
+const savedReportPreview = {
+  title: "Q1 Solar Feasibility Report",
+  createdAt: "2025-01-10T10:00:00Z",
+  engineVersion: "0.1.0",
+  executiveSummary:
+    "Based on the saved analysis snapshot, switching to TOU combined with a 5kWp Solar installation is projected to improve annual energy costs with a multi-year payback.",
+  tariffSnapshot: {
+    versionLabel: "v1.0.0-draft",
+    status: "PUBLISHED",
+    source: "PEA API (saved at analysis time)",
+    effectiveFrom: "2025-01-01",
+    capturedAt: "2025-01-10T10:00:00Z"
+  },
+  assumptions: [
+    { label: "Tariff charges", value: "Captured in saved tariff snapshot" },
+    { label: "Tax and Ft inputs", value: "Captured in saved tariff snapshot" },
+    { label: "Solar assumptions", value: "Captured in saved analysis inputs" }
+  ],
+  scenarioRows: [
+    { name: "Current Normal", monthlyBill: "4,500 THB", annualBill: "54,000 THB", savings: "-" },
+    { name: "TOU + Solar 5kWp", monthlyBill: "2,800 THB", annualBill: "33,600 THB", savings: "20,400 THB (37%)" }
+  ],
+  calculationNote:
+    "Calculation uses calculation-engine results stored with the report snapshot. Tariff values are read from the frozen tariff snapshot captured with the analysis.",
+  recommendation:
+    "Proceed with Solar 5kWp installation and apply for TOU tariff change. Ensure load shifting of high-power appliances to daytime."
+};
+
 export default async function AnalysisReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const tariffSnapshot = savedReportPreview.tariffSnapshot;
   return (
     <div className="p-8 max-w-5xl mx-auto">
       <div className="flex justify-between items-center mb-6">
@@ -18,18 +47,18 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
         
         <div className="mb-8 border-b pb-4 flex justify-between">
           <div>
-            <h2 className="text-3xl font-bold mb-2 text-slate-800">Q1 Solar Feasibility Report</h2>
-            <p className="text-gray-600">Analysis Date: {new Date().toLocaleDateString()}</p>
+            <h2 className="text-3xl font-bold mb-2 text-slate-800">{savedReportPreview.title}</h2>
+            <p className="text-gray-600">Analysis Date: {new Date(savedReportPreview.createdAt).toLocaleDateString()}</p>
           </div>
           <div className="text-right text-sm text-gray-500">
-            <p>Engine Version: 0.1.0</p>
+            <p>Engine Version: {savedReportPreview.engineVersion}</p>
           </div>
         </div>
 
         <div className="mb-8">
           <h3 className="text-xl font-semibold mb-3 border-b pb-2">Executive Summary</h3>
           <p className="text-gray-700">
-            Based on the analysis of current usage profiles, switching to a TOU tariff combined with a 5kWp Solar installation is projected to yield an annual saving of ~15,000 THB with a payback period of 4.2 years.
+            {savedReportPreview.executiveSummary}
           </p>
         </div>
 
@@ -37,18 +66,19 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
           <div>
             <h3 className="text-lg font-semibold mb-2 bg-gray-100 p-2 rounded">Tariff Snapshot Used</h3>
             <ul className="text-gray-700 space-y-1 mt-2">
-              <li><strong>Version:</strong> v1.0.0-draft</li>
-              <li><strong>Status:</strong> PUBLISHED</li>
-              <li><strong>Source:</strong> PEA API (Saved at time of analysis)</li>
-              <li><strong>Effective Date:</strong> 2025-01-01</li>
+              <li><strong>Version:</strong> {tariffSnapshot.versionLabel}</li>
+              <li><strong>Status:</strong> {tariffSnapshot.status}</li>
+              <li><strong>Source:</strong> {tariffSnapshot.source}</li>
+              <li><strong>Effective Date:</strong> {tariffSnapshot.effectiveFrom}</li>
+              <li><strong>Captured At:</strong> {new Date(tariffSnapshot.capturedAt).toLocaleString()}</li>
             </ul>
           </div>
           <div>
             <h3 className="text-lg font-semibold mb-2 bg-gray-100 p-2 rounded">Assumptions & Variables</h3>
             <ul className="text-gray-700 space-y-1 mt-2">
-              <li><strong>Ft Rate:</strong> 0.3972 THB/kWh</li>
-              <li><strong>VAT:</strong> 7%</li>
-              <li><strong>Solar Degradation:</strong> 0.5% per year</li>
+              {savedReportPreview.assumptions.map((item) => (
+                <li key={item.label}><strong>{item.label}:</strong> {item.value}</li>
+              ))}
             </ul>
           </div>
         </div>
@@ -65,18 +95,14 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="border p-2">Current Normal</td>
-                <td className="border p-2">4,500 THB</td>
-                <td className="border p-2">54,000 THB</td>
-                <td className="border p-2">-</td>
-              </tr>
-              <tr className="bg-green-50">
-                <td className="border p-2">TOU + Solar 5kWp</td>
-                <td className="border p-2">2,800 THB</td>
-                <td className="border p-2">33,600 THB</td>
-                <td className="border p-2 text-green-700">20,400 THB (37%)</td>
-              </tr>
+              {savedReportPreview.scenarioRows.map((row, index) => (
+                <tr key={row.name} className={index === 1 ? "bg-green-50" : undefined}>
+                  <td className="border p-2">{row.name}</td>
+                  <td className="border p-2">{row.monthlyBill}</td>
+                  <td className="border p-2">{row.annualBill}</td>
+                  <td className={index === 1 ? "border p-2 text-green-700" : "border p-2"}>{row.savings}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -84,14 +110,14 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
         <div className="mb-8">
           <h3 className="text-xl font-semibold mb-3 border-b pb-2">Calculation Breakdown</h3>
           <p className="text-gray-700 text-sm">
-            Calculation uses accurate simulation via `calculation-engine` against the frozen tariff snapshot. Peak demand shifted by 60% during 09:00 - 15:00.
+            {savedReportPreview.calculationNote}
           </p>
         </div>
         
         <div className="mb-8 bg-blue-50 p-4 rounded border border-blue-200">
           <h3 className="text-lg font-bold text-blue-800 mb-2">Recommendations</h3>
           <p className="text-blue-900">
-            Proceed with Solar 5kWp installation and apply for TOU tariff change. Ensure load shifting of high-power appliances to daytime.
+            {savedReportPreview.recommendation}
           </p>
         </div>
         

@@ -61,6 +61,21 @@ export function LoadProfileImporter() {
     }
   }
 
+  async function loadTestCsv() {
+    setError(null);
+    setPreview(null);
+    setIsLoading(true);
+    try {
+      const response = await fetch("/test-upload-15min.csv");
+      if (!response.ok) throw new Error("ไม่สามารถโหลดไฟล์ CSV ทดสอบได้");
+      setPreview(parseCsvLoadProfile(await response.text(), options));
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "โหลดไฟล์ CSV ทดสอบไม่สำเร็จ");
+    } finally {
+      setIsLoading(false);
+    }
+  }
+
   return (
     <div className="grid gap-5">
       <div className="grid gap-4 rounded-lg border border-border bg-card p-5 md:grid-cols-4">
@@ -127,6 +142,9 @@ export function LoadProfileImporter() {
             }
           >
             ใช้ demo data
+          </Button>
+          <Button onClick={() => void loadTestCsv()} variant="outline">
+            ใช้ test CSV
           </Button>
         </div>
       </div>

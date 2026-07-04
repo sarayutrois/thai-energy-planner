@@ -1,11 +1,7 @@
 // CSV exporter with injection protection
 export function sanitizeCsvCell(cell: string | number | null | undefined): string {
   if (cell === null || cell === undefined) return "";
-  const str = String(cell);
-  // Prevent CSV injection by prefixing with a single quote if starting with =, +, -, or @
-  if (/^[=+\-@]/.test(str)) {
-    return `'"${str}"`;
-  }
+  const str = /^[\s]*[=+\-@]/.test(String(cell)) ? `'${String(cell)}` : String(cell);
   // Escape double quotes
   if (str.includes('"') || str.includes(',') || str.includes('\n')) {
     return `"${str.replace(/"/g, '""')}"`;
