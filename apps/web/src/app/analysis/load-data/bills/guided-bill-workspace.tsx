@@ -1,12 +1,19 @@
 "use client";
 
-import { AlertTriangle, ArrowRight, Plus, ReceiptText, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { AlertTriangle, ArrowRight, FileText, Plus, ReceiptText, RotateCcw, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisStartHref, type AnalysisAudience } from "@/lib/analysis-start";
+import {
+  billReportStorageKey,
+  billWorkspaceStorageKey,
+  localBillReportId,
+  type LocalBillReportSnapshot,
+  type StoredBillWorkspace
+} from "@/lib/local-analysis-snapshot";
 
 type EditableBillRow = {
   id: string;
@@ -30,7 +37,8 @@ export function GuidedBillWorkspace({
   initialBills: MonthlyBillInput[];
   audience: AnalysisAudience;
 }) {
-  const [rows, setRows] = useState<EditableBillRow[]>(() => initialBills.map(toEditableRow));
+  const [rows, setRows] = useState<EditableBillRow[]>(() => loadStoredRows(initialBills, audience));
+  const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
 
   const bills = useMemo(() => rows.map(toBillInput), [rows]);
   const validation = useMemo(() => validateMonthlyBills(bills), [bills]);
@@ -47,6 +55,16 @@ export function GuidedBillWorkspace({
   const recommendations = useMemo(() => buildBillRecommendations(validation.bills, summary), [summary, validation.bills]);
   const scenarioHref = `/analysis/scenarios/results?profile=${audienceProfile[audience]}&normalTariff=demo-normal&touTariff=demo-tou&meterCost=2500&shiftPercent=25&sourceStart=18%3A00&sourceEnd=22%3A00&targetWindow=22%3A00-06%3A00`;
   const solarHref = `/analysis/solar?profile=${audienceProfile[audience]}`;
+
+  useEffect(() => {
+    const payload: StoredBillWorkspace = {
+      audience,
+      rows,
+      updatedAt: new Date().toISOString()
+    };
+    window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
+    setSaveStatus(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
+  }, [audience, rows]);
 
   function updateRow(id: string, patch: Partial<EditableBillRow>) {
     setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -90,6 +108,49 @@ export function GuidedBillWorkspace({
     );
   }
 
+  function resetWorkspace() {
+    window.localStorage.removeItem(billWorkspaceStorageKey);
+    setRows(initialBills.map(toEditableRow));
+  }
+
+  function createLocalReport() {
+    const averageMonthlyCostThb = summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
+    const snapshot: LocalBillReportSnapshot = {
+      id: localBillReportId,
+      title: "รายงานสรุปบิลค่าไฟ",
+      createdAt: new Date().toISOString(),
+      audience,
+      monthCount: summary.monthCount,
+      totalKwh: summary.totalKwh,
+      totalCostThb: summary.totalCostThb,
+      averageMonthlyCostThb,
+      averageCostPerKwh: summary.averageCostPerKwh,
+      dataQualityLabel: dataQuality.labelTh,
+      dataQualityScore: dataQuality.score,
+      highestMonth: summary.highestMonth
+        ? {
+            month: summary.highestMonth.month,
+            energyKwh: summary.highestMonth.energyKwh,
+            totalCostThb: summary.highestMonth.totalCostThb
+          }
+        : null,
+      recommendations: recommendations.map((item) => ({
+        title: item.title,
+        description: item.description,
+        badge: item.badge
+      })),
+      rows: validation.bills.map((bill) => ({
+        month: bill.month,
+        energyKwh: bill.energyKwh,
+        totalCostThb: bill.totalCostThb,
+        authority: bill.authority ?? "PEA",
+        meterMode: bill.meterMode ?? "normal"
+      }))
+    };
+    window.localStorage.setItem(billReportStorageKey, JSON.stringify(snapshot));
+    window.location.href = `/analysis/reports/${localBillReportId}`;
+  }
+
   return (
     <div className="mt-6 grid gap-5">
       <Card>
@@ -105,6 +166,7 @@ export function GuidedBillWorkspace({
               </p>
             </div>
             <div className="flex flex-wrap gap-2">
+              <Badge variant="outline">{saveStatus}</Badge>
               <button
                 className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 onClick={() => loadExample("home")}
@@ -118,6 +180,14 @@ export function GuidedBillWorkspace({
                 type="button"
               >
                 ตัวอย่างร้านค้า
+              </button>
+              <button
+                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={resetWorkspace}
+                type="button"
+              >
+                <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                เริ่มใหม่
               </button>
             </div>
           </div>
@@ -263,6 +333,15 @@ export function GuidedBillWorkspace({
             <CardTitle>ไปต่อหลังกรอกบิล</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
+            <button
+              className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
+              disabled={!validation.canSave || validation.bills.length === 0}
+              onClick={createLocalReport}
+              type="button"
+            >
+              <FileText aria-hidden="true" className="h-4 w-4" />
+              สร้างรายงานจากบิลนี้
+            </button>
             <NextLink href={scenarioHref} label="เทียบ Normal / TOU" description="ใช้ demo scenario เพื่อดูแนวคิดการประหยัดจาก TOU และการย้ายโหลด" />
             <NextLink href={solarHref} label="ลอง Solar" description="ใช้ profile ที่เหมาะกับประเภทผู้ใช้ที่เลือกไว้ แล้วประเมินคืนทุนเบื้องต้น" />
             <NextLink href={buildAnalysisStartHref("/analysis/load-data/import", audience, "interval")} label="มีไฟล์ละเอียดแล้ว" description="อัปโหลด load profile เพื่อเพิ่มความแม่นยำของ TOU, Solar, Battery และ EV" />
@@ -303,6 +382,30 @@ function toEditableRow(bill: MonthlyBillInput): EditableBillRow {
     authority: bill.authority ?? "PEA",
     meterMode: bill.meterMode ?? "normal"
   };
+}
+
+function loadStoredRows(initialBills: MonthlyBillInput[], audience: AnalysisAudience): EditableBillRow[] {
+  if (typeof window === "undefined") return initialBills.map(toEditableRow);
+
+  try {
+    const raw = window.localStorage.getItem(billWorkspaceStorageKey);
+    if (!raw) return initialBills.map(toEditableRow);
+    const parsed = JSON.parse(raw) as Partial<StoredBillWorkspace>;
+    if (parsed.audience !== audience || !Array.isArray(parsed.rows) || parsed.rows.length === 0) {
+      return initialBills.map(toEditableRow);
+    }
+
+    return parsed.rows.map((row) => ({
+      id: row.id || crypto.randomUUID(),
+      month: row.month ?? "",
+      energyKwh: row.energyKwh ?? "",
+      totalCostThb: row.totalCostThb ?? "",
+      authority: row.authority === "MEA" ? "MEA" : "PEA",
+      meterMode: row.meterMode === "tou" ? "tou" : "normal"
+    }));
+  } catch {
+    return initialBills.map(toEditableRow);
+  }
 }
 
 function toBillInput(row: EditableBillRow): MonthlyBillInput {

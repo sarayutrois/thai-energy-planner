@@ -3,6 +3,7 @@ import { defaultReportManifest } from "@thai-energy-planner/report-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
+import { LocalReportCard } from "./local-report-card";
 
 const reports = [
   {
@@ -65,6 +66,7 @@ export default function AnalysisReportsPage() {
 
         <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_320px]">
           <div className="grid gap-4">
+            <LocalReportCard />
             {reports.map((report) => (
               <Card key={report.id}>
                 <CardHeader>

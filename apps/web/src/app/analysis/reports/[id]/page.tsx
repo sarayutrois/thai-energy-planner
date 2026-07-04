@@ -3,6 +3,8 @@ import { createReportFileName } from "@thai-energy-planner/report-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
+import { localBillReportId } from "@/lib/local-analysis-snapshot";
+import { LocalBillReport } from "./local-bill-report";
 import { ReportActions } from "./report-actions";
 
 const savedReportPreview = {
@@ -33,6 +35,21 @@ const savedReportPreview = {
 
 export default async function AnalysisReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  if (id === localBillReportId) {
+    return (
+      <main className="min-h-screen bg-background">
+        <MainNav />
+        <section className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 lg:py-10">
+          <div className="mb-5 flex flex-wrap gap-2 print:hidden">
+            <Badge>Report Preview</Badge>
+            <Badge variant="outline">Local bill snapshot</Badge>
+          </div>
+          <LocalBillReport />
+        </section>
+      </main>
+    );
+  }
+
   const fileName = createReportFileName(savedReportPreview.title, "2026-07-05", "pdf");
   const tariffSnapshot = savedReportPreview.tariffSnapshot;
 
