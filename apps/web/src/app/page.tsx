@@ -30,11 +30,23 @@ export default function Home() {
     <main className="min-h-screen selection:bg-primary selection:text-primary-foreground">
       <MainNav />
 
-      <section className="relative overflow-hidden border-b border-white/5 bg-background/50 pt-16 pb-20 lg:pt-24 lg:pb-28">
-        {/* Background glow effects */}
-        <div className="pointer-events-none absolute left-1/2 top-0 -z-10 h-[800px] w-[800px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-primary/20 blur-[120px]" />
+      <section className="relative overflow-hidden border-b border-white/5 pt-16 pb-20 lg:pt-24 lg:pb-28">
         
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 md:grid-cols-[1.1fr_0.9fr] md:px-6">
+        {/* Premium Animated Background (Replaces Video) */}
+        <div className="absolute inset-0 -z-20 h-full w-full bg-[#020617] overflow-hidden">
+          {/* Glowing Orbs */}
+          <div className="absolute top-[10%] left-[10%] h-[600px] w-[600px] rounded-full bg-primary/20 blur-[120px] mix-blend-screen animate-pulse" style={{ animationDuration: '4s' }} />
+          <div className="absolute bottom-[10%] right-[10%] h-[700px] w-[700px] rounded-full bg-cyan-600/20 blur-[130px] mix-blend-screen animate-pulse" style={{ animationDuration: '6s', animationDelay: '1s' }} />
+          <div className="absolute top-[40%] left-[50%] h-[500px] w-[500px] -translate-x-1/2 rounded-full bg-blue-600/20 blur-[100px] mix-blend-screen animate-pulse" style={{ animationDuration: '5s', animationDelay: '2s' }} />
+          
+          {/* Subtle grid pattern */}
+          <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.03)_1px,transparent_1px)] bg-[size:40px_40px] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_10%,transparent_80%)]" />
+        </div>
+        
+        {/* Dark overlay to ensure text remains readable */}
+        <div className="absolute left-0 top-0 h-full w-full bg-black/40 -z-10" />
+        
+        <div className="relative z-10 mx-auto grid w-full max-w-7xl gap-10 px-4 md:grid-cols-[1.1fr_0.9fr] md:px-6">
           <div className="flex flex-col justify-center gap-8">
             <Reveal width="100%" delay={0.1}>
               <div className="flex flex-wrap gap-3">
