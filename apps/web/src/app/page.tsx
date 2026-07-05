@@ -13,7 +13,6 @@ import type { LucideIcon } from "lucide-react";
 import { estimateDataQuality, summarizeMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { tariffSeedPolicy } from "@thai-energy-planner/tariff-engine";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
 import { demoBills, scenarioPreviewRows, workflowSteps } from "@/lib/demo-data";
