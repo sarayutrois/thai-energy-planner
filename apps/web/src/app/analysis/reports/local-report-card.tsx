@@ -4,16 +4,15 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ReceiptText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { billReportStorageKey, localBillReportId, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
+import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
+import { localBillReportId, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
 
 export function LocalReportCard() {
   const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(null);
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(billReportStorageKey);
-      const parsed = raw ? (JSON.parse(raw) as LocalBillReportSnapshot) : null;
-      setSnapshot(parsed?.id === localBillReportId ? parsed : null);
+      setSnapshot(readLocalBillReportSnapshot());
     } catch {
       setSnapshot(null);
     }
