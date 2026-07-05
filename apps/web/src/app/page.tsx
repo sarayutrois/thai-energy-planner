@@ -10,15 +10,43 @@ import {
   Zap
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
-import { estimateDataQuality, summarizeMonthlyBills } from "@thai-energy-planner/calculation-engine";
+import { calculateMonthlyNormalBill, estimateDataQuality, summarizeMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { tariffSeedPolicy } from "@thai-energy-planner/tariff-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
-import { demoBills, scenarioPreviewRows, workflowSteps } from "@/lib/demo-data";
+import { scenarioPreviewRows, workflowSteps } from "@/lib/demo-data";
 import { Reveal } from "@/components/reveal";
 
-const billSummary = summarizeMonthlyBills(demoBills);
+const officialSampleBills = [
+  ["2026-01", 420],
+  ["2026-02", 460],
+  ["2026-03", 520],
+  ["2026-04", 610],
+  ["2026-05", 580],
+  ["2026-06", 560],
+  ["2026-07", 590],
+  ["2026-08", 575],
+  ["2026-09", 540],
+  ["2026-10", 510],
+  ["2026-11", 480],
+  ["2026-12", 450]
+].map(([month, energyKwh]) => ({
+  month: String(month),
+  energyKwh: Number(energyKwh),
+  totalCostThb: Number(
+    calculateMonthlyNormalBill({
+      authority: "PEA",
+      customerSegment: "residential",
+      billDate: "2026-07-01",
+      energyKwh: Number(energyKwh)
+    }).grandTotal
+  ),
+  authority: "PEA" as const,
+  customerSegment: "residential" as const,
+  meterMode: "normal" as const
+}));
+const billSummary = summarizeMonthlyBills(officialSampleBills);
 const dataQuality = estimateDataQuality({
   hasTwelveMonthBills: true,
   intervalMonths: 0,

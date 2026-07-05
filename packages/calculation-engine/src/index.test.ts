@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { estimateDataQuality, summarizeMonthlyBills } from "./index";
+import {
+  calculateSolarROI,
+  compareNormalVsTou,
+  estimateDataQuality,
+  estimateMonthlyKwhFromBill,
+  simulateIntervalSavings,
+  summarizeMonthlyBills
+} from "./index";
 import * as XLSX from "xlsx";
 import {
   defaultColumnMapping,
@@ -64,6 +71,64 @@ describe("calculation foundation", () => {
         hasTwelveMonthBills: true
       }).level
     ).toBe("high");
+  });
+
+  it("compares official Thai normal and TOU bills from kWh buckets", () => {
+    const comparison = compareNormalVsTou({
+      authority: "PEA",
+      customerSegment: "residential",
+      billDate: "2026-07-01",
+      energyKwh: 250,
+      peakKwh: 140,
+      offPeakKwh: 110
+    });
+
+    expect(comparison.normalBill.grandTotal).toBe("1042.86");
+    expect(comparison.touBill.tariffStatus).toBe("published");
+    expect(comparison.cheaperMode).toBe("normal");
+  });
+
+  it("estimates monthly kWh from an official Thai normal bill amount", () => {
+    const estimatedKwh = estimateMonthlyKwhFromBill({
+      authority: "PEA",
+      customerSegment: "residential",
+      billDate: "2026-07-01",
+      energyKwh: 0,
+      monthlyBillThb: 1042.86
+    });
+
+    expect(estimatedKwh).toBeCloseTo(250, 1);
+  });
+
+  it("simulates interval savings by subtracting offset energy before billing", () => {
+    const intervals = [
+      { timestamp: "2026-07-01T10:00:00+07:00", energyKwh: 10, powerKw: 20 },
+      { timestamp: "2026-07-01T10:30:00+07:00", energyKwh: 8, powerKw: 16 },
+      { timestamp: "2026-07-01T23:00:00+07:00", energyKwh: 6, powerKw: 12 }
+    ];
+    const result = simulateIntervalSavings({
+      authority: "PEA",
+      customerSegment: "small_business",
+      billDate: "2026-07-01",
+      intervals,
+      offsetIntervals: [{ timestamp: "2026-07-01T10:00:00+07:00", energyKwh: 3 }]
+    });
+
+    expect(result.totalOffsetKwh).toBe(3);
+    expect(result.reducedIntervals[0]?.energyKwh).toBe(7);
+    expect(result.bestSavingsThb).toBeGreaterThan(0);
+  });
+
+  it("calculates simple solar ROI from annual savings", () => {
+    const roi = calculateSolarROI({
+      systemCostThb: 210000,
+      annualSavingsThb: 30000,
+      annualExportRevenueThb: 2000,
+      annualOperatingCostThb: 1500
+    });
+
+    expect(roi.annualNetBenefitThb).toBe(30500);
+    expect(roi.simplePaybackYears).toBe(6.89);
   });
 });
 

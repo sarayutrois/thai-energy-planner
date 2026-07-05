@@ -1,11 +1,13 @@
 import {
   createDemoSolarInput,
+  inferThaiAuthorityFromProvince,
   runSolarAnalysis,
   type DemoSolarProfileKey,
   type SolarAnalysisInput,
   type SolarAnalysisResult,
   type SolarModelDetailLevel
 } from "@thai-energy-planner/calculation-engine";
+import { getOfficialThaiTariffPair } from "@thai-energy-planner/tariff-engine";
 
 export type SolarSearchParams = Record<string, string | string[] | undefined>;
 
@@ -127,6 +129,17 @@ export function getSolarDemo(params: SolarSearchParams): {
     roofAzimuth: settings.roofAzimuth,
     roofTilt: settings.roofTilt
   };
+  const authority = inferThaiAuthorityFromProvince(settings.province);
+  const customerSegment = settings.profile === "daytime_shop" ? "small_business" : "residential";
+  const officialTariffs = getOfficialThaiTariffPair({
+    authority,
+    customerSegment,
+    billDate: "2026-07-01",
+    voltageLevel: "low_voltage"
+  });
+  input.normalTariff = officialTariffs.normalTariff;
+  input.touTariff = officialTariffs.touTariff;
+  input.billDate = "2026-07-01";
 
   return {
     input,

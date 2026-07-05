@@ -5,6 +5,7 @@ import {
   calculateTouBill,
   demoNormalTariff,
   demoTouTariff,
+  getOfficialThaiTariff,
   selectTariffVersion
 } from "./index";
 import type { TariffVersionConfig } from "./index";
@@ -52,6 +53,63 @@ describe("tariff version selection", () => {
     });
 
     expect(selected?.status).toBe("draft");
+  });
+});
+
+describe("official Thai tariff seed", () => {
+  it("calculates PEA residential standard normal bill with current Ft and VAT", () => {
+    const tariff = getOfficialThaiTariff({
+      authority: "PEA",
+      customerSegment: "residential",
+      meterMode: "normal",
+      monthlyEnergyKwh: 250,
+      billDate: "2026-07-01"
+    });
+    const result = calculateNormalBill({
+      tariffVersion: tariff,
+      billDate: "2026-07-01",
+      energyKwh: "250"
+    });
+
+    expect(result.tariffStatus).toBe("published");
+    expect(result.baseEnergyCharge).toBe("909.44");
+    expect(result.ftCharge).toBe("40.58");
+    expect(result.serviceCharge).toBe("24.62");
+    expect(result.grandTotal).toBe("1042.86");
+  });
+
+  it("selects the low-use residential normal plan when monthly use is not over 150 kWh", () => {
+    const tariff = getOfficialThaiTariff({
+      authority: "MEA",
+      customerSegment: "residential",
+      meterMode: "normal",
+      monthlyEnergyKwh: 120,
+      billDate: "2026-07-01"
+    });
+
+    expect(tariff.id).toContain("low-use");
+    expect(tariff.serviceChargeThb).toBe("8.19");
+  });
+
+  it("calculates official low-voltage TOU peak and off-peak energy", () => {
+    const tariff = getOfficialThaiTariff({
+      authority: "PEA",
+      customerSegment: "small_business",
+      meterMode: "tou",
+      billDate: "2026-07-01"
+    });
+    const result = calculateTouBill({
+      tariffVersion: tariff,
+      intervals: [
+        { timestamp: "2026-07-01T10:00:00+07:00", energyKwh: "100" },
+        { timestamp: "2026-07-01T23:00:00+07:00", energyKwh: "100" }
+      ]
+    });
+
+    expect(result.peakEnergyCharge).toBe("579.82");
+    expect(result.offPeakEnergyCharge).toBe("263.69");
+    expect(result.ftCharge).toBe("32.46");
+    expect(result.grandTotal).toBe("972.91");
   });
 });
 

@@ -6,12 +6,69 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Home, Building2, Store } from "lucide-react";
 
+type PropertyType = "home" | "business" | "factory";
+type UsageTime = "day" | "night" | "both";
+
+type EstimateResult = {
+  estimatedMonthlyKwh: number;
+  recommendedSystemSizeKwp: number;
+  estimatedPanelCount: { min: number; max: number };
+  monthlySavingsThb: number;
+  annualSavingsThb: number;
+  annualExportRevenueThb: number;
+  paybackYears: number | null;
+  capexThb: number;
+};
+
+type EstimateApiResponse =
+  | { ok: true; result: EstimateResult; warnings: string[] }
+  | { ok: false; error: string; issues?: Array<{ path: string; message: string }> };
+
 export default function EstimateWizardPage() {
   const [phase, setPhase] = useState(1);
-  const [propertyType, setPropertyType] = useState<string | null>(null);
+  const [propertyType, setPropertyType] = useState<PropertyType | null>(null);
   const [province, setProvince] = useState("bangkok");
   const [monthlyBill, setMonthlyBill] = useState<number | "">("");
-  const [usageTime, setUsageTime] = useState<string | null>(null);
+  const [usageTime, setUsageTime] = useState<UsageTime | null>(null);
+  const [estimate, setEstimate] = useState<EstimateResult | null>(null);
+  const [estimateWarnings, setEstimateWarnings] = useState<string[]>([]);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
+  const [isEstimating, setIsEstimating] = useState(false);
+
+  async function runEstimate() {
+    if (typeof monthlyBill !== "number" || monthlyBill <= 0 || !propertyType || !usageTime) return;
+
+    setIsEstimating(true);
+    setEstimateError(null);
+    setEstimateWarnings([]);
+
+    try {
+      const response = await fetch("/api/estimate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          monthlyBillThb: monthlyBill,
+          province,
+          propertyType,
+          usageShape: usageTime,
+          billDate: "2026-07-01"
+        })
+      });
+      const payload = (await response.json()) as EstimateApiResponse;
+      if (!response.ok || !payload.ok) {
+        const issueText = payload.ok ? "" : payload.issues?.map((issue) => issue.message).join(", ");
+        throw new Error((payload.ok ? null : payload.error) || issueText || "Estimate failed.");
+      }
+
+      setEstimate(payload.result);
+      setEstimateWarnings(payload.warnings);
+      setPhase(3);
+    } catch (error) {
+      setEstimateError(error instanceof Error ? error.message : "Estimate failed.");
+    } finally {
+      setIsEstimating(false);
+    }
+  }
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -204,13 +261,18 @@ export default function EstimateWizardPage() {
               </Button>
               <Button 
                 size="lg" 
-                disabled={!monthlyBill || !usageTime}
-                onClick={() => setPhase(3)}
+                disabled={!monthlyBill || !usageTime || isEstimating}
+                onClick={() => void runEstimate()}
                 className="w-full sm:w-auto px-10 text-base h-12 shadow-md transition-transform active:scale-95"
               >
-                ประเมินความคุ้มค่า (Simulate)
+                {isEstimating ? "กำลังคำนวณ..." : "ประเมินความคุ้มค่า (Simulate)"}
               </Button>
             </div>
+            {estimateError ? (
+              <div className="rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+                {estimateError}
+              </div>
+            ) : null}
           </div>
         )}
 
@@ -224,16 +286,22 @@ export default function EstimateWizardPage() {
               </p>
             </div>
             
-            {/* Mockup results for now */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="border-primary/30 shadow-md">
                  <CardHeader className="bg-primary/5 border-b border-primary/10">
                    <CardTitle className="text-center text-lg">ขนาดติดตั้งแนะนำ</CardTitle>
                  </CardHeader>
                  <CardContent className="p-8 text-center flex flex-col items-center justify-center">
-                   <div className="text-6xl font-bold text-primary mb-3">5 <span className="text-2xl text-primary/70">kW</span></div>
+                   <div className="text-6xl font-bold text-primary mb-3">
+                     {estimate?.recommendedSystemSizeKwp.toLocaleString("th-TH", { maximumFractionDigits: 1 }) ?? "-"}{" "}
+                     <span className="text-2xl text-primary/70">kW</span>
+                   </div>
                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-muted rounded-full text-sm text-muted-foreground">
-                     <span>แผงโซลาร์เซลล์ประมาณ 9-11 แผง</span>
+                     <span>
+                       {estimate
+                         ? `แผงประมาณ ${estimate.estimatedPanelCount.min}-${estimate.estimatedPanelCount.max} แผง, ใช้ไฟราว ${estimate.estimatedMonthlyKwh.toLocaleString("th-TH", { maximumFractionDigits: 0 })} kWh/เดือน`
+                         : "คำนวณจากค่าไฟและพฤติกรรมการใช้ไฟ"}
+                     </span>
                    </div>
                  </CardContent>
               </Card>
@@ -243,13 +311,28 @@ export default function EstimateWizardPage() {
                    <CardTitle className="text-center text-lg">คาดว่าจะประหยัดค่าไฟได้</CardTitle>
                  </CardHeader>
                  <CardContent className="p-8 text-center flex flex-col items-center justify-center">
-                   <div className="text-5xl font-bold text-emerald-600 mb-3">~2,500 <span className="text-xl text-emerald-600/70">บ./เดือน</span></div>
+                   <div className="text-5xl font-bold text-emerald-600 mb-3">
+                     ~{estimate ? Math.max(0, estimate.monthlySavingsThb).toLocaleString("th-TH", { maximumFractionDigits: 0 }) : "-"}{" "}
+                     <span className="text-xl text-emerald-600/70">บ./เดือน</span>
+                   </div>
                    <div className="inline-flex items-center gap-2 px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-sm font-medium">
-                     <span>หรือประหยัดได้ ~30,000 บาท ต่อปี</span>
+                     <span>
+                       {estimate
+                         ? `ประหยัด ~${estimate.annualSavingsThb.toLocaleString("th-TH", { maximumFractionDigits: 0 })} บาท/ปี, คืนทุน ${estimate.paybackYears ?? "-"} ปี`
+                         : "คำนวณเงินประหยัดต่อปีและจุดคุ้มทุนจาก tariff จริง"}
+                     </span>
                    </div>
                  </CardContent>
               </Card>
             </div>
+
+            {estimateWarnings.length > 0 ? (
+              <div className="rounded-md border border-warning bg-warning/10 p-4 text-sm leading-6 text-warning-foreground">
+                {estimateWarnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </div>
+            ) : null}
 
             {/* Disclaimer Banner */}
             <div className="mt-8 rounded-xl border border-orange-200 bg-orange-50 p-5 text-sm leading-6 text-orange-900">
