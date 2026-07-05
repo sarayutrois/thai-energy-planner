@@ -2,7 +2,19 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, ArrowRight, BarChart3, CalendarDays, Database, ReceiptText, type LucideIcon } from "lucide-react";
+import {
+  AlertTriangle,
+  ArrowRight,
+  BarChart3,
+  BatteryCharging,
+  CalendarDays,
+  CarFront,
+  Database,
+  ReceiptText,
+  SunMedium,
+  Zap,
+  type LucideIcon
+} from "lucide-react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
@@ -166,6 +178,41 @@ export function LocalBillSummary() {
           </section>
         </div>
 
+        <section className="rounded-md border border-border bg-muted/25 p-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-sm font-semibold">ต่อยอดจากข้อมูลบิลนี้</h2>
+            <p className="text-sm leading-6 text-muted-foreground">
+              เลือกงานถัดไปได้เลย ทุกหน้าด้านล่างจะอ่านข้อมูลบิลที่บันทึกไว้ใน browser นี้เพื่อแนะนำค่าเริ่มต้นให้
+            </p>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+            <NextStepLink
+              description="เทียบ Normal / TOU และลองย้ายโหลดจากช่วงที่เหมาะกับประเภทผู้ใช้"
+              href="/analysis/scenarios"
+              icon={Zap}
+              label="เทียบค่าไฟ"
+            />
+            <NextStepLink
+              description="แนะนำขนาด Solar เริ่มต้น พื้นที่หลังคา และงบลงทุนคร่าว ๆ"
+              href="/analysis/solar"
+              icon={SunMedium}
+              label="ลอง Solar"
+            />
+            <NextStepLink
+              description="ประเมินขนาด Battery, กำลังจ่ายไฟ และ CAPEX เบื้องต้น"
+              href="/analysis/battery"
+              icon={BatteryCharging}
+              label="ลอง Battery"
+            />
+            <NextStepLink
+              description="ตั้งค่าการชาร์จ EV จากรูปแบบค่าไฟและช่วงเวลาการใช้งาน"
+              href="/analysis/ev"
+              icon={CarFront}
+              label="ลอง EV"
+            />
+          </div>
+        </section>
+
         <div className="flex flex-wrap gap-2">
           <ActionLink href={billHref} label="แก้ไขข้อมูลบิล" />
           <ActionLink href={`/analysis/reports/${localBillReportId}`} label="เปิดรายงานบิล" variant="outline" />
@@ -219,6 +266,35 @@ function Metric({
       </div>
       <p className="mt-2 text-lg font-semibold tracking-normal">{value}</p>
     </div>
+  );
+}
+
+function NextStepLink({
+  description,
+  href,
+  icon: Icon,
+  label
+}: {
+  description: string;
+  href: string;
+  icon: LucideIcon;
+  label: string;
+}) {
+  return (
+    <Link
+      className="rounded-md border border-border bg-card p-4 transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring"
+      href={href}
+    >
+      <div className="flex items-center gap-2 font-semibold">
+        <Icon aria-hidden="true" className="h-4 w-4 text-primary" />
+        {label}
+      </div>
+      <p className="mt-2 text-sm leading-6 text-muted-foreground">{description}</p>
+      <span className="mt-3 inline-flex items-center gap-2 text-sm font-medium text-primary">
+        เปิดดู
+        <ArrowRight aria-hidden="true" className="h-4 w-4" />
+      </span>
+    </Link>
   );
 }
 
