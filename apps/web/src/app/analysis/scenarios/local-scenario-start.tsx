@@ -38,10 +38,12 @@ export function LocalScenarioStart() {
     const shiftPercent = averageKwh >= 900 ? 30 : averageKwh >= 500 ? 25 : 18;
     const window = audienceSourceWindow[snapshot.audience];
     const params = new URLSearchParams({
+      audience: snapshot.audience,
       profile: audienceProfile[snapshot.audience],
       normalTariff: "demo-normal",
       touTariff: "demo-tou",
       meterCost: "2500",
+      source: "bills",
       shiftPercent: String(shiftPercent),
       sourceStart: window.start,
       sourceEnd: window.end,

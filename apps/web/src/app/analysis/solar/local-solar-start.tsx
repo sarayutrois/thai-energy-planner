@@ -48,6 +48,7 @@ export function LocalSolarStart() {
     if (!suggested) return "/analysis/solar/results";
 
     const params = new URLSearchParams({
+      audience: snapshot?.audience ?? "home",
       profile: suggested.profile,
       baseline: snapshot?.audience === "home" ? "normal" : "tou",
       systemSizeKwp: String(suggested.systemSizeKwp),
@@ -58,7 +59,8 @@ export function LocalSolarStart() {
       projectLifeYears: "20",
       discountRatePercent: "6",
       exportEnabled: "true",
-      exportRateThbPerKwh: "2.2"
+      exportRateThbPerKwh: "2.2",
+      source: "bills"
     });
     return `/analysis/solar/results?${params.toString()}`;
   }, [snapshot?.audience, suggested]);

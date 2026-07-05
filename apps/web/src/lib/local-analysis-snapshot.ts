@@ -2,7 +2,9 @@ import type { AnalysisAudience } from "./analysis-start";
 
 export const billWorkspaceStorageKey = "thai-energy-planner.bill-workspace.v1";
 export const billReportStorageKey = "thai-energy-planner.bill-report.v1";
+export const localAnalysisReportsStorageKey = "thai-energy-planner.analysis-reports.v1";
 export const localBillReportId = "local-bill-summary";
+export const localAnalysisReportIdPrefix = "local-analysis-";
 
 export type StoredBillRow = {
   id: string;
@@ -50,4 +52,58 @@ export type LocalBillReportSnapshot = {
     authority: "PEA" | "MEA";
     meterMode: "normal" | "tou";
   }>;
+};
+
+export type LocalAnalysisReportModule = "scenario" | "solar" | "battery" | "ev";
+
+export type LocalAnalysisReportMetric = {
+  label: string;
+  value: string;
+};
+
+export type LocalAnalysisReportRow = Record<string, string | number | null>;
+
+export type LocalAnalysisReportRecommendation = {
+  title: string;
+  description: string;
+  nextAction?: string;
+};
+
+export type LocalAnalysisReportSection = {
+  title: string;
+  items?: LocalAnalysisReportMetric[] | undefined;
+  paragraphs?: string[] | undefined;
+};
+
+export type LocalAnalysisReportDraft = {
+  module: LocalAnalysisReportModule;
+  moduleLabel: string;
+  title: string;
+  reportTitle?: string | undefined;
+  disclaimer?: string | undefined;
+  printedAtLabel?: string | undefined;
+  summary: string;
+  metrics: LocalAnalysisReportMetric[];
+  assumptions: LocalAnalysisReportMetric[];
+  resultRows: LocalAnalysisReportRow[];
+  recommendations: LocalAnalysisReportRecommendation[];
+  sections?: LocalAnalysisReportSection[] | undefined;
+  limitations?: LocalAnalysisReportRecommendation[] | undefined;
+  references?: LocalAnalysisReportMetric[] | undefined;
+};
+
+export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
+  id: string;
+  createdAt: string;
+  serverGeneratedReportId?: string | undefined;
+  serverAnalysisRunId?: string | undefined;
+  sourcePath: string;
+  sourceBillReportId: typeof localBillReportId;
+  sourceBill: {
+    audience: AnalysisAudience;
+    monthCount: number;
+    totalKwh: number;
+    averageMonthlyCostThb: number;
+    dataQualityLabel: string;
+  };
 };

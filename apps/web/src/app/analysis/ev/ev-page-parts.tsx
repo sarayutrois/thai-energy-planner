@@ -8,6 +8,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildEvQuery, evStrategyOptions, phase6ProfileOptions, type EvDemoSettings } from "@/lib/phase6-demo";
 
+type SavedBillContext = {
+  audience?: string | undefined;
+  source?: string | undefined;
+};
+
 const tabs = [
   { key: "overview", href: "/analysis/ev", label: "Overview" },
   { key: "config", href: "/analysis/ev/config", label: "Config" },
@@ -62,7 +67,15 @@ export function EvPageShell({
   );
 }
 
-export function EvControls({ settings, action }: { settings: EvDemoSettings; action: string }) {
+export function EvControls({
+  settings,
+  action,
+  savedBillContext
+}: {
+  settings: EvDemoSettings;
+  action: string;
+  savedBillContext?: SavedBillContext | undefined;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -80,6 +93,7 @@ export function EvControls({ settings, action }: { settings: EvDemoSettings; act
           </div>
         ) : null}
         <form action={action} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <SavedBillHiddenInputs context={savedBillContext} />
           <Field label="Demo profile">
             <select name="profile" defaultValue={settings.profile} className={inputClassName}>
               {phase6ProfileOptions.map((option) => (
@@ -153,7 +167,7 @@ export function EvControls({ settings, action }: { settings: EvDemoSettings; act
           </div>
           <div className="flex items-end">
             <a
-              href={`/analysis/ev/results?${buildEvQuery(settings)}`}
+              href={`/analysis/ev/results?${withSavedBillContext(buildEvQuery(settings), savedBillContext)}`}
               className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
             >
               Open results
@@ -163,6 +177,25 @@ export function EvControls({ settings, action }: { settings: EvDemoSettings; act
       </CardContent>
     </Card>
   );
+}
+
+function SavedBillHiddenInputs({ context }: { context?: SavedBillContext | undefined }) {
+  if (context?.source !== "bills") return null;
+  return (
+    <>
+      <input name="source" type="hidden" value="bills" />
+      {context.audience ? <input name="audience" type="hidden" value={context.audience} /> : null}
+    </>
+  );
+}
+
+function withSavedBillContext(queryString: string, context?: SavedBillContext | undefined) {
+  if (context?.source !== "bills") return queryString;
+
+  const params = new URLSearchParams(queryString);
+  params.set("source", "bills");
+  if (context.audience) params.set("audience", context.audience);
+  return params.toString();
 }
 
 export function EvSummary({ selectedScenario, comparison }: { selectedScenario: EvScenarioResult; comparison: EvScenarioComparisonResult }) {

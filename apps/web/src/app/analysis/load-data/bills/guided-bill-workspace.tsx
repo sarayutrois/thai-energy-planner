@@ -55,8 +55,8 @@ export function GuidedBillWorkspace({
     [validation.bills.length]
   );
   const recommendations = useMemo(() => buildBillRecommendations(validation.bills, summary), [summary, validation.bills]);
-  const scenarioHref = `/analysis/scenarios/results?profile=${audienceProfile[audience]}&normalTariff=demo-normal&touTariff=demo-tou&meterCost=2500&shiftPercent=25&sourceStart=18%3A00&sourceEnd=22%3A00&targetWindow=22%3A00-06%3A00`;
-  const solarHref = `/analysis/solar?profile=${audienceProfile[audience]}`;
+  const scenarioHref = `/analysis/scenarios/results?audience=${audience}&source=bills&profile=${audienceProfile[audience]}&normalTariff=demo-normal&touTariff=demo-tou&meterCost=2500&shiftPercent=25&sourceStart=18%3A00&sourceEnd=22%3A00&targetWindow=22%3A00-06%3A00`;
+  const solarHref = `/analysis/solar?audience=${audience}&source=bills&profile=${audienceProfile[audience]}`;
 
   useEffect(() => {
     const payload: StoredBillWorkspace = {

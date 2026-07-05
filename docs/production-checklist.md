@@ -3,7 +3,7 @@
 Before deploying the Thai Energy Planner to a production environment, ensure the following checklist is completed:
 
 ## 1. Security
-- [ ] **Admin Authentication:** The `/admin` routes must be protected by a robust authentication provider (e.g., NextAuth.js, Clerk). The current "DEV ONLY" banner must be replaced with real auth guards.
+- [x] **Admin Authentication Guard:** `/admin` routes are protected in production when `ADMIN_ACCESS_TOKEN` is set. Replace this token guard with SSO/NextAuth/Clerk if multi-user admin roles are needed.
 - [ ] **Environment Variables:** Ensure `.env` is never committed. Production secrets should be injected via the hosting provider (e.g., Vercel environment variables).
 - [ ] **File Upload Limits:** File upload sizes for CSV/XLSX imports are restricted to 50MB. Verify infrastructure timeouts allow for processing up to this limit.
 - [ ] **CSV Injection:** Ensure `csv-exporter.ts` sanitization remains intact (prefixing `=, +, -, @` with `'`).
@@ -14,6 +14,7 @@ Before deploying the Thai Energy Planner to a production environment, ensure the
 - [ ] **Data Aggregation:** Ensure frontend charts continue to use aggregated summary data rather than fetching millions of raw `LoadInterval` rows.
 
 ## 3. Operations
+- [x] **Report Persistence:** Local analysis reports can be mirrored into PostgreSQL as `AnalysisRun` + `GeneratedReport` records when `DATABASE_URL` is available.
 - [ ] **Audit Logging:** Verify that admin actions (e.g., publishing tariffs) are successfully writing to the `AuditLog` table.
 - [ ] **Error Monitoring:** Integrate a tool like Sentry to catch unhandled exceptions in the calculation engines.
 - [ ] **Backups:** Configure automated daily backups for the PostgreSQL database, especially for the immutable `TariffSnapshot` records.

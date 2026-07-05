@@ -2,26 +2,42 @@ import React from "react";
 import Link from "next/link";
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
+  const guardEnabled = Boolean(process.env.ADMIN_ACCESS_TOKEN && process.env.NODE_ENV === "production");
+
   return (
     <div className="flex min-h-screen">
-      <aside className="w-64 bg-slate-900 text-white p-6 flex flex-col">
-        <div className="mb-6 rounded bg-yellow-600/20 p-3 text-sm text-yellow-500 border border-yellow-600/50">
-          <p className="font-semibold">⚠️ DEV ONLY</p>
-          <p>Auth guard is disabled. Do not deploy to production without securing these routes.</p>
+      <aside className="flex w-64 flex-col bg-slate-900 p-6 text-white">
+        <div
+          className={`mb-6 rounded border p-3 text-sm ${
+            guardEnabled ? "border-green-600/50 bg-green-600/20 text-green-300" : "border-yellow-600/50 bg-yellow-600/20 text-yellow-500"
+          }`}
+        >
+          <p className="font-semibold">{guardEnabled ? "Admin guard enabled" : "DEV ONLY"}</p>
+          <p>{guardEnabled ? "Production admin routes require ADMIN_ACCESS_TOKEN." : "Set ADMIN_ACCESS_TOKEN before production deployment."}</p>
         </div>
-        <h2 className="text-xl font-bold mb-8">Admin Panel</h2>
+        <h2 className="mb-8 text-xl font-bold">Admin Panel</h2>
         <nav className="flex flex-col gap-4">
-          <Link href="/admin/tariffs" className="hover:text-blue-400">Tariffs</Link>
-          <Link href="/admin/ft" className="hover:text-blue-400">Ft Rate</Link>
-          <Link href="/admin/tax" className="hover:text-blue-400">Tax Rates</Link>
-          <Link href="/admin/holidays" className="hover:text-blue-400">Holidays</Link>
-          <Link href="/admin/policies" className="hover:text-blue-400">Policies</Link>
-          <Link href="/admin/audit-logs" className="hover:text-blue-400">Audit Logs</Link>
+          <Link href="/admin/tariffs" className="hover:text-blue-400">
+            Tariffs
+          </Link>
+          <Link href="/admin/ft" className="hover:text-blue-400">
+            Ft Rate
+          </Link>
+          <Link href="/admin/tax" className="hover:text-blue-400">
+            Tax Rates
+          </Link>
+          <Link href="/admin/holidays" className="hover:text-blue-400">
+            Holidays
+          </Link>
+          <Link href="/admin/policies" className="hover:text-blue-400">
+            Policies
+          </Link>
+          <Link href="/admin/audit-logs" className="hover:text-blue-400">
+            Audit Logs
+          </Link>
         </nav>
       </aside>
-      <main className="flex-1 p-8 bg-slate-50">
-        {children}
-      </main>
+      <main className="flex-1 bg-slate-50 p-8">{children}</main>
     </div>
   );
 }

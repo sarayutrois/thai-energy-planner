@@ -48,17 +48,20 @@ export default function Home() {
               </p>
             </div>
 
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row mt-2">
               <a
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-base font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
-                href="/analysis/new"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md bg-primary px-6 text-base font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring shadow-sm"
+                href="/estimate"
               >
-                เริ่มวิเคราะห์
+                สำหรับผู้ใช้ทั่วไป (ประเมินเบื้องต้น)
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </a>
-              <Button size="lg" variant="outline">
-                ดูตัวอย่างผลลัพธ์
-              </Button>
+              <a
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-md border border-input bg-background px-6 text-base font-medium text-foreground transition hover:bg-accent hover:text-accent-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                href="/analysis/solar"
+              >
+                สำหรับผู้เชี่ยวชาญ (วิเคราะห์เชิงลึก)
+              </a>
             </div>
 
             <div className="grid gap-3 sm:grid-cols-3">

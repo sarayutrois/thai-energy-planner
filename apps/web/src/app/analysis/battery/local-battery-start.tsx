@@ -60,6 +60,7 @@ export function LocalBatteryStart() {
     if (!suggested) return "/analysis/battery/results";
 
     const params = new URLSearchParams({
+      audience: snapshot?.audience ?? "home",
       profile: suggested.profile,
       strategy: suggested.strategy,
       capacityKwh: String(suggested.capacityKwh),
@@ -68,7 +69,8 @@ export function LocalBatteryStart() {
       chargePowerKw: String(suggested.chargePowerKw),
       dischargePowerKw: String(suggested.dischargePowerKw),
       backupReservePercent: "20",
-      peakShavingThresholdKw: String(suggested.peakShavingThresholdKw)
+      peakShavingThresholdKw: String(suggested.peakShavingThresholdKw),
+      source: "bills"
     });
     return `/analysis/battery/results?${params.toString()}`;
   }, [suggested]);

@@ -58,6 +58,7 @@ export function LocalEvStart() {
     if (!suggested) return "/analysis/ev/results";
 
     const params = new URLSearchParams({
+      audience: snapshot?.audience ?? "home",
       profile: suggested.profile,
       strategy: suggested.strategy,
       dailyDistanceKm: String(suggested.dailyDistanceKm),
@@ -65,7 +66,8 @@ export function LocalEvStart() {
       arrivalTime: suggested.arrivalTime,
       departureTime: suggested.departureTime,
       targetSocPercent: String(suggested.targetSocPercent),
-      initialSocPercent: String(suggested.initialSocPercent)
+      initialSocPercent: String(suggested.initialSocPercent),
+      source: "bills"
     });
     return `/analysis/ev/results?${params.toString()}`;
   }, [suggested]);

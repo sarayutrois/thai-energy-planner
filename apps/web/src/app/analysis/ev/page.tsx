@@ -3,11 +3,11 @@ import { EvChartsSection, EvControls, EvPageShell, EvRecommendations, EvSourcePa
 import { LocalEvStart } from "./local-ev-start";
 
 export default async function EvOverviewPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
-  const { demo, selectedScenario, comparison, settings, queryString } = getEvDemo((await searchParams) ?? {});
+  const { demo, selectedScenario, comparison, settings, queryString, savedBillContext } = getEvDemo((await searchParams) ?? {});
 
   return (
     <EvPageShell active="overview" queryString={queryString}>
-      <EvControls settings={settings} action="/analysis/ev/results" />
+      <EvControls settings={settings} action="/analysis/ev/results" savedBillContext={savedBillContext} />
       <LocalEvStart />
       <EvSummary selectedScenario={selectedScenario} comparison={comparison} />
       <EvSourcePanel demo={demo} selectedScenario={selectedScenario} />

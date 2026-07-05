@@ -10,11 +10,11 @@ import {
 import { LocalSolarStart } from "./local-solar-start";
 
 export default async function SolarOverviewPage({ searchParams }: { searchParams?: Promise<SolarSearchParams> }) {
-  const { analysis, settings, queryString } = getSolarDemo((await searchParams) ?? {});
+  const { analysis, settings, queryString, savedBillContext } = getSolarDemo((await searchParams) ?? {});
 
   return (
     <SolarPageShell active="overview" queryString={queryString}>
-      <SolarControls settings={settings} action="/analysis/solar/results" />
+      <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
       <LocalSolarStart />
       <SolarSummary analysis={analysis} />
       <SolarChartsSection analysis={analysis} />

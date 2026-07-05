@@ -15,6 +15,11 @@ import {
 export type Phase6SearchParams = Record<string, string | string[] | undefined>;
 export type Phase6ProfileKey = "export_home" | "low_export_home" | "ev_evening";
 
+export type SavedBillSearchContext = {
+  audience?: string | undefined;
+  source?: "bills" | undefined;
+};
+
 export type BatteryDemoSettings = {
   profile: Phase6ProfileKey;
   strategy: BatteryDispatchStrategy;
@@ -66,6 +71,7 @@ export function getBatteryDemo(params: Phase6SearchParams): {
   analysis: BatteryAnalysisResult;
   settings: BatteryDemoSettings;
   queryString: string;
+  savedBillContext: SavedBillSearchContext;
 } {
   const validationMessages: string[] = [];
   const profile = normalizeProfile(getSingleParam(params.profile));
@@ -121,7 +127,13 @@ export function getBatteryDemo(params: Phase6SearchParams): {
     billDate: "2026-02-01"
   });
 
-  return { demo: { ...demo, batteryConfig: config }, analysis, settings, queryString: buildBatteryQuery(settings) };
+  return {
+    demo: { ...demo, batteryConfig: config },
+    analysis,
+    settings,
+    queryString: appendSavedBillContext(buildBatteryQuery(settings), params),
+    savedBillContext: getSavedBillContext(params)
+  };
 }
 
 export function getEvDemo(params: Phase6SearchParams): {
@@ -130,6 +142,7 @@ export function getEvDemo(params: Phase6SearchParams): {
   comparison: EvScenarioComparisonResult;
   settings: EvDemoSettings;
   queryString: string;
+  savedBillContext: SavedBillSearchContext;
 } {
   const validationMessages: string[] = [];
   const profile = normalizeProfile(getSingleParam(params.profile));
@@ -173,7 +186,14 @@ export function getEvDemo(params: Phase6SearchParams): {
     config
   });
 
-  return { demo: { ...demo, evConfig: config }, selectedScenario, comparison, settings, queryString: buildEvQuery(settings) };
+  return {
+    demo: { ...demo, evConfig: config },
+    selectedScenario,
+    comparison,
+    settings,
+    queryString: appendSavedBillContext(buildEvQuery(settings), params),
+    savedBillContext: getSavedBillContext(params)
+  };
 }
 
 export function buildBatteryQuery(settings: BatteryDemoSettings) {
@@ -217,6 +237,24 @@ function normalizeEvStrategy(value: string | undefined, fallback: EvChargingStra
 
 function getSingleParam(value: string | string[] | undefined) {
   return Array.isArray(value) ? value[0] : value;
+}
+
+function appendSavedBillContext(queryString: string, params: Phase6SearchParams) {
+  if (getSingleParam(params.source) !== "bills") return queryString;
+
+  const nextParams = new URLSearchParams(queryString);
+  nextParams.set("source", "bills");
+  const audience = getSingleParam(params.audience);
+  if (audience) nextParams.set("audience", audience);
+  return nextParams.toString();
+}
+
+function getSavedBillContext(params: Phase6SearchParams): SavedBillSearchContext {
+  if (getSingleParam(params.source) !== "bills") return {};
+  return {
+    audience: getSingleParam(params.audience),
+    source: "bills"
+  };
 }
 
 function getNumberParam(

@@ -11,7 +11,7 @@ import {
 } from "@thai-energy-planner/tariff-engine";
 import { detectIntervalMinutes, parseCsvLoadProfile, type LoadProfilePreview } from "./load-data.js";
 
-export const solarEngineVersion = "0.5.0-solar-finance";
+export const solarEngineVersion = "0.6.0-solar-xhigh";
 
 export type SolarDataStatus = "demo" | "draft" | "verified" | "published";
 
@@ -251,6 +251,13 @@ export type SensitivityAnalysisResult = {
   baseNpvThb: number;
   cases: SensitivityCaseResult[];
   mostImpactfulVariable: SensitivityCaseResult["variable"] | null;
+  downsideCase: SensitivityStressCaseResult;
+  upsideCase: SensitivityStressCaseResult;
+  breakEvenCapexThb: number | null;
+  npvRangeThb: {
+    low: number;
+    high: number;
+  };
 };
 
 export type SolarRecommendation = {
@@ -273,6 +280,47 @@ export type SolarRecommendation = {
   nextAction: string;
 };
 
+export type SolarModelDetailLevel = "easy" | "advanced" | "xhigh";
+
+export type SolarModelRisk = {
+  code:
+    | "demo_yield_source"
+    | "demo_export_policy"
+    | "short_load_profile"
+    | "no_uploaded_solar_profile"
+    | "missing_roof_geometry"
+    | "high_shading_loss"
+    | "high_export_ratio"
+    | "negative_npv";
+  severity: "info" | "warning" | "critical";
+  title: string;
+  explanation: string;
+  mitigation: string;
+};
+
+export type SolarModelQualityResult = {
+  detailLevel: SolarModelDetailLevel;
+  level: "low" | "medium" | "high" | "xhigh";
+  score: number;
+  label: string;
+  reasons: string[];
+  risks: SolarModelRisk[];
+};
+
+export type SensitivityStressCaseResult = {
+  label: string;
+  npvThb: number;
+  simplePaybackYears: number | null;
+  irrPercent: number | null;
+  annualNetBenefitYear1: number;
+  assumptions: {
+    capexMultiplier: number;
+    benefitMultiplier: number;
+    discountRatePercent: number;
+    oAndMMultiplier: number;
+  };
+};
+
 export type SolarAnalysisInput = {
   loadIntervals: LoadIntervalInput[];
   normalTariff: TariffVersionConfig;
@@ -283,6 +331,7 @@ export type SolarAnalysisInput = {
   billDate?: string | undefined;
   monthlyScaleFactor?: number | undefined;
   solarProfile?: SolarGenerationIntervalInput[] | undefined;
+  modelDetailLevel?: SolarModelDetailLevel | undefined;
 };
 
 export type SolarAnalysisResult = {
@@ -292,6 +341,7 @@ export type SolarAnalysisResult = {
   financial: FinancialResult;
   sizing: SolarSizingOptimizationResult;
   sensitivity: SensitivityAnalysisResult;
+  modelQuality: SolarModelQualityResult;
   recommendations: SolarRecommendation[];
 };
 
@@ -303,6 +353,12 @@ export function validateSolarAssumptions(input: SolarAssumptions): string[] {
   const errors: string[] = [];
   if (input.systemSizeKwp <= 0) errors.push("systemSizeKwp must be greater than 0");
   if (input.roofAreaSqm !== undefined && input.roofAreaSqm < 0) errors.push("roofAreaSqm must be non-negative");
+  if (input.roofAzimuth !== undefined && (input.roofAzimuth < 0 || input.roofAzimuth > 360)) {
+    errors.push("roofAzimuth must be between 0 and 360");
+  }
+  if (input.roofTilt !== undefined && (input.roofTilt < 0 || input.roofTilt > 60)) {
+    errors.push("roofTilt must be between 0 and 60");
+  }
   if (input.systemLossPercent < 0 || input.systemLossPercent > 100) errors.push("systemLossPercent must be between 0 and 100");
   if (input.shadingLossPercent < 0 || input.shadingLossPercent > 100) errors.push("shadingLossPercent must be between 0 and 100");
   if (input.degradationPercentPerYear < 0 || input.degradationPercentPerYear > 100) {
@@ -361,7 +417,7 @@ export function generateApproxSolarProfile(input: {
 
   const startDate = input.startDate ?? "2026-01-05";
   const days = input.days ?? 7;
-  const lossFactor = solarLossFactor(input.assumptions);
+  const performanceFactor = solarPerformanceFactor(input.assumptions);
   const intervals: SolarGenerationIntervalInput[] = [];
 
   for (let dayOffset = 0; dayOffset < days; dayOffset += 1) {
@@ -370,7 +426,7 @@ export function generateApproxSolarProfile(input: {
     const monthYield = input.assumptions.monthlySpecificYieldKwhPerKwp[monthIndex] ?? 0;
     const dailyTarget = new Decimal(monthYield)
       .mul(input.assumptions.systemSizeKwp)
-      .mul(lossFactor)
+      .mul(performanceFactor)
       .div(daysInMonth(date));
     const dailyShape = buildDaylightShape(input.assumptions.intervalMinutes);
     const totalWeight = dailyShape.reduce((sum, item) => sum.plus(item.weight), zero);
@@ -391,7 +447,7 @@ export function generateApproxSolarProfile(input: {
     month: String(index + 1).padStart(2, "0"),
     generationKwh: new Decimal(yieldKwh)
       .mul(input.assumptions.systemSizeKwp)
-      .mul(lossFactor)
+      .mul(performanceFactor)
       .toDecimalPlaces(3)
       .toNumber()
   }));
@@ -960,11 +1016,78 @@ export function runSensitivityAnalysis(input: {
   }
   const mostImpactfulVariable =
     [...ranges.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+  const downsideCase = calculateSensitivityStressCase({
+    label: "Downside: higher capex, lower generation/self-use, higher discount",
+    input,
+    capexMultiplier: 1.1,
+    benefitMultiplier: 0.85,
+    discountRatePercent: input.assumptions.discountRatePercent + 2,
+    oAndMMultiplier: 1.15
+  });
+  const upsideCase = calculateSensitivityStressCase({
+    label: "Upside: lower capex, higher generation/self-use, lower discount",
+    input,
+    capexMultiplier: 0.9,
+    benefitMultiplier: 1.1,
+    discountRatePercent: Math.max(0, input.assumptions.discountRatePercent - 1),
+    oAndMMultiplier: 0.95
+  });
+  const allNpvs = [base.npvThb, downsideCase.npvThb, upsideCase.npvThb, ...cases.map((item) => item.npvThb)];
+  const breakEvenCapex = new Decimal(input.assumptions.capexThb).plus(base.npvThb);
 
   return {
     baseNpvThb: base.npvThb,
     cases,
-    mostImpactfulVariable
+    mostImpactfulVariable,
+    downsideCase,
+    upsideCase,
+    breakEvenCapexThb: breakEvenCapex.gte(0) ? round(breakEvenCapex, 2) : null,
+    npvRangeThb: {
+      low: round(Math.min(...allNpvs), 2),
+      high: round(Math.max(...allNpvs), 2)
+    }
+  };
+}
+
+function calculateSensitivityStressCase(input: {
+  label: string;
+  input: {
+    annualBillSavingsThb: number;
+    annualExportRevenueThb: number;
+    annualGenerationKwh: number;
+    assumptions: FinancialAssumptions;
+  };
+  capexMultiplier: number;
+  benefitMultiplier: number;
+  discountRatePercent: number;
+  oAndMMultiplier: number;
+}): SensitivityStressCaseResult {
+  const assumptions = input.input.assumptions;
+  const result = calculateFinancials({
+    annualBillSavingsThb: input.input.annualBillSavingsThb * input.benefitMultiplier,
+    annualExportRevenueThb: input.input.annualExportRevenueThb * input.benefitMultiplier,
+    annualGenerationKwh: input.input.annualGenerationKwh * input.benefitMultiplier,
+    assumptions: {
+      ...assumptions,
+      capexThb: round(new Decimal(assumptions.capexThb).mul(input.capexMultiplier), 2),
+      discountRatePercent: input.discountRatePercent,
+      oAndMCostPerYear: round(new Decimal(assumptions.oAndMCostPerYear).mul(input.oAndMMultiplier), 2),
+      inverterReplacementCostThb: round(new Decimal(assumptions.inverterReplacementCostThb).mul(input.capexMultiplier), 2)
+    }
+  });
+
+  return {
+    label: input.label,
+    npvThb: result.npvThb,
+    simplePaybackYears: result.simplePaybackYears,
+    irrPercent: result.irrPercent,
+    annualNetBenefitYear1: result.annualNetBenefitYear1,
+    assumptions: {
+      capexMultiplier: input.capexMultiplier,
+      benefitMultiplier: input.benefitMultiplier,
+      discountRatePercent: input.discountRatePercent,
+      oAndMMultiplier: input.oAndMMultiplier
+    }
   };
 }
 
@@ -1175,6 +1298,15 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
     intervalDays,
     shadingLossPercent: input.solarAssumptions.shadingLossPercent
   });
+  const modelQuality = assessSolarModelQuality({
+    detailLevel: input.modelDetailLevel ?? "easy",
+    intervalDays,
+    hasUploadedSolarProfile: input.solarProfile !== undefined,
+    solarAssumptions: input.solarAssumptions,
+    exportPolicy: input.exportPolicy,
+    billComparison,
+    financial
+  });
 
   return {
     solarProfile,
@@ -1183,6 +1315,7 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
     financial,
     sizing,
     sensitivity,
+    modelQuality,
     recommendations
   };
 }
@@ -1194,8 +1327,20 @@ export function createDemoSolarInput(
     capexThb?: number | undefined;
     exportRateThbPerKwh?: number | undefined;
     exportEnabled?: boolean | undefined;
+    exportLimitKw?: number | undefined;
     discountRatePercent?: number | undefined;
     projectLifeYears?: number | undefined;
+    roofAreaSqm?: number | undefined;
+    roofAzimuth?: number | undefined;
+    roofTilt?: number | undefined;
+    systemLossPercent?: number | undefined;
+    shadingLossPercent?: number | undefined;
+    degradationPercentPerYear?: number | undefined;
+    electricityEscalationRatePercent?: number | undefined;
+    oAndMCostPerYear?: number | undefined;
+    inverterReplacementCostThb?: number | undefined;
+    inverterReplacementYear?: number | null | undefined;
+    modelDetailLevel?: SolarModelDetailLevel | undefined;
   } = {}
 ): SolarAnalysisInput {
   const systemSizeKwp = overrides.systemSizeKwp ?? (profile === "daytime_shop" ? 8 : 5);
@@ -1211,13 +1356,13 @@ export function createDemoSolarInput(
       systemSizeKwp,
       panelWatt: 550,
       inverterSizeKw: systemSizeKwp,
-      roofAreaSqm: systemSizeKwp * 6,
-      roofAzimuth: 180,
-      roofTilt: 12,
+      roofAreaSqm: overrides.roofAreaSqm ?? systemSizeKwp * 6,
+      roofAzimuth: overrides.roofAzimuth ?? 180,
+      roofTilt: overrides.roofTilt ?? 12,
       monthlySpecificYieldKwhPerKwp: [112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106],
-      systemLossPercent: 12,
-      shadingLossPercent: profile === "evening_home" ? 8 : 4,
-      degradationPercentPerYear: 0.5,
+      systemLossPercent: overrides.systemLossPercent ?? 12,
+      shadingLossPercent: overrides.shadingLossPercent ?? (profile === "evening_home" ? 8 : 4),
+      degradationPercentPerYear: overrides.degradationPercentPerYear ?? 0.5,
       intervalMinutes: 60,
       yieldSource: {
         status: "demo",
@@ -1229,7 +1374,7 @@ export function createDemoSolarInput(
     exportPolicy: {
       enabled: overrides.exportEnabled ?? true,
       exportRateThbPerKwh: overrides.exportRateThbPerKwh ?? 0.8,
-      exportLimitKw: 10,
+      exportLimitKw: overrides.exportLimitKw ?? 10,
       status: "demo",
       sourceUrl: null,
       authority: "Thai Energy Planner demo",
@@ -1238,18 +1383,19 @@ export function createDemoSolarInput(
     financialAssumptions: {
       projectLifeYears: overrides.projectLifeYears ?? 20,
       discountRatePercent: overrides.discountRatePercent ?? 6,
-      electricityEscalationRatePercent: 2,
+      electricityEscalationRatePercent: overrides.electricityEscalationRatePercent ?? 2,
       inflationRatePercent: 2,
       oAndMEscalationRatePercent: 2,
       degradationRatePercent: 0.5,
       capexThb,
-      oAndMCostPerYear: capexThb * 0.01,
-      inverterReplacementCostThb: systemSizeKwp * 5500,
-      inverterReplacementYear: 10,
+      oAndMCostPerYear: overrides.oAndMCostPerYear ?? capexThb * 0.01,
+      inverterReplacementCostThb: overrides.inverterReplacementCostThb ?? systemSizeKwp * 5500,
+      inverterReplacementYear: overrides.inverterReplacementYear === undefined ? 10 : overrides.inverterReplacementYear,
       subsidyAmountThb: 0,
       meterChangeCostThb: 0,
       otherInitialCostThb: 0
-    }
+    },
+    modelDetailLevel: overrides.modelDetailLevel ?? "easy"
   };
 }
 
@@ -1408,6 +1554,152 @@ function sumLoadEnergy(intervals: LoadIntervalInput[]) {
 function solarLossFactor(assumptions: SolarAssumptions) {
   const lossPercent = new Decimal(assumptions.systemLossPercent).plus(assumptions.shadingLossPercent);
   return Decimal.max(zero, new Decimal(1).minus(lossPercent.div(100)));
+}
+
+function solarPerformanceFactor(assumptions: SolarAssumptions) {
+  return solarLossFactor(assumptions).mul(roofOrientationFactor(assumptions));
+}
+
+function roofOrientationFactor(assumptions: SolarAssumptions) {
+  if (assumptions.roofAzimuth === undefined && assumptions.roofTilt === undefined) return new Decimal(1);
+
+  const azimuth = assumptions.roofAzimuth ?? 180;
+  const tilt = assumptions.roofTilt ?? 12;
+  const azimuthDelta = Math.min(Math.abs(azimuth - 180), 360 - Math.abs(azimuth - 180));
+  const azimuthPenalty = Math.min(0.18, (azimuthDelta / 180) * 0.18);
+  const tiltPenalty = Math.min(0.1, Math.abs(tilt - 12) / 60);
+  return new Decimal(1).minus(azimuthPenalty).minus(tiltPenalty).toDecimalPlaces(6);
+}
+
+function assessSolarModelQuality(input: {
+  detailLevel: SolarModelDetailLevel;
+  intervalDays: number;
+  hasUploadedSolarProfile: boolean;
+  solarAssumptions: SolarAssumptions;
+  exportPolicy: ExportPolicy;
+  billComparison: SolarBillComparison;
+  financial: FinancialResult;
+}): SolarModelQualityResult {
+  const risks: SolarModelRisk[] = [];
+  const reasons: string[] = [];
+  let score = input.detailLevel === "xhigh" ? 72 : input.detailLevel === "advanced" ? 62 : 48;
+
+  if (input.intervalDays >= 365) {
+    score += 16;
+    reasons.push("Load profile covers at least 12 months.");
+  } else if (input.intervalDays >= 30) {
+    score += 9;
+    reasons.push("Load profile covers at least 30 days.");
+  } else {
+    score -= 12;
+    risks.push({
+      code: "short_load_profile",
+      severity: "warning",
+      title: "Load profile is short",
+      explanation: `The model uses ${input.intervalDays} day(s) of interval load data, so seasonality may be missed.`,
+      mitigation: "Use at least 30 days for screening and 12 months for investment-grade review."
+    });
+  }
+
+  if (input.hasUploadedSolarProfile) {
+    score += 12;
+    reasons.push("Uploaded solar generation profile is used.");
+  } else {
+    score -= 6;
+    risks.push({
+      code: "no_uploaded_solar_profile",
+      severity: "info",
+      title: "Solar profile is approximate",
+      explanation: "Generation is estimated from monthly specific yield and a generic daylight curve.",
+      mitigation: "Use measured PV output, bankable irradiance data, or a site-specific PV model before committing capital."
+    });
+  }
+
+  if (input.solarAssumptions.yieldSource.status === "demo" || input.solarAssumptions.yieldSource.status === "draft") {
+    score -= 14;
+    risks.push({
+      code: "demo_yield_source",
+      severity: "warning",
+      title: "Yield source is demo/draft",
+      explanation: "The production estimate is not from a verified solar resource source.",
+      mitigation: "Replace with verified irradiance/yield assumptions for the selected site."
+    });
+  } else {
+    score += 8;
+    reasons.push("Yield source is verified or published.");
+  }
+
+  if (input.exportPolicy.status === "demo" || input.exportPolicy.status === "draft") {
+    score -= 10;
+    risks.push({
+      code: "demo_export_policy",
+      severity: "warning",
+      title: "Export policy is demo/draft",
+      explanation: "Export revenue is sensitive to eligibility, contract terms, and verified feed-in rates.",
+      mitigation: "Verify export eligibility and rate with the relevant authority before using this as a decision basis."
+    });
+  } else {
+    score += 5;
+    reasons.push("Export policy source is verified or published.");
+  }
+
+  if (input.solarAssumptions.roofAzimuth === undefined || input.solarAssumptions.roofTilt === undefined) {
+    score -= 7;
+    risks.push({
+      code: "missing_roof_geometry",
+      severity: "info",
+      title: "Roof geometry is incomplete",
+      explanation: "Azimuth or tilt is missing, so the model falls back to default orientation assumptions.",
+      mitigation: "Enter roof azimuth and tilt, then compare sensitivity before choosing system size."
+    });
+  } else {
+    score += 5;
+    reasons.push("Roof azimuth and tilt are included.");
+  }
+
+  if (input.solarAssumptions.shadingLossPercent > 10) {
+    score -= 8;
+    risks.push({
+      code: "high_shading_loss",
+      severity: "warning",
+      title: "Shading loss is material",
+      explanation: "High shading loss can shift payback, NPV, and optimum system size.",
+      mitigation: "Confirm shading with a site survey or hourly shading simulation."
+    });
+  }
+
+  if (input.billComparison.selfConsumption.exportRatio > 0.45) {
+    score -= 7;
+    risks.push({
+      code: "high_export_ratio",
+      severity: "warning",
+      title: "Export ratio is high",
+      explanation: "A large exported share can make results depend heavily on export-rate assumptions.",
+      mitigation: "Compare smaller systems, load shifting, or battery cases before selecting size."
+    });
+  }
+
+  if (input.financial.npvThb < 0) {
+    risks.push({
+      code: "negative_npv",
+      severity: "info",
+      title: "NPV is negative",
+      explanation: "The current assumptions do not recover the required return over the project life.",
+      mitigation: "Recheck CAPEX, self-consumption, export eligibility, discount rate, and system size."
+    });
+  }
+
+  const boundedScore = Math.max(0, Math.min(100, Math.round(score)));
+  const level = boundedScore >= 90 ? "xhigh" : boundedScore >= 75 ? "high" : boundedScore >= 55 ? "medium" : "low";
+
+  return {
+    detailLevel: input.detailLevel,
+    level,
+    score: boundedScore,
+    label: level === "xhigh" ? "XHIGH review-ready" : level === "high" ? "High confidence" : level === "medium" ? "Screening confidence" : "Draft confidence",
+    reasons,
+    risks
+  };
 }
 
 function buildDaylightShape(intervalMinutes: 15 | 30 | 60) {

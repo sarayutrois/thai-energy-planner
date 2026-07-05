@@ -1,21 +1,24 @@
 "use client";
 
 import { Download, FileJson, FileSpreadsheet, Printer } from "lucide-react";
-import { exportToCsv, exportToJson } from "@thai-energy-planner/report-engine";
+import { exportToCsv, exportToJson, exportToPdf } from "@thai-energy-planner/report-engine";
 
 type CsvRow = Record<string, string | number | null | undefined>;
 
 export function ReportActions({
   csvRows,
   fileBaseName = "thai-energy-planner-report",
-  jsonData
+  jsonData,
+  pdfLabel = "Export PDF"
 }: {
   csvRows?: CsvRow[] | undefined;
   fileBaseName?: string | undefined;
   jsonData?: unknown;
+  pdfLabel?: string | undefined;
 }) {
   const canExportJson = jsonData !== undefined;
   const canExportCsv = Boolean(csvRows?.length);
+  const canExportPdf = jsonData !== undefined;
 
   return (
     <div className="flex flex-wrap gap-2 print:hidden">
@@ -29,11 +32,15 @@ export function ReportActions({
       </button>
       <button
         className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-        disabled
+        disabled={!canExportPdf}
+        onClick={() => {
+          if (!canExportPdf) return;
+          downloadBinaryFile(`${safeFileName(fileBaseName)}.pdf`, exportToPdf(jsonData), "application/pdf");
+        }}
         type="button"
       >
         <Download aria-hidden="true" className="h-4 w-4" />
-        PDF ถัดไป
+        {pdfLabel}
       </button>
       <button
         className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
@@ -64,7 +71,15 @@ export function ReportActions({
 }
 
 function downloadTextFile(fileName: string, content: string, type: string) {
-  const blob = new Blob([content], { type });
+  downloadBlob(fileName, new Blob([content], { type }));
+}
+
+function downloadBinaryFile(fileName: string, content: Uint8Array, type: string) {
+  const arrayBuffer = content.buffer.slice(content.byteOffset, content.byteOffset + content.byteLength) as ArrayBuffer;
+  downloadBlob(fileName, new Blob([arrayBuffer], { type }));
+}
+
+function downloadBlob(fileName: string, blob: Blob) {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

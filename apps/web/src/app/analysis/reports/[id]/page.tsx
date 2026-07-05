@@ -3,7 +3,8 @@ import { createReportFileName } from "@thai-energy-planner/report-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
-import { localBillReportId } from "@/lib/local-analysis-snapshot";
+import { localAnalysisReportIdPrefix, localBillReportId } from "@/lib/local-analysis-snapshot";
+import { LocalAnalysisReport } from "./local-analysis-report";
 import { LocalBillReport } from "./local-bill-report";
 import { ReportActions } from "./report-actions";
 
@@ -45,6 +46,21 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
             <Badge variant="outline">Local bill snapshot</Badge>
           </div>
           <LocalBillReport />
+        </section>
+      </main>
+    );
+  }
+
+  if (id.startsWith(localAnalysisReportIdPrefix)) {
+    return (
+      <main className="min-h-screen bg-background">
+        <MainNav />
+        <section className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 lg:py-10">
+          <div className="mb-5 flex flex-wrap gap-2 print:hidden">
+            <Badge>Report Preview</Badge>
+            <Badge variant="outline">Local analysis draft</Badge>
+          </div>
+          <LocalAnalysisReport id={id} />
         </section>
       </main>
     );

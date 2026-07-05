@@ -62,6 +62,7 @@ export function LocalBillSummary() {
   const latestRows = summary.monthlyTrend.slice(-4).reverse();
   const averageMonthlyCost = summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
   const billHref = `/analysis/load-data/bills${workspace ? `?audience=${workspace.audience}&source=bills` : ""}`;
+  const savedBillQuery = workspace ? `?audience=${workspace.audience}&source=bills` : "";
 
   if (readError) {
     return (
@@ -188,25 +189,25 @@ export function LocalBillSummary() {
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <NextStepLink
               description="เทียบ Normal / TOU และลองย้ายโหลดจากช่วงที่เหมาะกับประเภทผู้ใช้"
-              href="/analysis/scenarios"
+              href={`/analysis/scenarios${savedBillQuery}`}
               icon={Zap}
               label="เทียบค่าไฟ"
             />
             <NextStepLink
               description="แนะนำขนาด Solar เริ่มต้น พื้นที่หลังคา และงบลงทุนคร่าว ๆ"
-              href="/analysis/solar"
+              href={`/analysis/solar${savedBillQuery}`}
               icon={SunMedium}
               label="ลอง Solar"
             />
             <NextStepLink
               description="ประเมินขนาด Battery, กำลังจ่ายไฟ และ CAPEX เบื้องต้น"
-              href="/analysis/battery"
+              href={`/analysis/battery${savedBillQuery}`}
               icon={BatteryCharging}
               label="ลอง Battery"
             />
             <NextStepLink
               description="ตั้งค่าการชาร์จ EV จากรูปแบบค่าไฟและช่วงเวลาการใช้งาน"
-              href="/analysis/ev"
+              href={`/analysis/ev${savedBillQuery}`}
               icon={CarFront}
               label="ลอง EV"
             />
@@ -216,7 +217,7 @@ export function LocalBillSummary() {
         <div className="flex flex-wrap gap-2">
           <ActionLink href={billHref} label="แก้ไขข้อมูลบิล" />
           <ActionLink href={`/analysis/reports/${localBillReportId}`} label="เปิดรายงานบิล" variant="outline" />
-          <ActionLink href="/analysis/scenarios" label="ไปจำลองสถานการณ์" variant="outline" />
+          <ActionLink href={`/analysis/scenarios${savedBillQuery}`} label="ไปจำลองสถานการณ์" variant="outline" />
         </div>
       </CardContent>
     </Card>

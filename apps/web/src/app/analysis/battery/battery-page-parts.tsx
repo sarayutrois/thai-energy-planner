@@ -13,6 +13,11 @@ import {
   type BatteryDemoSettings
 } from "@/lib/phase6-demo";
 
+type SavedBillContext = {
+  audience?: string | undefined;
+  source?: string | undefined;
+};
+
 const tabs = [
   { key: "overview", href: "/analysis/battery", label: "Overview" },
   { key: "config", href: "/analysis/battery/config", label: "Config" },
@@ -67,7 +72,15 @@ export function BatteryPageShell({
   );
 }
 
-export function BatteryControls({ settings, action }: { settings: BatteryDemoSettings; action: string }) {
+export function BatteryControls({
+  settings,
+  action,
+  savedBillContext
+}: {
+  settings: BatteryDemoSettings;
+  action: string;
+  savedBillContext?: SavedBillContext | undefined;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -85,6 +98,7 @@ export function BatteryControls({ settings, action }: { settings: BatteryDemoSet
           </div>
         ) : null}
         <form action={action} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <SavedBillHiddenInputs context={savedBillContext} />
           <Field label="Demo profile">
             <select name="profile" defaultValue={settings.profile} className={inputClassName}>
               {phase6ProfileOptions.map((option) => (
@@ -167,7 +181,7 @@ export function BatteryControls({ settings, action }: { settings: BatteryDemoSet
           </div>
           <div className="flex items-end">
             <a
-              href={`/analysis/battery/results?${buildBatteryQuery(settings)}`}
+              href={`/analysis/battery/results?${withSavedBillContext(buildBatteryQuery(settings), savedBillContext)}`}
               className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
             >
               Open results
@@ -177,6 +191,25 @@ export function BatteryControls({ settings, action }: { settings: BatteryDemoSet
       </CardContent>
     </Card>
   );
+}
+
+function SavedBillHiddenInputs({ context }: { context?: SavedBillContext | undefined }) {
+  if (context?.source !== "bills") return null;
+  return (
+    <>
+      <input name="source" type="hidden" value="bills" />
+      {context.audience ? <input name="audience" type="hidden" value={context.audience} /> : null}
+    </>
+  );
+}
+
+function withSavedBillContext(queryString: string, context?: SavedBillContext | undefined) {
+  if (context?.source !== "bills") return queryString;
+
+  const params = new URLSearchParams(queryString);
+  params.set("source", "bills");
+  if (context.audience) params.set("audience", context.audience);
+  return params.toString();
 }
 
 export function BatterySummary({ analysis }: { analysis: BatteryAnalysisResult }) {

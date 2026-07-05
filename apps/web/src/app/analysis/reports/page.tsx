@@ -3,6 +3,7 @@ import { defaultReportManifest } from "@thai-energy-planner/report-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
+import { LocalAnalysisReportCards } from "./local-analysis-report-cards";
 import { LocalReportCard } from "./local-report-card";
 
 const reports = [
@@ -21,7 +22,8 @@ const reportReadiness = [
   { label: "Tariff snapshot", done: true },
   { label: "Assumptions", done: true },
   { label: "Recommendations", done: true },
-  { label: "PDF/CSV/JSON export", done: false }
+  { label: "Print/JSON/CSV export", done: true },
+  { label: "PDF export", done: true }
 ];
 
 export default function AnalysisReportsPage() {
@@ -67,6 +69,7 @@ export default function AnalysisReportsPage() {
         <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_320px]">
           <div className="grid gap-4">
             <LocalReportCard />
+            <LocalAnalysisReportCards />
             {reports.map((report) => (
               <Card key={report.id}>
                 <CardHeader>

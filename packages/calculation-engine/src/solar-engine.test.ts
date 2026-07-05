@@ -588,4 +588,52 @@ describe("phase 5 solar engine", () => {
     expect(recommendations.length).toBeGreaterThan(0);
     expect(recommendations.every((recommendation) => recommendation.nextAction.length > 0)).toBe(true);
   });
+
+  it("reduces approximate generation when roof orientation is less favorable", () => {
+    const southFacing = generateApproxSolarProfile({
+      assumptions: { ...solarAssumptions, roofAzimuth: 180, roofTilt: 12 },
+      startDate: "2026-01-05",
+      days: 1
+    });
+    const westFlat = generateApproxSolarProfile({
+      assumptions: { ...solarAssumptions, roofAzimuth: 270, roofTilt: 0 },
+      startDate: "2026-01-05",
+      days: 1
+    });
+
+    expect(westFlat.annualGenerationKwh).toBeLessThan(southFacing.annualGenerationKwh);
+    expect(validateSolarAssumptions({ ...solarAssumptions, roofAzimuth: 361 })).toContain(
+      "roofAzimuth must be between 0 and 360"
+    );
+  });
+
+  it("adds stress sensitivity, NPV range, and break-even capex", () => {
+    const result = runSensitivityAnalysis({
+      annualBillSavingsThb: 15000,
+      annualExportRevenueThb: 2000,
+      annualGenerationKwh: 5000,
+      assumptions: controlledFinancialAssumptions
+    });
+
+    expect(result.downsideCase.npvThb).toBeLessThan(result.baseNpvThb);
+    expect(result.upsideCase.npvThb).toBeGreaterThan(result.baseNpvThb);
+    expect(result.npvRangeThb.low).toBeLessThanOrEqual(result.downsideCase.npvThb);
+    expect(result.npvRangeThb.high).toBeGreaterThanOrEqual(result.upsideCase.npvThb);
+    expect(result.breakEvenCapexThb).toBeGreaterThan(controlledFinancialAssumptions.capexThb);
+  });
+
+  it("surfaces model quality and risks for demo screening runs", () => {
+    const analysis = runDemoSolarAnalysis("evening_home", {
+      modelDetailLevel: "xhigh",
+      systemSizeKwp: 8,
+      capexThb: 900000,
+      shadingLossPercent: 12
+    });
+
+    expect(analysis.modelQuality.detailLevel).toBe("xhigh");
+    expect(analysis.modelQuality.score).toBeLessThan(75);
+    expect(analysis.modelQuality.risks.map((risk) => risk.code)).toEqual(
+      expect.arrayContaining(["short_load_profile", "demo_yield_source", "demo_export_policy", "high_shading_loss"])
+    );
+  });
 });
