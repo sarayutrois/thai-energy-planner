@@ -2,57 +2,96 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --font-sans: "Tahoma", "Noto Sans Thai", Arial, sans-serif;
-  --background: 42 43% 97%;
-  --foreground: 217 33% 17%;
-  --card: 0 0% 100%;
-  --card-foreground: 217 33% 17%;
-  --primary: 199 89% 28%;
-  --primary-foreground: 0 0% 100%;
-  --secondary: 165 30% 90%;
-  --secondary-foreground: 184 55% 18%;
-  --muted: 214 24% 92%;
-  --muted-foreground: 217 15% 42%;
-  --accent: 35 92% 62%;
-  --accent-foreground: 28 65% 14%;
-  --destructive: 0 70% 48%;
-  --destructive-foreground: 0 0% 100%;
-  --success: 151 62% 35%;
-  --success-foreground: 0 0% 100%;
-  --warning: 41 96% 48%;
-  --warning-foreground: 28 65% 14%;
-  --border: 214 20% 83%;
-  --input: 214 20% 83%;
-  --ring: 199 89% 28%;
+@layer base {
+  :root {
+    --font-sans: "Inter", "Noto Sans Thai", Arial, sans-serif;
+    /* Dark Mode Defaults */
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    
+    --card: 240 10% 6%;
+    --card-foreground: 0 0% 98%;
+    
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    
+    /* Vibrant Cyan/Blue for primary actions */
+    --primary: 199 89% 50%;
+    --primary-foreground: 240 5.9% 10%;
+    
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    
+    --success: 151 62% 45%;
+    --success-foreground: 240 5.9% 10%;
+    
+    --warning: 41 96% 55%;
+    --warning-foreground: 240 5.9% 10%;
+    
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 199 89% 50%;
+    
+    --radius: 0.75rem;
+  }
 }
 
-* {
-  box-sizing: border-box;
+@layer base {
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  
+  body {
+    @apply bg-background text-foreground font-sans;
+    min-height: 100vh;
+    margin: 0;
+    /* Smooth radial gradient for a premium feel */
+    background: radial-gradient(
+      circle at top center,
+      hsl(240, 15%, 12%) 0%,
+      hsl(var(--background)) 50%,
+      hsl(var(--background)) 100%
+    );
+    background-attachment: fixed;
+    /* Smooth scrolling */
+    scroll-behavior: smooth;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+
+  ::selection {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
 }
 
-body {
-  min-height: 100vh;
-  margin: 0;
-  background:
-    linear-gradient(180deg, hsl(42 43% 97%) 0%, hsl(204 45% 95%) 52%, hsl(0 0% 100%) 100%);
-  color: hsl(var(--foreground));
-  font-family: var(--font-sans);
-}
-
-a {
-  color: inherit;
-  text-decoration: none;
-}
-
-button,
-input,
-select,
-textarea {
-  font: inherit;
-}
-
-::selection {
-  background: hsl(var(--accent));
-  color: hsl(var(--accent-foreground));
+/* Custom Utilities for Premium Look */
+@layer utilities {
+  .glass-panel {
+    @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
+  }
+  
+  .text-gradient {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-300;
+  }
 }
