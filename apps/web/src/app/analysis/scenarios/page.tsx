@@ -2,6 +2,7 @@ import { ArrowRight, BarChart3, FilePlus2, GitCompare, ReceiptText, SunMedium, Z
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
+import { LocalScenarioStart } from "./local-scenario-start";
 
 const scenarioRoutes = [
   {
@@ -77,6 +78,8 @@ export default function ScenariosPage() {
             </CardContent>
           </Card>
         </div>
+
+        <LocalScenarioStart />
 
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {scenarioRoutes.map((route) => (
