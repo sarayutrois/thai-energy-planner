@@ -8,6 +8,7 @@ import {
   FileUp,
   Gauge,
   Home,
+  PlayCircle,
   PlugZap,
   ReceiptText,
   Store,
@@ -19,6 +20,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisStartHref, type AnalysisAudience, type AnalysisSource } from "@/lib/analysis-start";
+import { billReportStorageKey, billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 
 const userTypes: Array<{
   value: AnalysisAudience;
@@ -117,6 +119,17 @@ export function StartAnalysisWizard() {
   const primaryHref = useMemo(() => buildAnalysisStartHref("/analysis/load-data/bills", audience, "bills"), [audience]);
   const importHref = useMemo(() => buildAnalysisStartHref("/analysis/load-data/import", audience, "interval"), [audience]);
 
+  function startDemoWorkspace() {
+    const payload: StoredBillWorkspace = {
+      audience,
+      rows: buildDemoBillRows(audience),
+      updatedAt: new Date().toISOString()
+    };
+    window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
+    window.localStorage.removeItem(billReportStorageKey);
+    window.location.href = "/analysis/load-data/dashboard";
+  }
+
   return (
     <>
       <section className="border-b border-border bg-white/72">
@@ -135,7 +148,7 @@ export function StartAnalysisWizard() {
                 เพื่อเริ่มจากค่าไฟปัจจุบันก่อนต่อยอดไป Normal/TOU, Solar, Battery และ EV
               </p>
             </div>
-            <div className="flex flex-col gap-3 sm:flex-row">
+            <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-base font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
                 href={primaryHref}
@@ -150,6 +163,14 @@ export function StartAnalysisWizard() {
                 อัปโหลดไฟล์โหลด
                 <FileSpreadsheet aria-hidden="true" className="h-5 w-5" />
               </a>
+              <button
+                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card px-5 text-base font-medium text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                onClick={startDemoWorkspace}
+                type="button"
+              >
+                ลองด้วยข้อมูลตัวอย่าง
+                <PlayCircle aria-hidden="true" className="h-5 w-5" />
+              </button>
             </div>
           </div>
 
@@ -278,4 +299,21 @@ function StatusRow({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm leading-6 text-foreground">{value}</p>
     </div>
   );
+}
+
+function buildDemoBillRows(audience: AnalysisAudience): StoredBillWorkspace["rows"] {
+  const profile = {
+    home: { baseKwh: 420, baseCost: 1810, stepKwh: 38, stepCost: 170 },
+    shop: { baseKwh: 980, baseCost: 4550, stepKwh: 72, stepCost: 335 },
+    business: { baseKwh: 1480, baseCost: 7020, stepKwh: 95, stepCost: 460 }
+  }[audience];
+
+  return ["2026-01", "2026-02", "2026-03", "2026-04", "2026-05", "2026-06"].map((month, index) => ({
+    id: `demo-${audience}-${month}`,
+    month,
+    energyKwh: String(profile.baseKwh + index * profile.stepKwh + (index === 3 ? profile.stepKwh : 0)),
+    totalCostThb: String(profile.baseCost + index * profile.stepCost + (index === 3 ? profile.stepCost : 0)),
+    authority: "PEA",
+    meterMode: audience === "home" ? "normal" : "tou"
+  }));
 }
