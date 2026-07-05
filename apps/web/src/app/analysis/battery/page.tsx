@@ -7,6 +7,7 @@ import {
   BatterySourcePanel,
   BatterySummary
 } from "./battery-page-parts";
+import { LocalBatteryStart } from "./local-battery-start";
 
 export default async function BatteryOverviewPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
   const { analysis, settings, queryString } = getBatteryDemo((await searchParams) ?? {});
@@ -14,6 +15,7 @@ export default async function BatteryOverviewPage({ searchParams }: { searchPara
   return (
     <BatteryPageShell active="overview" queryString={queryString}>
       <BatteryControls settings={settings} action="/analysis/battery/results" />
+      <LocalBatteryStart />
       <BatterySummary analysis={analysis} />
       <BatterySourcePanel analysis={analysis} />
       <BatteryChartsSection analysis={analysis} />
