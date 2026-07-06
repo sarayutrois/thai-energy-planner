@@ -405,6 +405,9 @@ export function validateSolarAssumptions(input: SolarAssumptions): string[] {
     errors.push("systemLossPercent must be between 0 and 100");
   if (input.shadingLossPercent < 0 || input.shadingLossPercent > 100)
     errors.push("shadingLossPercent must be between 0 and 100");
+  if (input.systemLossPercent + input.shadingLossPercent > 100) {
+    errors.push("Combined system loss + shading loss must not exceed 100%");
+  }
   if (
     input.degradationPercentPerYear < 0 ||
     input.degradationPercentPerYear > 100
@@ -593,7 +596,14 @@ export function simulateSolarSelfConsumption(input: {
   const timestamps = [
     ...new Set([...loadByTimestamp.keys(), ...solarByTimestamp.keys()]),
   ].sort();
-  const monthly = new Map<string, SolarMonthlyEnergy>();
+  const monthly = new Map<string, {
+    month: string;
+    totalLoad: Decimal;
+    totalSolar: Decimal;
+    selfConsumed: Decimal;
+    gridImport: Decimal;
+    gridExport: Decimal;
+  }>();
 
   let totalLoad = zero;
   let totalSolar = zero;
@@ -634,32 +644,20 @@ export function simulateSolarSelfConsumption(input: {
     }
 
     const month = local.date.slice(0, 7);
-    const monthRow = monthly.get(month) ?? {
+    const monthAcc = monthly.get(month) ?? {
       month,
-      totalLoadKwh: 0,
-      totalSolarGenerationKwh: 0,
-      selfConsumedKwh: 0,
-      gridImportKwh: 0,
-      gridExportKwh: 0,
+      totalLoad: zero,
+      totalSolar: zero,
+      selfConsumed: zero,
+      gridImport: zero,
+      gridExport: zero,
     };
-    monthRow.totalLoadKwh = new Decimal(monthRow.totalLoadKwh)
-      .plus(loadKwh)
-      .toNumber();
-    monthRow.totalSolarGenerationKwh = new Decimal(
-      monthRow.totalSolarGenerationKwh,
-    )
-      .plus(solarKwh)
-      .toNumber();
-    monthRow.selfConsumedKwh = new Decimal(monthRow.selfConsumedKwh)
-      .plus(consumed)
-      .toNumber();
-    monthRow.gridImportKwh = new Decimal(monthRow.gridImportKwh)
-      .plus(imported)
-      .toNumber();
-    monthRow.gridExportKwh = new Decimal(monthRow.gridExportKwh)
-      .plus(exported)
-      .toNumber();
-    monthly.set(month, monthRow);
+    monthAcc.totalLoad = monthAcc.totalLoad.plus(loadKwh);
+    monthAcc.totalSolar = monthAcc.totalSolar.plus(solarKwh);
+    monthAcc.selfConsumed = monthAcc.selfConsumed.plus(consumed);
+    monthAcc.gridImport = monthAcc.gridImport.plus(imported);
+    monthAcc.gridExport = monthAcc.gridExport.plus(exported);
+    monthly.set(month, monthAcc);
 
     intervalResults.push({
       timestamp,
@@ -693,11 +691,11 @@ export function simulateSolarSelfConsumption(input: {
       .sort((a, b) => a.month.localeCompare(b.month))
       .map((row) => ({
         month: row.month,
-        totalLoadKwh: round(row.totalLoadKwh, 6),
-        totalSolarGenerationKwh: round(row.totalSolarGenerationKwh, 6),
-        selfConsumedKwh: round(row.selfConsumedKwh, 6),
-        gridImportKwh: round(row.gridImportKwh, 6),
-        gridExportKwh: round(row.gridExportKwh, 6),
+        totalLoadKwh: round(row.totalLoad, 6),
+        totalSolarGenerationKwh: round(row.totalSolar, 6),
+        selfConsumedKwh: round(row.selfConsumed, 6),
+        gridImportKwh: round(row.gridImport, 6),
+        gridExportKwh: round(row.gridExport, 6),
       })),
   };
 }
@@ -1059,8 +1057,10 @@ export function optimizeSolarSize(input: {
   const monthlyScaleFactor = inferMonthlyScaleFactor(loadIntervals);
   const startDate = getBangkokDate(loadIntervals[0]?.timestamp ?? "2026-01-05");
   const days = countUniqueBangkokDates(loadIntervals);
+  const MAX_SIZING_ITERATIONS = 100;
 
   for (let size = minKwp; size <= appliedMaxKwp + 0.000001; size += stepKwp) {
+    if (options.length >= MAX_SIZING_ITERATIONS) break;
     const systemSizeKwp = Number(size.toFixed(3));
     const solarAssumptions = { ...input.baseSolarAssumptions, systemSizeKwp };
     const profile = generateApproxSolarProfile({
@@ -2369,10 +2369,10 @@ function round(value: Decimal.Value, places: number) {
     .toNumber();
 }
 
+const usdFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
-    value,
-  );
+  return usdFormatter.format(value);
 }
 
 function createDemoLoadProfile(

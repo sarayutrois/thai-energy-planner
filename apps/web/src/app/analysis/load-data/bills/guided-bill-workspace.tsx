@@ -2,6 +2,8 @@
 
 import { AlertTriangle, ArrowRight, Download, FileText, Plus, ReceiptText, RotateCcw, Trash2, Upload } from "lucide-react";
 import { useMemo, useRef } from "react";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
@@ -15,6 +17,14 @@ const audienceProfile: Record<AnalysisAudience, string> = {
   shop: "daytime_shop",
   business: "daytime_home"
 };
+
+const MONTH_PATTERN = /^\d{4}-(?:0[1-9]|1[0-2])$/;
+
+function sanitizeMonth(value: string): string {
+  return MONTH_PATTERN.test(value) ? value : "";
+}
+
+const thFormatter = new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 });
 
 export function GuidedBillWorkspace({
   initialBills,
@@ -35,6 +45,7 @@ export function GuidedBillWorkspace({
     exportWorkspaceCsv,
     importWorkspace
   } = useBillWorkspace(initialBills, audience);
+  const router = useRouter();
   
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -51,10 +62,25 @@ export function GuidedBillWorkspace({
     [validation.bills.length]
   );
   const recommendations = useMemo(() => buildBillRecommendations(validation.bills, summary), [summary, validation.bills]);
-  const averageMonthlyKwh = summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0;
-  const scenarioHref = `/analysis/scenarios/results?audience=${audience}&source=bills&profile=${audienceProfile[audience]}&meterCost=2500&shiftPercent=25&sourceStart=18%3A00&sourceEnd=22%3A00&targetWindow=22%3A00-06%3A00&monthlyKwh=${encodeURIComponent(
-    String(round(averageMonthlyKwh, 2))
-  )}&billMonthCount=${validation.bills.length}`;
+  const averageMonthlyKwh = useMemo(
+    () => (summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0),
+    [summary.totalKwh, summary.monthCount]
+  );
+  const scenarioHref = useMemo(() => {
+    const params = new URLSearchParams({
+      audience,
+      source: "bills",
+      profile: audienceProfile[audience],
+      meterCost: "2500",
+      shiftPercent: "25",
+      sourceStart: "18:00",
+      sourceEnd: "22:00",
+      targetWindow: "22:00-06:00",
+      monthlyKwh: String(round(averageMonthlyKwh, 2)),
+      billMonthCount: String(validation.bills.length),
+    });
+    return `/analysis/scenarios/results?${params.toString()}`;
+  }, [audience, averageMonthlyKwh, validation.bills.length]);
   const solarHref = `/analysis/solar?audience=${audience}&source=bills&profile=${audienceProfile[audience]}`;
 
   function createLocalReport() {
@@ -84,7 +110,7 @@ export function GuidedBillWorkspace({
         badge: item.badge
       })),
       rows: validation.bills.map((bill) => ({
-        month: bill.month,
+        month: sanitizeMonth(bill.month),
         energyKwh: bill.energyKwh,
         totalCostThb: bill.totalCostThb,
         authority: bill.authority ?? "PEA",
@@ -92,7 +118,7 @@ export function GuidedBillWorkspace({
       }))
     };
     window.localStorage.setItem(billReportStorageKey, JSON.stringify(snapshot));
-    window.location.href = `/analysis/reports/${localBillReportId}`;
+    router.push(`/analysis/reports/${localBillReportId}`);
   }
 
   return (
@@ -297,8 +323,8 @@ export function GuidedBillWorkspace({
             <CardTitle>คำแนะนำเบื้องต้น</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {recommendations.map((item) => (
-              <div key={item.title} className="rounded-md border border-border p-4">
+            {recommendations.map((item, index) => (
+              <div key={index} className="rounded-md border border-border p-4">
                 <div className="mb-2 flex flex-wrap gap-2">
                   <Badge variant={item.tone}>{item.badge}</Badge>
                 </div>
@@ -335,13 +361,13 @@ export function GuidedBillWorkspace({
 
 function NextLink({ href, label, description }: { href: string; label: string; description: string }) {
   return (
-    <a className="rounded-md border border-border p-4 transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring" href={href}>
+    <Link className="rounded-md border border-border p-4 transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring" href={href}>
       <span className="flex items-center justify-between gap-3 font-medium">
         {label}
         <ArrowRight aria-hidden="true" className="h-4 w-4 text-primary" />
       </span>
       <span className="mt-2 block text-sm leading-6 text-muted-foreground">{description}</span>
-    </a>
+    </Link>
   );
 }
 
@@ -390,7 +416,7 @@ function buildBillRecommendations(bills: MonthlyBillInput[], summary: ReturnType
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return thFormatter.format(value);
 }
 
 function round(value: number, places: number) {

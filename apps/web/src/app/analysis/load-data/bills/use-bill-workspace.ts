@@ -1,10 +1,33 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { type AnalysisAudience } from "@/lib/analysis-start";
 import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import { parseBillCsv } from "@/lib/csv-parser";
 import { exportToCsv } from "@thai-energy-planner/report-engine";
 import { downloadJsonFile, downloadTextFile } from "@/lib/file-download";
+
+function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: number) {
+  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  useEffect(() => {
+    timerRef.current = setTimeout(callback, delayMs);
+    return () => clearTimeout(timerRef.current);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps);
+}
+
+function sanitizeRow(row: unknown): EditableBillRow {
+  const obj = typeof row === "object" && row !== null
+    ? (row as Record<string, unknown>)
+    : {};
+  return {
+    id: typeof obj["id"] === "string" && obj["id"] ? obj["id"] : crypto.randomUUID(),
+    month: typeof obj["month"] === "string" ? obj["month"] : "",
+    energyKwh: typeof obj["energyKwh"] === "string" ? obj["energyKwh"] : String(obj["energyKwh"] ?? ""),
+    totalCostThb: typeof obj["totalCostThb"] === "string" ? obj["totalCostThb"] : String(obj["totalCostThb"] ?? ""),
+    authority: obj["authority"] === "MEA" ? "MEA" : "PEA",
+    meterMode: obj["meterMode"] === "tou" ? "tou" : "normal",
+  };
+}
 
 export type EditableBillRow = {
   id: string;
@@ -19,7 +42,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
   const [rows, setRows] = useState<EditableBillRow[]>(() => loadStoredRows(initialBills, audience));
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
 
-  useEffect(() => {
+  useDebouncedEffect(() => {
     const payload: StoredBillWorkspace = {
       audience,
       rows,
@@ -27,7 +50,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
     };
     window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
     setSaveStatus(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
-  }, [audience, rows]);
+  }, [audience, rows], 500);
 
   function updateRow(id: string, patch: Partial<EditableBillRow>) {
     setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
@@ -103,6 +126,12 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
 
   async function importWorkspace(file: File | undefined, clearInputCallback?: () => void) {
     if (!file) return;
+    const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
+    const MAX_IMPORT_ROWS = 120; // 10 years of monthly data
+    if (file.size > MAX_FILE_SIZE) {
+      setSaveStatus("ไฟล์ใหญ่เกิน 2 MB");
+      return;
+    }
 
     try {
       const text = await file.text();
@@ -117,22 +146,23 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
         return;
       }
 
-      const parsed = JSON.parse(text) as Partial<StoredBillWorkspace>;
-      if (!Array.isArray(parsed.rows) || parsed.rows.length === 0) {
+      const raw: unknown = JSON.parse(text);
+      if (typeof raw !== "object" || raw === null || Array.isArray(raw)) {
+        setSaveStatus("ไฟล์ JSON ไม่ถูกรูปแบบ");
+        return;
+      }
+      const parsed = raw as Record<string, unknown>;
+      const rawRows = parsed["rows"];
+      if (!Array.isArray(rawRows) || rawRows.length === 0) {
         setSaveStatus("ไฟล์ไม่มีข้อมูลบิลที่นำเข้าได้");
         return;
       }
+      if (rawRows.length > MAX_IMPORT_ROWS) {
+        setSaveStatus(`จำนวนแถวเกิน ${MAX_IMPORT_ROWS} แถว`);
+        return;
+      }
 
-      setRows(
-        parsed.rows.map((row) => ({
-          id: row.id || crypto.randomUUID(),
-          month: row.month ?? "",
-          energyKwh: row.energyKwh ?? "",
-          totalCostThb: row.totalCostThb ?? "",
-          authority: row.authority === "MEA" ? "MEA" : "PEA",
-          meterMode: row.meterMode === "tou" ? "tou" : "normal"
-        }))
-      );
+      setRows(rawRows.map(sanitizeRow));
       setSaveStatus("นำเข้าข้อมูลบิลแล้ว");
     } catch {
       setSaveStatus("นำเข้าไฟล์ไม่สำเร็จ");
@@ -167,10 +197,12 @@ export function toEditableRow(bill: MonthlyBillInput): EditableBillRow {
 }
 
 export function toBillInput(row: EditableBillRow): MonthlyBillInput {
+  const kwh = Number(row.energyKwh);
+  const cost = Number(row.totalCostThb);
   return {
     month: row.month,
-    energyKwh: Number(row.energyKwh),
-    totalCostThb: Number(row.totalCostThb),
+    energyKwh: Number.isFinite(kwh) ? kwh : 0,
+    totalCostThb: Number.isFinite(cost) ? cost : 0,
     authority: row.authority,
     meterMode: row.meterMode,
     customerSegment: "residential"
@@ -188,23 +220,20 @@ function loadStoredRows(initialBills: MonthlyBillInput[], audience: AnalysisAudi
       return initialBills.map(toEditableRow);
     }
 
-    return parsed.rows.map((row) => ({
-      id: row.id || crypto.randomUUID(),
-      month: row.month ?? "",
-      energyKwh: row.energyKwh ?? "",
-      totalCostThb: row.totalCostThb ?? "",
-      authority: row.authority === "MEA" ? "MEA" : "PEA",
-      meterMode: row.meterMode === "tou" ? "tou" : "normal"
-    }));
+    return parsed.rows.map(sanitizeRow);
   } catch {
     return initialBills.map(toEditableRow);
   }
 }
 
-function nextMonth(month: string | undefined) {
-  if (!month) return "2026-05";
+function nextMonth(month: string | undefined): string {
+  const now = new Date();
+  const fallback = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  if (!month) return fallback;
   const [year, monthNumber] = month.split("-").map(Number);
-  if (!year || !monthNumber) return "2026-05";
+  if (!Number.isFinite(year) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+    return fallback;
+  }
   const date = new Date(Date.UTC(year, monthNumber, 1));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
