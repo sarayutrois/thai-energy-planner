@@ -11,7 +11,6 @@ function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: numb
   useEffect(() => {
     timerRef.current = setTimeout(callback, delayMs);
     return () => clearTimeout(timerRef.current);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 }
 
