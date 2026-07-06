@@ -1148,21 +1148,21 @@ function buildBatteryRecommendations(input: {
   ) {
     recommendations.push({
       type: "financially_viable",
-      title: "Battery is financially viable in this scenario",
-      explanation: `NPV is ${input.financial.npvThb} THB and simple payback is ${input.financial.simplePaybackYears} years.`,
+      title: "การลงทุนแบตเตอรี่มีความคุ้มค่าในกรณีนี้",
+      explanation: `NPV อยู่ที่ ${input.financial.npvThb} บาท และระยะเวลาคืนทุนคือ ${input.financial.simplePaybackYears} ปี`,
       supportingMetrics: {
         npvThb: input.financial.npvThb,
         paybackYears: input.financial.simplePaybackYears,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Verify equipment quote and warranty before investment.",
+      nextAction: "ควรตรวจสอบราคาและเงื่อนไขการรับประกันก่อนตัดสินใจลงทุน",
     });
   } else {
     recommendations.push({
       type: "not_financial_backup_value",
-      title: "Battery is not financially attractive yet",
-      explanation: `Annual bill savings are ${input.financial.annualBillSavingsThb} THB while CAPEX is ${input.config.capexThb} THB.`,
+      title: "การลงทุนแบตเตอรี่ยังไม่คุ้มค่าทางการเงิน",
+      explanation: `ประหยัดค่าไฟได้ ${input.financial.annualBillSavingsThb} บาทต่อปี ในขณะที่ต้นทุนสูงถึง ${input.config.capexThb} บาท`,
       supportingMetrics: {
         annualSavingsThb: input.financial.annualBillSavingsThb,
         capexThb: input.config.capexThb,
@@ -1170,22 +1170,22 @@ function buildBatteryRecommendations(input: {
       confidence: "medium",
       limitations,
       nextAction:
-        "Treat battery as backup value or retest with verified lower CAPEX.",
+        "แนะนำให้พิจารณาในแง่ของระบบสำรองไฟ หรือลองปรับลดต้นทุน CAPEX ดูอีกครั้ง",
     });
   }
 
   if (input.dispatch.gridExportBeforeKwh < input.dispatch.totalSolarKwh * 0.1) {
     recommendations.push({
       type: "low_solar_export",
-      title: "Solar export is already low",
+      title: "ปริมาณไฟส่งออกมีน้อยอยู่แล้ว (แบตเตอรี่อาจเกินความจำเป็น)",
       explanation:
-        "There is not much surplus solar for the battery to capture.",
+        "ไม่มีไฟโซลาร์ส่วนเกินเหลือพอให้แบตเตอรี่ชาร์จเก็บไว้",
       supportingMetrics: {
         exportBeforeKwh: input.dispatch.gridExportBeforeKwh,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Increase solar or reduce battery size before investing.",
+      nextAction: "ควรเพิ่มขนาดแผงโซลาร์ หรือลดขนาดแบตเตอรี่ลง",
     });
   }
 
@@ -1195,15 +1195,15 @@ function buildBatteryRecommendations(input: {
   ) {
     recommendations.push({
       type: "reduce_battery_size",
-      title: "Battery may be oversized for available surplus",
-      explanation: "Solar charging is low relative to usable battery capacity.",
+      title: "แบตเตอรี่อาจมีขนาดใหญ่เกินไปเมื่อเทียบกับไฟที่เหลือ",
+      explanation: "ปริมาณไฟโซลาร์ที่ชาร์จเข้าแบตเตอรี่ได้มีน้อยมากเมื่อเทียบกับความจุแบตเตอรี่",
       supportingMetrics: {
         chargedFromSolarKwh: input.dispatch.chargedFromSolarKwh,
         usableCapacityKwh: input.config.usableCapacityKwh,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Compare a smaller battery or add more solar first.",
+      nextAction: "ลองเปรียบเทียบกับแบตเตอรี่ขนาดเล็กกว่า หรือเพิ่มขนาดแผงโซลาร์",
     });
   }
 
@@ -1213,16 +1213,16 @@ function buildBatteryRecommendations(input: {
   ) {
     recommendations.push({
       type: "tou_spread_too_low",
-      title: "TOU arbitrage is not strong enough",
+      title: "ส่วนต่างค่าไฟ TOU ยังไม่มากพอ",
       explanation:
-        "Efficiency losses and tariff spread do not create positive savings in this demo.",
+        "การสูญเสียพลังงานระหว่างชาร์จและส่วนต่างค่าไฟไม่สามารถสร้างผลกำไรได้ในกรณีนี้",
       supportingMetrics: {
         annualSavingsThb: input.financial.annualBillSavingsThb,
       },
       confidence: "medium",
       limitations,
       nextAction:
-        "Verify real peak/off-peak rates before using grid-charging arbitrage.",
+        "ตรวจสอบเรทค่าไฟ Peak/Off-Peak ของจริงอีกครั้งก่อนใช้งานระบบชาร์จไฟจากกริด",
     });
   }
 
@@ -1241,29 +1241,29 @@ function buildEvRecommendations(input: {
   if (input.best.strategy === "OFF_PEAK") {
     recommendations.push({
       type: "charge_off_peak",
-      title: "Off-Peak charging is best in this profile",
-      explanation: `Off-Peak charging reduces monthly increase to ${input.best.monthlyBillIncreaseThb} THB.`,
+      title: "การชาร์จช่วง Off-Peak เป็นทางเลือกที่ดีที่สุด",
+      explanation: `การชาร์จช่วง Off-Peak ช่วยลดค่าไฟที่เพิ่มขึ้นเหลือ ${input.best.monthlyBillIncreaseThb} บาท/เดือน`,
       supportingMetrics: {
         monthlyBillIncreaseThb: input.best.monthlyBillIncreaseThb,
       },
       confidence: "medium",
       limitations: ["Uses demo tariff data."],
-      nextAction: "Set charger schedule inside the off-peak window.",
+      nextAction: "ตั้งเวลาเครื่องชาร์จให้ทำงานเฉพาะช่วง Off-Peak",
     });
   }
 
   if (input.best.strategy === "SMART") {
     recommendations.push({
       type: "smart_charging_best",
-      title: "Smart charging is the lowest-cost strategy",
+      title: "ระบบชาร์จอัจฉริยะช่วยประหยัดต้นทุนได้มากที่สุด",
       explanation:
-        "Smart charging selects lower-cost intervals inside the home charging window.",
+        "ระบบจะเลือกช่วงเวลาที่ค่าไฟถูกที่สุดในการชาร์จอัตโนมัติ",
       supportingMetrics: {
         monthlyBillIncreaseThb: input.best.monthlyBillIncreaseThb,
       },
       confidence: "medium",
       limitations: ["Requires charger scheduling capability."],
-      nextAction: "Use smart charging or a timer schedule.",
+      nextAction: "แนะนำให้เปิดโหมด Smart Charging หรือตั้งเวลาชาร์จล่วงหน้า",
     });
   }
 
@@ -1272,9 +1272,9 @@ function buildEvRecommendations(input: {
   ) {
     recommendations.push({
       type: "solar_surplus_available",
-      title: "EV can use some solar surplus",
+      title: "รถ EV สามารถชาร์จด้วยไฟโซลาร์ส่วนเกินได้",
       explanation:
-        "Solar surplus charging reduces grid energy for EV charging where daytime parking is available.",
+        "หากจอดรถช่วงกลางวัน จะสามารถใช้ไฟโซลาร์ที่เหลือทิ้งมาชาร์จรถเพื่อลดการดึงไฟจากกริดได้",
       supportingMetrics: {
         solarSurplusUsedKwh:
           input.scenarios.find(
@@ -1285,7 +1285,7 @@ function buildEvRecommendations(input: {
       limitations: [
         "Demo assumes charger availability during candidate intervals.",
       ],
-      nextAction: "Test a daytime-at-home EV schedule.",
+      nextAction: "ลองตั้งค่าพฤติกรรมการชาร์จรถช่วงกลางวันที่บ้าน",
     });
   }
 
@@ -1296,9 +1296,9 @@ function buildEvRecommendations(input: {
   ) {
     recommendations.push({
       type: "charging_window_insufficient",
-      title: "Charging window may be insufficient",
+      title: "ระยะเวลาชาร์จอาจไม่เพียงพอ",
       explanation:
-        "At least one strategy cannot finish charging before departure.",
+        "มีอย่างน้อย 1 กลยุทธ์ที่ไม่สามารถชาร์จไฟได้ตามเป้าหมายก่อนถึงเวลาออกเดินทาง",
       supportingMetrics: {
         incompleteStrategies: input.scenarios.filter(
           (scenario) => scenario.chargingCompletionStatus === "incomplete",
@@ -1306,21 +1306,21 @@ function buildEvRecommendations(input: {
       },
       confidence: "high",
       limitations: [],
-      nextAction: "Increase charger power or widen the charging window.",
+      nextAction: "ควรเพิ่มขนาดเครื่องชาร์จ หรือขยายเวลาจอดรถให้นานขึ้น",
     });
   }
 
   if (immediate && immediate.peakDemandIncreaseKw > 2) {
     recommendations.push({
       type: "peak_impact_high",
-      title: "Immediate charging increases peak demand",
-      explanation: `Immediate charging increases peak by ${immediate.peakDemandIncreaseKw} kW in this profile.`,
+      title: "การเสียบชาร์จทันทีทำให้ Peak Demand สูงขึ้น",
+      explanation: `การเสียบชาร์จทันทีเมื่อถึงบ้านทำให้ Peak Demand เพิ่มขึ้น ${immediate.peakDemandIncreaseKw} kW`,
       supportingMetrics: {
         peakDemandIncreaseKw: immediate.peakDemandIncreaseKw,
       },
       confidence: "medium",
       limitations: [],
-      nextAction: "Move charging to Off-Peak or Smart charging.",
+      nextAction: "ควรเปลี่ยนไปชาร์จช่วง Off-Peak หรือใช้ระบบ Smart Charging",
     });
   }
 

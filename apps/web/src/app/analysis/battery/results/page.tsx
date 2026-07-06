@@ -10,6 +10,7 @@ import {
   BatterySourcePanel,
   BatterySummary
 } from "../battery-page-parts";
+import { AiBatterySummary } from "../ai-battery-summary";
 
 export default async function BatteryResultsPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -20,6 +21,7 @@ export default async function BatteryResultsPage({ searchParams }: { searchParam
     <BatteryPageShell active="results" queryString={queryString}>
       <BatteryControls settings={settings} action="/analysis/battery/results" savedBillContext={savedBillContext} />
       <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Battery" reportDraft={reportDraft} />
+      <AiBatterySummary analysis={analysis} settings={settings} />
       <BatterySummary analysis={analysis} />
       <BatterySourcePanel analysis={analysis} />
       <BatteryFinancialTable analysis={analysis} />

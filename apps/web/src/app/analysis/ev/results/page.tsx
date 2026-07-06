@@ -10,6 +10,7 @@ import {
   EvSourcePanel,
   EvSummary
 } from "../ev-page-parts";
+import { AiEvSummary } from "../ai-ev-summary";
 
 export default async function EvResultsPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -20,6 +21,7 @@ export default async function EvResultsPage({ searchParams }: { searchParams?: P
     <EvPageShell active="results" queryString={queryString}>
       <EvControls settings={settings} action="/analysis/ev/results" savedBillContext={savedBillContext} />
       <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="EV" reportDraft={reportDraft} />
+      <AiEvSummary selectedScenario={selectedScenario} comparison={comparison} />
       <EvSummary selectedScenario={selectedScenario} comparison={comparison} />
       <EvSourcePanel demo={demo} selectedScenario={selectedScenario} />
       <EvComparisonTable comparison={comparison} />
