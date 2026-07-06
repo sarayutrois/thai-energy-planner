@@ -55,7 +55,10 @@ export function GuidedBillWorkspace({
     [validation.bills.length]
   );
   const recommendations = useMemo(() => buildBillRecommendations(validation.bills, summary), [summary, validation.bills]);
-  const scenarioHref = `/analysis/scenarios/results?audience=${audience}&source=bills&profile=${audienceProfile[audience]}&normalTariff=demo-normal&touTariff=demo-tou&meterCost=2500&shiftPercent=25&sourceStart=18%3A00&sourceEnd=22%3A00&targetWindow=22%3A00-06%3A00`;
+  const averageMonthlyKwh = summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0;
+  const scenarioHref = `/analysis/scenarios/results?audience=${audience}&source=bills&profile=${audienceProfile[audience]}&meterCost=2500&shiftPercent=25&sourceStart=18%3A00&sourceEnd=22%3A00&targetWindow=22%3A00-06%3A00&monthlyKwh=${encodeURIComponent(
+    String(round(averageMonthlyKwh, 2))
+  )}&billMonthCount=${validation.bills.length}`;
   const solarHref = `/analysis/solar?audience=${audience}&source=bills&profile=${audienceProfile[audience]}`;
 
   useEffect(() => {
@@ -653,4 +656,9 @@ function nextMonth(month: string | undefined) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+}
+
+function round(value: number, places: number) {
+  const factor = 10 ** places;
+  return Math.round((value + Number.EPSILON) * factor) / factor;
 }

@@ -57,7 +57,7 @@ export default function ScenariosPage() {
         <div className="flex flex-wrap gap-2">
           <Badge>Scenario Comparison</Badge>
           <Badge variant="outline">Normal / TOU</Badge>
-          <Badge variant="warning">ใช้ demo tariff draft</Badge>
+          <Badge variant="success">official tariff seed</Badge>
         </div>
         <div className="mt-4 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
@@ -73,7 +73,7 @@ export default function ScenariosPage() {
             </CardHeader>
             <CardContent>
               <p className="text-sm leading-6 text-muted-foreground">
-                หน้านี้ยังใช้ demo tariff draft เพื่อสาธิต engine ก่อนนำไปใช้จริงต้องแทนด้วย tariff ที่ตรวจสอบ source และวันที่แล้ว
+                หน้านี้ใช้ tariff seed ที่มี version, effective date และ source แล้ว แต่ profile จากบิลรายเดือนยังเป็นการ scale เพื่อประเมินเบื้องต้น
               </p>
             </CardContent>
           </Card>

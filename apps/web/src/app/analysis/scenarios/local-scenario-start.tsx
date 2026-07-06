@@ -39,9 +39,9 @@ export function LocalScenarioStart() {
     const window = audienceSourceWindow[snapshot.audience];
     const params = new URLSearchParams({
       audience: snapshot.audience,
+      billMonthCount: String(snapshot.monthCount),
+      monthlyKwh: String(round(averageKwh, 2)),
       profile: audienceProfile[snapshot.audience],
-      normalTariff: "demo-normal",
-      touTariff: "demo-tou",
       meterCost: "2500",
       source: "bills",
       shiftPercent: String(shiftPercent),
@@ -138,4 +138,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 
 function formatNumber(value: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+}
+
+function round(value: number, places: number) {
+  const factor = 10 ** places;
+  return Math.round((value + Number.EPSILON) * factor) / factor;
 }

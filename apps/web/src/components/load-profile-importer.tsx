@@ -6,12 +6,14 @@ import {
   parseCsvLoadProfile,
   parseXlsxLoadProfile,
   type LoadProfilePreview
-} from "@thai-energy-planner/calculation-engine";
+} from "@thai-energy-planner/calculation-engine/load-data";
 import { Button } from "@/components/ui/button";
+import { saveLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 
 export function LoadProfileImporter() {
   const [preview, setPreview] = useState<LoadProfilePreview | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(60);
   const [mapping, setMapping] = useState({
@@ -37,6 +39,7 @@ export function LoadProfileImporter() {
   async function handleFile(file: File | null) {
     setError(null);
     setPreview(null);
+    setSavedMessage(null);
     if (!file) return;
 
     setIsLoading(true);
@@ -64,6 +67,7 @@ export function LoadProfileImporter() {
   async function loadTestCsv() {
     setError(null);
     setPreview(null);
+    setSavedMessage(null);
     setIsLoading(true);
     try {
       const response = await fetch("/test-upload-15min.csv");
@@ -74,6 +78,48 @@ export function LoadProfileImporter() {
     } finally {
       setIsLoading(false);
     }
+  }
+
+  function loadInlineDemo() {
+    setError(null);
+    setPreview(null);
+    setSavedMessage(null);
+
+    try {
+      setPreview(
+        parseCsvLoadProfile(
+          [
+            "timestamp,energy_kwh,power_kw,meter_id",
+            "2026-07-01 09:00,1.0,1.0,m1",
+            "2026-07-01 10:00,1.2,1.2,m1",
+            "2026-07-01 11:00,1.4,1.4,m1",
+            "2026-07-01 12:00,1.1,1.1,m1"
+          ].join("\n"),
+          { ...options, intervalMinutes: 60 }
+        )
+      );
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : "โหลด demo data ไม่สำเร็จ");
+    }
+  }
+
+  function saveForAnalysis(sourceName = "Uploaded load profile") {
+    if (!preview?.canImport || preview.rowCount === 0) return;
+
+    const snapshot = saveLocalLoadProfileSnapshot({
+      sourceName,
+      totalKwh: preview.totalKwh,
+      peakKw: preview.peakKw,
+      detectedIntervalMinutes: preview.detectedIntervalMinutes,
+      rows: preview.rows.map((row) => ({
+        timestamp: row.timestamp,
+        energyKwh: row.energyKwh,
+        ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw }),
+        ...(row.meterId === undefined ? {} : { meterId: row.meterId })
+      }))
+    });
+
+    setSavedMessage(`บันทึก ${snapshot.rowCount.toLocaleString("th-TH")} intervals แล้ว พร้อมใช้ใน Solar Analysis`);
   }
 
   return (
@@ -132,14 +178,7 @@ export function LoadProfileImporter() {
             ดาวน์โหลด CSV ตัวอย่าง
           </a>
           <Button
-            onClick={() =>
-              setPreview(
-                parseCsvLoadProfile(
-                  ["timestamp,energy_kwh,power_kw,meter_id", "2026-01-05 00:00,1,1,m1", "2026-01-05 01:00,2,2,m1"].join("\n"),
-                  options
-                )
-              )
-            }
+            onClick={() => loadInlineDemo()}
           >
             ใช้ demo data
           </Button>
@@ -162,6 +201,23 @@ export function LoadProfileImporter() {
             <Metric label="Peak kW" value={formatNumber(preview.peakKw)} />
             <Metric label="Warnings/Errors" value={`${preview.warningCount}/${preview.errorCount}`} />
           </div>
+
+          {preview.canImport && preview.rowCount > 0 ? (
+            <div className="flex flex-wrap items-center gap-3 rounded-md border border-success bg-success/10 p-4 text-sm">
+              <Button onClick={() => saveForAnalysis()} type="button">
+                บันทึก profile นี้เพื่อใช้วิเคราะห์ Solar
+              </Button>
+              <a
+                className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium hover:bg-muted"
+                href="/analysis/solar?source=interval"
+              >
+                ไปหน้า Solar Analysis
+              </a>
+              <span className="text-muted-foreground">
+                {savedMessage ?? "ข้อมูลจะถูกเก็บใน browser นี้และส่งเข้า /api/solar/analyze"}
+              </span>
+            </div>
+          ) : null}
 
           {preview.issues.length > 0 ? (
             <div className="rounded-md border border-border bg-card p-4">

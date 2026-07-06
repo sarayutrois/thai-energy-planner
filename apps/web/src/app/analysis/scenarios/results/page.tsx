@@ -13,6 +13,8 @@ export default async function ScenarioResultsPage({ searchParams }: { searchPara
   const profile = normalizeScenarioProfile(getSingleParam(params.profile));
   const meterCost = getNumberParam(params.meterCost, 2500);
   const shiftPercent = getNumberParam(params.shiftPercent, 25);
+  const monthlyKwh = getNumberParam(params.monthlyKwh, 0);
+  const billMonthCount = getNumberParam(params.billMonthCount, 0);
   const [targetStart = "22:00", targetEnd = "06:00"] = (getSingleParam(params.targetWindow) ?? "22:00-06:00").split("-");
   const comparison = getScenarioDemo(profile, meterCost, {
     name: "User load shift setting",
@@ -21,6 +23,10 @@ export default async function ScenarioResultsPage({ searchParams }: { searchPara
     targetStartTime: targetStart,
     targetEndTime: targetEnd,
     shiftPercentOfPeak: Math.min(100, Math.max(0, shiftPercent))
+  }, {
+    billMonthCount: billMonthCount > 0 ? billMonthCount : undefined,
+    monthlyKwh: monthlyKwh > 0 ? monthlyKwh : undefined,
+    source: isSavedBillStart ? "bill" : "demo"
   });
   const reportDraft = buildScenarioReportDraft({
     comparison,
@@ -43,7 +49,7 @@ export default async function ScenarioResultsPage({ searchParams }: { searchPara
         </div>
         <h1 className="mt-4 text-3xl font-semibold tracking-normal">ผลการจำลอง Scenario</h1>
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-          ผลลัพธ์นี้ใช้ demo tariff แบบ draft และ synthetic load profile เพื่อทดสอบ Scenario Engine เท่านั้น
+          ผลลัพธ์นี้ใช้ official tariff seed พร้อม profile ที่ scale จากบิลที่บันทึกไว้เมื่อมีข้อมูล หรือใช้ generated profile สำหรับการสาธิต
         </p>
         <LocalBillResultContext enabled={isSavedBillStart} moduleName="Scenario" reportDraft={reportDraft} />
         <div className="mt-6">

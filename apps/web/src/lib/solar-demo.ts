@@ -1,13 +1,11 @@
 import {
   createDemoSolarInput,
-  inferThaiAuthorityFromProvince,
-  runSolarAnalysis,
   type DemoSolarProfileKey,
   type SolarAnalysisInput,
   type SolarAnalysisResult,
   type SolarModelDetailLevel
 } from "@thai-energy-planner/calculation-engine";
-import { getOfficialThaiTariffPair } from "@thai-energy-planner/tariff-engine";
+import { runSolarAnalyzeApiCalculation, solarAnalyzeRequestSchema } from "@/lib/calculation-api";
 
 export type SolarSearchParams = Record<string, string | string[] | undefined>;
 
@@ -129,21 +127,36 @@ export function getSolarDemo(params: SolarSearchParams): {
     roofAzimuth: settings.roofAzimuth,
     roofTilt: settings.roofTilt
   };
-  const authority = inferThaiAuthorityFromProvince(settings.province);
-  const customerSegment = settings.profile === "daytime_shop" ? "small_business" : "residential";
-  const officialTariffs = getOfficialThaiTariffPair({
-    authority,
-    customerSegment,
+  const apiRequest = solarAnalyzeRequestSchema.parse({
+    profile: settings.profile,
+    modelMode: settings.modelMode,
+    province: settings.province,
     billDate: "2026-07-01",
-    voltageLevel: "low_voltage"
+    voltageLevel: "low_voltage",
+    customerSegment: settings.profile === "daytime_shop" ? "small_business" : "residential",
+    systemSizeKwp: settings.systemSizeKwp,
+    roofAreaSqm: settings.roofAreaSqm,
+    roofAzimuth: settings.roofAzimuth,
+    roofTilt: settings.roofTilt,
+    systemLossPercent: settings.systemLossPercent,
+    shadingLossPercent: settings.shadingLossPercent,
+    degradationPercentPerYear: settings.degradationPercentPerYear,
+    capexThb: settings.capexThb,
+    oAndMCostPerYear: settings.oAndMCostPerYear,
+    projectLifeYears: settings.projectLifeYears,
+    discountRatePercent: settings.discountRatePercent,
+    electricityEscalationRatePercent: settings.electricityEscalationRatePercent,
+    inverterReplacementCostThb: settings.inverterReplacementCostThb,
+    inverterReplacementYear: settings.inverterReplacementYear,
+    exportEnabled: settings.exportEnabled,
+    exportRateThbPerKwh: settings.exportRateThbPerKwh,
+    exportLimitKw: settings.exportLimitKw
   });
-  input.normalTariff = officialTariffs.normalTariff;
-  input.touTariff = officialTariffs.touTariff;
-  input.billDate = "2026-07-01";
+  const apiPayload = runSolarAnalyzeApiCalculation(apiRequest);
 
   return {
     input,
-    analysis: runSolarAnalysis(input),
+    analysis: apiPayload.analysis,
     settings,
     queryString: appendSavedBillContext(buildSolarQuery(settings), params),
     savedBillContext: getSavedBillContext(params)

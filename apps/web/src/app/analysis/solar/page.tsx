@@ -8,6 +8,7 @@ import {
   SolarSummary
 } from "./solar-page-parts";
 import { LocalSolarStart } from "./local-solar-start";
+import { SolarApiRuntimePanel } from "./solar-api-runtime-panel";
 
 export default async function SolarOverviewPage({ searchParams }: { searchParams?: Promise<SolarSearchParams> }) {
   const { analysis, settings, queryString, savedBillContext } = getSolarDemo((await searchParams) ?? {});
@@ -16,6 +17,7 @@ export default async function SolarOverviewPage({ searchParams }: { searchParams
     <SolarPageShell active="overview" queryString={queryString}>
       <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
       <LocalSolarStart />
+      <SolarApiRuntimePanel settings={settings} />
       <SolarSummary analysis={analysis} />
       <SolarChartsSection analysis={analysis} />
       <BillComparisonTable analysis={analysis} />

@@ -1,9 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
-  const token = process.env.ADMIN_ACCESS_TOKEN;
-  const shouldProtectAdmin = request.nextUrl.pathname.startsWith("/admin") && token && process.env.NODE_ENV === "production";
-  if (!shouldProtectAdmin) return NextResponse.next();
+  const token = process.env.ADMIN_ACCESS_TOKEN?.trim();
+  if (!request.nextUrl.pathname.startsWith("/admin")) return NextResponse.next();
+
+  if (!token) {
+    return new NextResponse("Admin route is not configured.", {
+      status: 404
+    });
+  }
 
   const providedToken =
     request.headers.get("x-admin-token") ??

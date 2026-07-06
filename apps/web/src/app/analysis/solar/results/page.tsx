@@ -11,6 +11,7 @@ import {
   SolarPageShell,
   SolarSummary
 } from "../solar-page-parts";
+import { SolarApiRuntimePanel } from "../solar-api-runtime-panel";
 
 export default async function SolarResultsPage({ searchParams }: { searchParams?: Promise<SolarSearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -21,6 +22,7 @@ export default async function SolarResultsPage({ searchParams }: { searchParams?
     <SolarPageShell active="results" queryString={queryString}>
       <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
       <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Solar" reportDraft={reportDraft} />
+      <SolarApiRuntimePanel settings={settings} />
       <SolarSummary analysis={analysis} />
       <ModelQualityPanel analysis={analysis} />
       <BillComparisonTable analysis={analysis} />

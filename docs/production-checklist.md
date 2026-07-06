@@ -3,7 +3,7 @@
 Before deploying the Thai Energy Planner to a production environment, ensure the following checklist is completed:
 
 ## 1. Security
-- [x] **Admin Authentication Guard:** `/admin` routes are protected in production when `ADMIN_ACCESS_TOKEN` is set. Replace this token guard with SSO/NextAuth/Clerk if multi-user admin roles are needed.
+- [x] **Admin Authentication Guard:** `/admin` routes are locked unless `ADMIN_ACCESS_TOKEN` is configured and the request provides the matching token. Replace this token guard with SSO/NextAuth/Clerk if multi-user admin roles are needed.
 - [ ] **Environment Variables:** Ensure `.env` is never committed. Production secrets should be injected via the hosting provider (e.g., Vercel environment variables).
 - [ ] **File Upload Limits:** File upload sizes for CSV/XLSX imports are restricted to 50MB. Verify infrastructure timeouts allow for processing up to this limit.
 - [ ] **CSV Injection:** Ensure `csv-exporter.ts` sanitization remains intact (prefixing `=, +, -, @` with `'`).

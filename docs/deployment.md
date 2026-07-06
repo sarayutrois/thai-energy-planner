@@ -10,7 +10,7 @@ The Thai Energy Planner is a Next.js application that can be deployed via Docker
 1. Link your Git repository to Vercel.
 2. Set the build command to: `npm run build`
 3. Add the `DATABASE_URL` environment variable.
-4. Add `ADMIN_ACCESS_TOKEN` to protect `/admin` routes in production.
+4. Add `ADMIN_ACCESS_TOKEN` to access `/admin` routes. Admin pages are locked when this value is missing or invalid.
 5. Note: If deploying serverless, ensure your database allows external connections or use connection pooling (e.g., PgBouncer / Prisma Accelerate).
 
 ## Option 2: Docker Compose (Self-Hosted)

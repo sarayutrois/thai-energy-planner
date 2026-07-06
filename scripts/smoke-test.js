@@ -13,9 +13,9 @@ const ROUTES_TO_TEST = [
   { path: '/analysis/battery', expectedStatus: 200 },
   { path: '/analysis/ev', expectedStatus: 200 },
   { path: '/analysis/reports', expectedStatus: 200 },
-  { path: '/admin', expectedStatus: 404 }, // There is no /admin root page, just sub-pages
-  { path: '/admin/tariffs', expectedStatus: 200 },
-  { path: '/admin/audit-logs', expectedStatus: 200 },
+  { path: '/admin', allowedStatuses: [401, 404] },
+  { path: '/admin/tariffs', allowedStatuses: [401, 404] },
+  { path: '/admin/audit-logs', allowedStatuses: [401, 404] },
 ];
 
 function checkPortAvailability(port) {
@@ -52,10 +52,11 @@ async function runSmokeTests() {
       const url = `${BASE_URL}${route.path}`;
       const res = await fetch(url, { redirect: 'manual' });
       
-      if (res.status === route.expectedStatus || (route.path === '/admin' && (res.status === 404 || res.status === 307 || res.status === 308))) {
+      const allowedStatuses = route.allowedStatuses ?? [route.expectedStatus];
+      if (allowedStatuses.includes(res.status)) {
         console.log(`✅ [PASS] GET ${route.path} -> ${res.status}`);
       } else {
-        console.error(`❌ [FAIL] GET ${route.path} -> Expected ${route.expectedStatus}, got ${res.status}`);
+        console.error(`❌ [FAIL] GET ${route.path} -> Expected ${allowedStatuses.join(' or ')}, got ${res.status}`);
         allPassed = false;
       }
     } catch (err) {

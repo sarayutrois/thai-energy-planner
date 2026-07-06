@@ -98,6 +98,7 @@ export const solarAnalyzeRequestSchema = z.object({
         powerKw: z.number().nonnegative().optional()
       })
     )
+    .min(1)
     .max(50_000)
     .optional(),
   solarProfile: z

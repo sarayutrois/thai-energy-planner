@@ -1,38 +1,18 @@
 import { Calculator, Clock3, Database, ReceiptText } from "lucide-react";
-import {
-  calculateNormalBill,
-  calculateTouBill,
-  demoNormalTariff,
-  demoTouIntervals,
-  demoTouTariff
-} from "@thai-energy-planner/tariff-engine";
 import type { CalculationLineItem, TariffCalculationResult } from "@thai-energy-planner/tariff-engine";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
-
-type SearchParams = Record<string, string | string[] | undefined>;
+import { getOfficialTariffDemo, type TariffDemoSearchParams } from "@/lib/tariff-demo";
 
 export default async function TariffDemoPage({
   searchParams
 }: {
-  searchParams?: Promise<SearchParams>;
+  searchParams?: Promise<TariffDemoSearchParams>;
 }) {
   const params = (await searchParams) ?? {};
-  const normalKwh = getSingleParam(params.normalKwh) ?? "250";
-  const billDate = getSingleParam(params.billDate) ?? "2026-02-01";
-
-  const normalResult = calculateNormalBill({
-    tariffVersion: demoNormalTariff,
-    billDate,
-    energyKwh: normalKwh
-  });
-
-  const touResult = calculateTouBill({
-    tariffVersion: demoTouTariff,
-    intervals: demoTouIntervals
-  });
+  const { authority, billDate, customerSegment, normalKwh, normalResult, touResult, warnings } = getOfficialTariffDemo(params);
 
   return (
     <main className="min-h-screen">
@@ -41,14 +21,14 @@ export default async function TariffDemoPage({
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 md:px-6 lg:py-10">
           <div className="flex flex-wrap gap-2">
             <Badge>Phase 2</Badge>
-            <Badge variant="outline">Tariff Engine Demo</Badge>
-            <Badge variant="warning">อัตราสาธิต draft</Badge>
+            <Badge variant="outline">Official Tariff Config</Badge>
+            <Badge variant="success">{normalResult.tariffStatus}</Badge>
           </div>
           <div className="max-w-3xl space-y-3">
             <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">ทดสอบ Tariff Engine</h1>
             <p className="leading-7 text-muted-foreground">
-              หน้านี้เป็น developer/demo page สำหรับตรวจสอบ calculation breakdown จาก tariff configuration เท่านั้น
-              ตัวเลขอัตราเป็น synthetic demo ไม่ใช่อัตราทางการของ PEA หรือ MEA
+              หน้านี้ใช้ tariff configuration ที่แยกจาก UI และมี version, effective date, Ft, VAT และ source snapshot
+              เพื่อให้ตรวจสอบ calculation breakdown ได้อย่างโปร่งใส
             </p>
           </div>
         </div>
@@ -64,6 +44,20 @@ export default async function TariffDemoPage({
           </CardHeader>
           <CardContent>
             <form className="grid gap-4" method="get">
+              <label className="grid gap-2 text-sm font-medium">
+                การไฟฟ้า
+                <select className="h-10 rounded-md border border-input bg-white px-3 text-sm" defaultValue={authority} name="authority">
+                  <option value="PEA">PEA</option>
+                  <option value="MEA">MEA</option>
+                </select>
+              </label>
+              <label className="grid gap-2 text-sm font-medium">
+                ประเภทผู้ใช้
+                <select className="h-10 rounded-md border border-input bg-white px-3 text-sm" defaultValue={customerSegment} name="customerSegment">
+                  <option value="residential">Residential</option>
+                  <option value="small_business">Small business</option>
+                </select>
+              </label>
               <label className="grid gap-2 text-sm font-medium">
                 วันที่บิล
                 <input
@@ -88,12 +82,20 @@ export default async function TariffDemoPage({
               <Button type="submit">คำนวณใหม่</Button>
             </form>
 
+            {warnings.length > 0 ? (
+              <div className="mt-6 rounded-md border border-warning bg-warning/10 p-4 text-sm leading-6 text-warning-foreground">
+                {warnings.map((warning) => (
+                  <p key={warning}>{warning}</p>
+                ))}
+              </div>
+            ) : null}
+
             <div className="mt-6 rounded-md border border-border bg-muted/40 p-4 text-sm leading-6 text-muted-foreground">
               <p className="font-medium text-foreground">Tariff source</p>
               <p>Status: {normalResult.tariffStatus}</p>
               <p>Version: {normalResult.tariffVersionLabel}</p>
               <p>Effective from: {normalResult.tariffSnapshot.effectiveFrom}</p>
-              <p>Verified at: {normalResult.verifiedAt ?? "ยังไม่ตรวจสอบ - demo draft"}</p>
+              <p>Verified at: {normalResult.verifiedAt ?? "ยังไม่ตรวจสอบ"}</p>
               <p className="break-all">Source: {normalResult.sourceUrl}</p>
             </div>
           </CardContent>
@@ -101,7 +103,7 @@ export default async function TariffDemoPage({
 
         <div className="grid gap-5">
           <ResultPanel icon={ReceiptText} result={normalResult} title="Normal tariff breakdown" />
-          <ResultPanel icon={Clock3} result={touResult} title="TOU demo intervals breakdown" />
+          <ResultPanel icon={Clock3} result={touResult} title="TOU representative intervals breakdown" />
 
           <Card>
             <CardHeader>
@@ -166,7 +168,7 @@ function ResultPanel({
           </CardTitle>
           <div className="flex flex-wrap gap-2">
             <Badge variant="outline">{result.mode.toUpperCase()}</Badge>
-            <Badge variant="warning">{result.tariffStatus}</Badge>
+            <Badge variant={result.tariffStatus === "published" ? "success" : "warning"}>{result.tariffStatus}</Badge>
           </div>
         </div>
       </CardHeader>
@@ -220,10 +222,6 @@ function BreakdownTable({ items }: { items: CalculationLineItem[] }) {
       </table>
     </div>
   );
-}
-
-function getSingleParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
 }
 
 function formatThb(value: string) {

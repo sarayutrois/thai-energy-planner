@@ -1,4 +1,4 @@
-import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, Settings, SunMedium, UploadCloud } from "lucide-react";
+import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, SunMedium, UploadCloud } from "lucide-react";
 
 const navItems = [
   { label: "วิเคราะห์", href: "/analysis/new", icon: Gauge },
@@ -8,8 +8,7 @@ const navItems = [
   { label: "Solar", href: "/analysis/solar", icon: SunMedium },
   { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
   { label: "EV", href: "/analysis/ev", icon: PlugZap },
-  { label: "รายงาน", href: "/analysis/reports", icon: FileText },
-  { label: "Admin", href: "/admin/tariffs", icon: Settings }
+  { label: "รายงาน", href: "/analysis/reports", icon: FileText }
 ];
 
 export function MainNav() {
