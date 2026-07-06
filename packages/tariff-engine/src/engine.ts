@@ -4,6 +4,7 @@ import type {
   CalculationComponent,
   CalculationLineItem,
   DemandRateConfig,
+  EnergyRateTierConfig,
   FtPeriodConfig,
   HolidayConfig,
   IntervalTrace,
@@ -18,6 +19,7 @@ import type {
   TariffVersionRef,
   TaxRateConfig,
   TouPeriodConfig,
+  TouPeriodType,
   TouTariffCalculationInput
 } from "./types.js";
 
@@ -287,6 +289,107 @@ export function calculateTouBillFromVersions(
   });
 }
 
+export type MoneyComponentResult = {
+  amountThb: string;
+  exactAmountThb: string;
+};
+
+export type TotalBillBreakdown = {
+  energyChargeThb: string;
+  ftChargeThb: string;
+  serviceChargeThb: string;
+  demandChargeThb: string;
+  discountThb: string;
+  totalBeforeVatThb: string;
+  vatThb: string;
+  totalBillThb: string;
+};
+
+export function calculateEnergyCharge(input: {
+  energyKwh: Numeric;
+  rateThbPerKwh?: Numeric | undefined;
+  tiers?: EnergyRateTierConfig[] | undefined;
+  roundingPolicy?: RoundingPolicy | undefined;
+}): MoneyComponentResult {
+  const roundingPolicy = normalizeRoundingPolicy(input.roundingPolicy);
+  const energyKwh = toDecimal(input.energyKwh);
+  const amount =
+    input.tiers && input.tiers.length > 0
+      ? calculateTieredEnergyCharge(energyKwh, input.tiers).charge
+      : energyKwh.mul(toDecimal(input.rateThbPerKwh ?? 0));
+  return moneyComponent(amount, roundingPolicy);
+}
+
+export function calculateFtCharge(input: {
+  energyKwh: Numeric;
+  ftThbPerKwh: Numeric;
+  roundingPolicy?: RoundingPolicy | undefined;
+}): MoneyComponentResult {
+  return moneyComponent(toDecimal(input.energyKwh).mul(input.ftThbPerKwh), normalizeRoundingPolicy(input.roundingPolicy));
+}
+
+export function calculateVat(input: {
+  totalBeforeVatThb: Numeric;
+  vatRatePercent: Numeric;
+  roundingPolicy?: RoundingPolicy | undefined;
+}): MoneyComponentResult {
+  return moneyComponent(toDecimal(input.totalBeforeVatThb).mul(input.vatRatePercent).div(100), normalizeRoundingPolicy(input.roundingPolicy));
+}
+
+export function calculateTotalBill(input: {
+  energyChargeThb: Numeric;
+  ftChargeThb: Numeric;
+  serviceChargeThb: Numeric;
+  vatRatePercent: Numeric;
+  demandChargeThb?: Numeric | undefined;
+  discountThb?: Numeric | undefined;
+  roundingPolicy?: RoundingPolicy | undefined;
+}): TotalBillBreakdown {
+  const roundingPolicy = normalizeRoundingPolicy(input.roundingPolicy);
+  const energyCharge = roundMoney(toDecimal(input.energyChargeThb), roundingPolicy);
+  const ftCharge = roundMoney(toDecimal(input.ftChargeThb), roundingPolicy);
+  const serviceCharge = roundMoney(toDecimal(input.serviceChargeThb), roundingPolicy);
+  const demandCharge = roundMoney(toDecimal(input.demandChargeThb ?? 0), roundingPolicy);
+  const discount = roundMoney(toDecimal(input.discountThb ?? 0), roundingPolicy);
+  const totalBeforeVat = energyCharge.plus(ftCharge).plus(serviceCharge).plus(demandCharge).minus(discount);
+  const vat = roundMoney(totalBeforeVat.mul(input.vatRatePercent).div(100), roundingPolicy);
+  const totalBill = totalBeforeVat.plus(vat);
+
+  return {
+    energyChargeThb: decimalToFixed(energyCharge, 2),
+    ftChargeThb: decimalToFixed(ftCharge, 2),
+    serviceChargeThb: decimalToFixed(serviceCharge, 2),
+    demandChargeThb: decimalToFixed(demandCharge, 2),
+    discountThb: decimalToFixed(discount, 2),
+    totalBeforeVatThb: decimalToFixed(totalBeforeVat, 2),
+    vatThb: decimalToFixed(vat, 2),
+    totalBillThb: decimalToFixed(totalBill, 2)
+  };
+}
+
+export function classifyTouPeriod(input: {
+  timestamp: string;
+  touPeriods: TouPeriodConfig[];
+  holidays?: HolidayConfig[] | undefined;
+}): {
+  periodType: TouPeriodType;
+  periodLabel: string;
+  isHoliday: boolean;
+  localDate: string;
+  localTime: string;
+} {
+  const local = getBangkokParts(input.timestamp);
+  const isHoliday = Boolean(findHoliday(input.holidays ?? [], local.date));
+  const period = selectTouPeriod(input.touPeriods, input.timestamp, isHoliday);
+  return {
+    periodType: period.periodType,
+    periodLabel: period.label,
+    isHoliday,
+    localDate: local.date,
+    localTime: local.time
+  };
+}
+
 export function selectTouPeriod(periods: TouPeriodConfig[], timestamp: string, isHoliday: boolean): TouPeriodConfig {
   const local = getBangkokParts(timestamp);
   const candidates = periods.filter((period) => {
@@ -485,6 +588,13 @@ function normalizeRoundingPolicy(policy: RoundingPolicy | undefined): RoundingPo
 
 function roundMoney(value: Decimal, policy: RoundingPolicy): Decimal {
   return value.toDecimalPlaces(policy.moneyDecimalPlaces, Decimal.ROUND_HALF_UP);
+}
+
+function moneyComponent(value: Decimal, policy: RoundingPolicy): MoneyComponentResult {
+  return {
+    amountThb: decimalToFixed(roundMoney(value, policy), 2),
+    exactAmountThb: decimalToFixed(value, 6)
+  };
 }
 
 function toDecimal(value: Numeric): Decimal {

@@ -74,6 +74,7 @@ describe("phase 4 scenario engine", () => {
     expect(scenario.kind).toBe("SWITCH_TO_TOU_NO_BEHAVIOR_CHANGE");
     expect(scenario.savingsMonthly).toBeCloseTo(result.baseline.grandTotal - scenario.grandTotal, 2);
     expect(scenario.effectiveRatePerKwh).toBeGreaterThan(0);
+    expect(result.financialComparison.scenarios[0]?.annualSavingThb).toBeCloseTo(scenario.savingsAnnual, 2);
   });
 
   it("detects a TOU cheaper case for off-peak-heavy load", () => {

@@ -10,6 +10,7 @@ import {
   type TariffVersionConfig
 } from "@thai-energy-planner/tariff-engine";
 import { detectIntervalMinutes, parseCsvLoadProfile, type LoadProfilePreview } from "./load-data.js";
+import { calculateIRR } from "./financial.js";
 
 export const solarEngineVersion = "0.6.0-solar-xhigh";
 
@@ -817,7 +818,7 @@ export function calculateFinancials(input: {
   const totalCostForRoi = totalCosts.gt(0) ? totalCosts : new Decimal(1);
   const roiPercent = totalBenefits.minus(totalCosts).div(totalCostForRoi).mul(100);
   const npv = new Decimal(cashFlows.at(-1)?.cumulativeDiscountedCashFlowThb ?? 0);
-  const irr = calculateIrr(cashFlows.map((cashFlow) => new Decimal(cashFlow.netCashFlowThb)));
+  const irrPercent = calculateIRR(cashFlows.map((cashFlow) => ({ year: cashFlow.year, amountThb: cashFlow.netCashFlowThb })));
   const lcoe = presentGeneration.gt(0) ? presentCostsForLcoe.div(presentGeneration) : null;
 
   return {
@@ -827,7 +828,7 @@ export function calculateFinancials(input: {
     discountedPaybackYears,
     roiPercent: round(roiPercent, 2),
     npvThb: round(npv, 2),
-    irrPercent: irr === null ? null : round(irr.mul(100), 2),
+    irrPercent: irrPercent === null ? null : round(irrPercent, 2),
     lcoeThbPerKwh: lcoe === null ? null : round(lcoe, 4),
     presentValueOfSavingsThb: round(presentValueOfSavings, 2),
     totalBenefitsThb: round(totalBenefits, 2),
@@ -1800,33 +1801,6 @@ function findPaybackYear(cashFlows: SolarCashFlow[], field: "cumulativeCashFlowT
     }
   }
   return null;
-}
-
-function calculateIrr(cashFlows: Decimal[]) {
-  const hasPositive = cashFlows.some((cashFlow) => cashFlow.gt(0));
-  const hasNegative = cashFlows.some((cashFlow) => cashFlow.lt(0));
-  if (!hasPositive || !hasNegative) return null;
-
-  let low = new Decimal(-0.95);
-  let high = new Decimal(1);
-  let highNpv = npvAtRate(cashFlows, high);
-  while (highNpv.gt(0) && high.lt(10)) {
-    high = high.mul(2);
-    highNpv = npvAtRate(cashFlows, high);
-  }
-
-  for (let index = 0; index < 80; index += 1) {
-    const mid = low.plus(high).div(2);
-    const value = npvAtRate(cashFlows, mid);
-    if (value.gt(0)) low = mid;
-    else high = mid;
-  }
-
-  return low.plus(high).div(2);
-}
-
-function npvAtRate(cashFlows: Decimal[], rate: Decimal) {
-  return cashFlows.reduce((sum, cashFlow, year) => sum.plus(cashFlow.div(onePlus(rate).pow(year))), zero);
 }
 
 function onePlus(value: Decimal) {

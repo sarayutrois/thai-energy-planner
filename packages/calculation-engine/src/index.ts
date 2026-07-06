@@ -71,6 +71,9 @@ export function estimateDataQuality(input: DataQualityInput): DataQualityResult 
 export const calculationEngineVersion = "0.1.0-foundation";
 
 export * from "./load-data.js";
+export * from "./energy-types.js";
+export * from "./financial.js";
+export * from "./scenario.js";
 export * from "./scenario-engine.js";
 export * from "./solar-engine.js";
 export * from "./battery-ev-engine.js";

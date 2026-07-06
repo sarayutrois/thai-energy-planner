@@ -3,6 +3,11 @@ import {
   calculateNormalBill,
   calculateNormalBillFromVersions,
   calculateTouBill,
+  calculateEnergyCharge,
+  calculateFtCharge,
+  calculateTotalBill,
+  calculateVat,
+  classifyTouPeriod,
   demoNormalTariff,
   demoTouTariff,
   getOfficialThaiTariff,
@@ -178,6 +183,50 @@ describe("normal tariff calculation", () => {
 });
 
 describe("TOU tariff calculation", () => {
+  it("classifies weekday 10:00 as peak through the reusable TOU classifier", () => {
+    const result = classifyTouPeriod({
+      timestamp: "2026-01-05T10:00:00+07:00",
+      touPeriods: demoTouTariff.touPeriods,
+      holidays: demoTouTariff.holidays
+    });
+
+    expect(result.periodType).toBe("peak");
+    expect(result.isHoliday).toBe(false);
+  });
+
+  it("classifies weekday 23:00 as off-peak through the reusable TOU classifier", () => {
+    const result = classifyTouPeriod({
+      timestamp: "2026-01-05T23:00:00+07:00",
+      touPeriods: demoTouTariff.touPeriods,
+      holidays: demoTouTariff.holidays
+    });
+
+    expect(result.periodType).toBe("off_peak");
+  });
+
+  it("classifies Saturday, Sunday, and official holidays as off-peak through config", () => {
+    const saturday = classifyTouPeriod({
+      timestamp: "2026-01-03T10:00:00+07:00",
+      touPeriods: demoTouTariff.touPeriods,
+      holidays: demoTouTariff.holidays
+    });
+    const sunday = classifyTouPeriod({
+      timestamp: "2026-01-04T10:00:00+07:00",
+      touPeriods: demoTouTariff.touPeriods,
+      holidays: demoTouTariff.holidays
+    });
+    const holiday = classifyTouPeriod({
+      timestamp: "2026-01-01T10:00:00+07:00",
+      touPeriods: demoTouTariff.touPeriods,
+      holidays: demoTouTariff.holidays
+    });
+
+    expect(saturday.periodType).toBe("off_peak");
+    expect(sunday.periodType).toBe("off_peak");
+    expect(holiday.periodType).toBe("off_peak");
+    expect(holiday.isHoliday).toBe(true);
+  });
+
   it("classifies weekday peak intervals", () => {
     const result = calculateTouBill({
       tariffVersion: demoTouTariff,
@@ -256,5 +305,38 @@ describe("TOU tariff calculation", () => {
 
     const grandTotalLine = result.lineItems.find((item) => item.component === "grandTotal");
     expect(grandTotalLine?.amountThb).toBe(result.grandTotal);
+  });
+});
+
+describe("tariff primitive calculations", () => {
+  it("calculates energy, Ft, VAT, and total bill from explicit inputs", () => {
+    const energy = calculateEnergyCharge({ energyKwh: 100, rateThbPerKwh: 4 });
+    const ft = calculateFtCharge({ energyKwh: 100, ftThbPerKwh: 0.5 });
+    const beforeVat = calculateTotalBill({
+      energyChargeThb: energy.amountThb,
+      ftChargeThb: ft.amountThb,
+      serviceChargeThb: 10,
+      vatRatePercent: 7
+    });
+    const vat = calculateVat({ totalBeforeVatThb: beforeVat.totalBeforeVatThb, vatRatePercent: 7 });
+
+    expect(energy.amountThb).toBe("400.00");
+    expect(ft.amountThb).toBe("50.00");
+    expect(beforeVat.totalBeforeVatThb).toBe("460.00");
+    expect(vat.amountThb).toBe("32.20");
+    expect(beforeVat.vatThb).toBe("32.20");
+    expect(beforeVat.totalBillThb).toBe("492.20");
+  });
+
+  it("calculates tiered energy charge without hardcoded tariff values", () => {
+    const result = calculateEnergyCharge({
+      energyKwh: 150,
+      tiers: [
+        { fromKwh: 0, toKwh: 100, rateThbPerKwh: 1, sortOrder: 1 },
+        { fromKwh: 100, toKwh: null, rateThbPerKwh: 2, sortOrder: 2 }
+      ]
+    });
+
+    expect(result.amountThb).toBe("200.00");
   });
 });

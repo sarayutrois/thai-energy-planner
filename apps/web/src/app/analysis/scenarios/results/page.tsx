@@ -78,6 +78,7 @@ function buildScenarioReportDraft({
   targetWindow: string;
 }): LocalAnalysisReportDraft {
   const rows = [comparison.baseline, ...comparison.scenarios];
+  const bestFinancial = comparison.financialComparison.bestScenario;
   return {
     module: "scenario",
     moduleLabel: "Scenario",
@@ -87,6 +88,8 @@ function buildScenarioReportDraft({
       { label: "ตัวเลือกที่แนะนำ", value: comparison.bestScenario.name },
       { label: "ค่าไฟต่ำสุด/เดือน", value: `${formatNumber(comparison.bestScenario.monthlyEstimatedBill)} บาท` },
       { label: "ประหยัด/ปี", value: `${formatNumber(comparison.bestScenario.savingsAnnual)} บาท` },
+      { label: "Core annual cost", value: `${formatNumber(bestFinancial.annualCostThb)} บาท` },
+      { label: "Core annual saving", value: `${formatNumber(bestFinancial.annualSavingThb)} บาท` },
       { label: "Data quality", value: `${comparison.dataQuality.level} ${comparison.dataQuality.score}/100` }
     ],
     assumptions: [
@@ -108,7 +111,25 @@ function buildScenarioReportDraft({
       title: recommendation.title,
       description: recommendation.explanation,
       nextAction: recommendation.nextAction
-    }))
+    })),
+    sections: [
+      {
+        title: "Calculation core trace",
+        items: [
+          { label: "Baseline annual cost", value: `${formatNumber(comparison.financialComparison.baselineAnnualCostThb)} บาท` },
+          { label: "Best financial scenario", value: bestFinancial.scenarioName },
+          { label: "Recommendation", value: bestFinancial.recommendation }
+        ],
+        paragraphs: bestFinancial.recommendationReasons
+      },
+      {
+        title: "Methodology",
+        paragraphs: [
+          "Scenario annual savings are calculated by comparing each annual cost against Current Normal.",
+          "TOU period classification and bill breakdown come from tariff-engine configuration, including Ft, VAT, service charge, weekends, and holidays."
+        ]
+      }
+    ]
   };
 }
 

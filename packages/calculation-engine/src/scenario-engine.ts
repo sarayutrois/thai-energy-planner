@@ -12,6 +12,7 @@ import {
   type TariffVersionConfig
 } from "@thai-energy-planner/tariff-engine";
 import { detectIntervalMinutes, summarizeLoadProfile } from "./load-data.js";
+import { compareScenarios, type EnergyScenarioComparisonResult } from "./scenario.js";
 
 export const scenarioEngineVersion = "0.4.0-scenario-engine";
 
@@ -141,6 +142,7 @@ export type ScenarioComparisonResult = {
   breakEven: TouBreakEvenAnalysis;
   recommendations: ScenarioRecommendation[];
   dataQuality: DataQualityResult;
+  financialComparison: EnergyScenarioComparisonResult;
 };
 
 export type ScenarioEngineInput = {
@@ -224,6 +226,15 @@ export function runScenarioComparison(input: ScenarioEngineInput): ScenarioCompa
       tariffVersion: input.touTariff
     })
   });
+  const financialComparison = compareScenarios({
+    currentNormalAnnualCostThb: baseline.annualEstimatedBill,
+    scenarios: scenarios.map((scenario) => ({
+      scenarioName: scenario.name,
+      annualCostThb: scenario.annualEstimatedBill,
+      investmentThb: scenario.kind === "CURRENT_NORMAL" ? 0 : input.meterSwitchingCostThb ?? 0,
+      simplePaybackYear: scenario.paybackMonths === null ? null : new Decimal(scenario.paybackMonths).div(12).toDecimalPlaces(2).toNumber()
+    }))
+  });
 
   return {
     baseline,
@@ -231,7 +242,8 @@ export function runScenarioComparison(input: ScenarioEngineInput): ScenarioCompa
     bestScenario,
     breakEven,
     recommendations,
-    dataQuality
+    dataQuality,
+    financialComparison
   };
 }
 
