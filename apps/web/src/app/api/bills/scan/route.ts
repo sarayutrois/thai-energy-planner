@@ -21,8 +21,8 @@ export async function POST(req: NextRequest) {
     const buffer = await file.arrayBuffer();
     const base64Data = Buffer.from(buffer).toString("base64");
 
-    // "gemini-1.5-flash" is highly reliable for Multimodal OCR
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    // "gemini-2.5-flash" is highly reliable for Multimodal OCR
+    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
     const prompt = `You are an expert at reading Thai electricity bills (PEA and MEA).
 Extract the following information from the image and return it as JSON:
