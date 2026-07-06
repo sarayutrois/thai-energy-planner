@@ -159,7 +159,7 @@ function buildSolarReportDraft(
       },
       {
         title: "สถานะข้อมูล",
-        description: "ข้อมูล tariff ใช้ official seed พร้อม snapshot ส่วน export rate และ solar yield ยังเป็นค่าประเมินเบื้องต้นที่ควรตรวจสอบกับแหล่งทางการก่อนลงทุนจริง",
+        description: "ข้อมูล tariff ใช้ tariff snapshot พร้อม source metadata ส่วน export rate และ solar yield ยังเป็นค่าประเมินเบื้องต้นที่ควรตรวจสอบกับแหล่งทางการก่อนลงทุนจริง",
         nextAction: "ตรวจสอบ MEA/PEA/ERC/Global Solar Atlas/DEDE ก่อนใช้รายงานประกอบการลงทุนจริง"
       }
     ],

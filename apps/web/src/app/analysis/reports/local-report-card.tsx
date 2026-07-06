@@ -30,7 +30,7 @@ export function LocalReportCard() {
               รายงานจากบิลล่าสุด
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              สร้างจากข้อมูลที่กรอกใน browser นี้ เมื่อ {new Date(snapshot.createdAt).toLocaleString("th-TH")}
+              สร้างจากข้อมูลที่กรอกในเซสชันนี้ เมื่อ {new Date(snapshot.createdAt).toLocaleString("th-TH")}
             </p>
           </div>
           <Badge variant="success">Local</Badge>

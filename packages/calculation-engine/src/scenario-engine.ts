@@ -9,10 +9,13 @@ import {
   demoTouTariff,
   selectTouPeriod,
   type TariffCalculationResult,
-  type TariffVersionConfig
+  type TariffVersionConfig,
 } from "@thai-energy-planner/tariff-engine";
 import { detectIntervalMinutes, summarizeLoadProfile } from "./load-data.js";
-import { compareScenarios, type EnergyScenarioComparisonResult } from "./scenario.js";
+import {
+  compareScenarios,
+  type EnergyScenarioComparisonResult,
+} from "./scenario.js";
 
 export const scenarioEngineVersion = "0.4.0-scenario-engine";
 
@@ -159,22 +162,48 @@ export type ScenarioEngineInput = {
 };
 
 const zero = new Decimal(0);
+const bangkokFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Bangkok",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  weekday: "short",
+});
+const dayOfWeekByName: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
 const defaultScenarioKinds: ScenarioKind[] = [
   "CURRENT_NORMAL",
   "CURRENT_TOU",
   "SWITCH_TO_TOU_NO_BEHAVIOR_CHANGE",
-  "LOAD_SHIFT_TO_OFF_PEAK"
+  "LOAD_SHIFT_TO_OFF_PEAK",
 ];
 
-export function runScenarioComparison(input: ScenarioEngineInput): ScenarioComparisonResult {
+export function runScenarioComparison(
+  input: ScenarioEngineInput,
+): ScenarioComparisonResult {
   validateScenarioEngineInput(input);
   const sourceIntervals = normalizeIntervals(input.intervals);
-  const billDate = input.billDate ?? getBangkokDate(sourceIntervals[0]?.timestamp ?? input.normalTariff.effectiveFrom);
-  const monthlyScaleFactor = input.monthlyScaleFactor ?? inferMonthlyScaleFactor(sourceIntervals);
+  const billDate =
+    input.billDate ??
+    getBangkokDate(
+      sourceIntervals[0]?.timestamp ?? input.normalTariff.effectiveFrom,
+    );
+  const monthlyScaleFactor =
+    input.monthlyScaleFactor ?? inferMonthlyScaleFactor(sourceIntervals);
   const dataQuality = scoreScenarioDataQuality({
     intervals: sourceIntervals,
     billMonthCount: input.billMonthCount ?? 0,
-    source: input.dataSource
+    source: input.dataSource,
   });
   const baseContext = {
     intervals: sourceIntervals,
@@ -182,58 +211,76 @@ export function runScenarioComparison(input: ScenarioEngineInput): ScenarioCompa
     touTariff: input.touTariff,
     billDate,
     monthlyScaleFactor,
-    meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0
+    meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0,
   };
   const baseline = calculateScenario({
     ...baseContext,
     kind: "CURRENT_NORMAL",
     name: "Current Normal",
-    baselineGrandTotal: null
+    baselineGrandTotal: null,
   });
-  const scenarios = (input.scenarioKinds ?? defaultScenarioKinds).map((kind) => {
-    const shifted =
-      kind === "LOAD_SHIFT_TO_OFF_PEAK" || kind === "CUSTOM_LOAD_SHIFT"
-        ? applyLoadShiftRules(sourceIntervals, {
-            tariffVersion: input.touTariff,
-            rules: input.loadShiftRules ?? [defaultLoadShiftRule()],
-            monthlyScaleFactor
-          })
-        : undefined;
+  const scenarios = (input.scenarioKinds ?? defaultScenarioKinds).map(
+    (kind) => {
+      const shifted =
+        kind === "LOAD_SHIFT_TO_OFF_PEAK" || kind === "CUSTOM_LOAD_SHIFT"
+          ? applyLoadShiftRules(sourceIntervals, {
+              tariffVersion: input.touTariff,
+              rules: input.loadShiftRules ?? [defaultLoadShiftRule()],
+              monthlyScaleFactor,
+            })
+          : undefined;
 
-    return calculateScenario({
-      ...baseContext,
-      kind,
-      name: scenarioName(kind),
-      baselineGrandTotal: baseline.grandTotal,
-      loadShift: shifted
-    });
-  });
+      return calculateScenario({
+        ...baseContext,
+        kind,
+        name: scenarioName(kind),
+        baselineGrandTotal: baseline.grandTotal,
+        loadShift: shifted,
+      });
+    },
+  );
   const breakEven = analyzeTouBreakEven({
     intervals: sourceIntervals,
     normalTariff: input.normalTariff,
     touTariff: input.touTariff,
     billDate,
     monthlyScaleFactor,
-    meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0
+    meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0,
   });
-  const bestScenario = scenarios.reduce((best, scenario) => (scenario.grandTotal < best.grandTotal ? scenario : best), baseline);
+  const bestScenario = scenarios.reduce(
+    (best, scenario) =>
+      scenario.grandTotal < best.grandTotal ? scenario : best,
+    baseline,
+  );
   const recommendations = buildRecommendations({
     baseline,
     scenarios,
     breakEven,
     dataQuality,
-    loadSummary: summarizeLoadProfile(scaleIntervalsForBilling(sourceIntervals, monthlyScaleFactor), {
-      tariffVersion: input.touTariff
-    })
+    loadSummary: summarizeLoadProfile(
+      scaleIntervalsForBilling(sourceIntervals, monthlyScaleFactor),
+      {
+        tariffVersion: input.touTariff,
+      },
+    ),
   });
   const financialComparison = compareScenarios({
     currentNormalAnnualCostThb: baseline.annualEstimatedBill,
     scenarios: scenarios.map((scenario) => ({
       scenarioName: scenario.name,
       annualCostThb: scenario.annualEstimatedBill,
-      investmentThb: scenario.kind === "CURRENT_NORMAL" ? 0 : input.meterSwitchingCostThb ?? 0,
-      simplePaybackYear: scenario.paybackMonths === null ? null : new Decimal(scenario.paybackMonths).div(12).toDecimalPlaces(2).toNumber()
-    }))
+      investmentThb:
+        scenario.kind === "CURRENT_NORMAL"
+          ? 0
+          : (input.meterSwitchingCostThb ?? 0),
+      simplePaybackYear:
+        scenario.paybackMonths === null
+          ? null
+          : new Decimal(scenario.paybackMonths)
+              .div(12)
+              .toDecimalPlaces(2)
+              .toNumber(),
+    })),
   });
 
   return {
@@ -243,7 +290,7 @@ export function runScenarioComparison(input: ScenarioEngineInput): ScenarioCompa
     breakEven,
     recommendations,
     dataQuality,
-    financialComparison
+    financialComparison,
   };
 }
 
@@ -260,31 +307,42 @@ export function calculateScenario(input: {
   loadShift?: LoadShiftResult | undefined;
 }): ScenarioResult {
   const workingIntervals = input.loadShift?.intervals ?? input.intervals;
-  const billingIntervals = scaleIntervalsForBilling(workingIntervals, input.monthlyScaleFactor);
+  const billingIntervals = scaleIntervalsForBilling(
+    workingIntervals,
+    input.monthlyScaleFactor,
+  );
   const monthlyKwh = sumEnergy(billingIntervals);
-  const touSummary = summarizeLoadProfile(billingIntervals, { tariffVersion: input.touTariff });
+  const touSummary = summarizeLoadProfile(billingIntervals, {
+    tariffVersion: input.touTariff,
+  });
   const tariffResult =
     input.kind === "CURRENT_NORMAL"
       ? calculateNormalBill({
           tariffVersion: input.normalTariff,
           billDate: input.billDate,
-          energyKwh: monthlyKwh.toString()
+          energyKwh: monthlyKwh.toString(),
         })
       : calculateTouBill({
           tariffVersion: input.touTariff,
           intervals: billingIntervals.map((interval) => ({
             timestamp: interval.timestamp,
             energyKwh: interval.energyKwh.toString(),
-            ...(interval.powerKw === undefined ? {} : { powerKw: interval.powerKw.toString() })
-          }))
+            ...(interval.powerKw === undefined
+              ? {}
+              : { powerKw: interval.powerKw.toString() }),
+          })),
         });
   const grandTotal = toNumber(tariffResult.grandTotal);
   const baselineTotal = input.baselineGrandTotal ?? grandTotal;
   const savingsMonthly = new Decimal(baselineTotal).minus(grandTotal);
-  const savingsPercent = baselineTotal > 0 ? savingsMonthly.div(baselineTotal).mul(100) : zero;
+  const savingsPercent =
+    baselineTotal > 0 ? savingsMonthly.div(baselineTotal).mul(100) : zero;
   const paybackMonths =
     input.meterSwitchingCostThb > 0 && savingsMonthly.gt(0)
-      ? new Decimal(input.meterSwitchingCostThb).div(savingsMonthly).toDecimalPlaces(2).toNumber()
+      ? new Decimal(input.meterSwitchingCostThb)
+          .div(savingsMonthly)
+          .toDecimalPlaces(2)
+          .toNumber()
       : null;
 
   return {
@@ -293,8 +351,14 @@ export function calculateScenario(input: {
     name: input.name,
     tariffMode: tariffResult.mode,
     totalKwh: toNumber(tariffResult.energyKwh),
-    peakKwh: input.kind === "CURRENT_NORMAL" ? touSummary.peakPeriodKwh : toNumber(tariffResult.peakEnergyKwh),
-    offPeakKwh: input.kind === "CURRENT_NORMAL" ? touSummary.offPeakPeriodKwh : toNumber(tariffResult.offPeakEnergyKwh),
+    peakKwh:
+      input.kind === "CURRENT_NORMAL"
+        ? touSummary.peakPeriodKwh
+        : toNumber(tariffResult.peakEnergyKwh),
+    offPeakKwh:
+      input.kind === "CURRENT_NORMAL"
+        ? touSummary.offPeakPeriodKwh
+        : toNumber(tariffResult.offPeakEnergyKwh),
     baseEnergyCharge: toNumber(tariffResult.baseEnergyCharge),
     peakEnergyCharge: toNumber(tariffResult.peakEnergyCharge),
     offPeakEnergyCharge: toNumber(tariffResult.offPeakEnergyCharge),
@@ -305,7 +369,10 @@ export function calculateScenario(input: {
     grandTotal,
     effectiveRatePerKwh: toNumber(tariffResult.effectiveRatePerKwh),
     monthlyEstimatedBill: grandTotal,
-    annualEstimatedBill: new Decimal(grandTotal).mul(12).toDecimalPlaces(2).toNumber(),
+    annualEstimatedBill: new Decimal(grandTotal)
+      .mul(12)
+      .toDecimalPlaces(2)
+      .toNumber(),
     savingsMonthly: savingsMonthly.toDecimalPlaces(2).toNumber(),
     savingsAnnual: savingsMonthly.mul(12).toDecimalPlaces(2).toNumber(),
     savingsPercent: savingsPercent.toDecimalPlaces(2).toNumber(),
@@ -316,8 +383,11 @@ export function calculateScenario(input: {
       billDate: input.billDate,
       meterSwitchingCostThb: input.meterSwitchingCostThb,
       totalKwhPreservedAfterShift: input.loadShift
-        ? nearlyEqual(input.loadShift.totalKwhBefore, input.loadShift.totalKwhAfter)
-        : true
+        ? nearlyEqual(
+            input.loadShift.totalKwhBefore,
+            input.loadShift.totalKwhAfter,
+          )
+        : true,
     },
     calculationTrace: {
       tariffVersionId: tariffResult.tariffVersionId,
@@ -327,8 +397,8 @@ export function calculateScenario(input: {
       tariffSnapshot: tariffResult.tariffSnapshot,
       lineItems: tariffResult.lineItems,
       intervalTraceCount: tariffResult.intervalTraces.length,
-      loadShift: input.loadShift
-    }
+      loadShift: input.loadShift,
+    },
   };
 }
 
@@ -338,21 +408,24 @@ export function applyLoadShiftRules(
     tariffVersion: TariffVersionConfig;
     rules: LoadShiftRuleInput[];
     monthlyScaleFactor?: number | undefined;
-  }
+  },
 ): LoadShiftResult {
   const normalized = normalizeIntervals(intervals);
   const intervalMinutes = detectIntervalMinutes(normalized) ?? 60;
   const intervalHours = intervalMinutes / 60;
   const working = normalized.map((interval) => ({ ...interval }));
   const totalBefore = sumEnergy(working);
-  const monthlyScaleFactor = options.monthlyScaleFactor ?? inferMonthlyScaleFactor(normalized);
+  const monthlyScaleFactor =
+    options.monthlyScaleFactor ?? inferMonthlyScaleFactor(normalized);
   const rulesApplied: LoadShiftResult["rulesApplied"] = [];
   const warnings: string[] = [];
 
   for (const rule of options.rules) {
     const validationErrors = validateLoadShiftRule(rule);
     if (validationErrors.length > 0) {
-      throw new Error(`Invalid load shift rule ${rule.name}: ${validationErrors.join(", ")}`);
+      throw new Error(
+        `Invalid load shift rule ${rule.name}: ${validationErrors.join(", ")}`,
+      );
     }
     if (rule.enabled === false) continue;
 
@@ -360,44 +433,62 @@ export function applyLoadShiftRules(
       tariffVersion: options.tariffVersion,
       periodType: "peak",
       startTime: rule.sourceStartTime,
-      endTime: rule.sourceEndTime
+      endTime: rule.sourceEndTime,
     });
     const targetIndexes = findShiftCandidateIndexes(working, {
       tariffVersion: options.tariffVersion,
       periodType: "off_peak",
       startTime: rule.targetStartTime,
-      endTime: rule.targetEndTime
+      endTime: rule.targetEndTime,
     });
     const sourceEnergy = sumIndexedEnergy(working, sourceIndexes);
     const targetEnergyBefore = sumIndexedEnergy(working, targetIndexes);
     const requestedShift = resolveRequestedShiftKwh(rule, {
       sourcePeakKwh: sourceEnergy,
       profileDayCount: countUniqueBangkokDates(working),
-      monthlyScaleFactor
+      monthlyScaleFactor,
     });
     const actualShift = Decimal.min(requestedShift, sourceEnergy);
 
-    if (sourceIndexes.length === 0 || targetIndexes.length === 0 || actualShift.lte(0)) {
-      warnings.push(`Rule ${rule.name} could not shift load because source or target intervals were unavailable.`);
+    if (
+      sourceIndexes.length === 0 ||
+      targetIndexes.length === 0 ||
+      actualShift.lte(0)
+    ) {
+      warnings.push(
+        `Rule ${rule.name} could not shift load because source or target intervals were unavailable.`,
+      );
       rulesApplied.push({
         name: rule.name,
         requestedKwh: requestedShift.toDecimalPlaces(6).toNumber(),
         actualKwh: 0,
         sourceIntervalCount: sourceIndexes.length,
-        targetIntervalCount: targetIndexes.length
+        targetIntervalCount: targetIndexes.length,
       });
       continue;
     }
 
     removeEnergyProportionally(working, sourceIndexes, actualShift);
-    const shiftedToTargets = addEnergyToTargets(working, targetIndexes, actualShift, {
-      intervalHours,
-      maxPostShiftPowerKw: rule.maxPostShiftPowerKw
-    });
+    const shiftedToTargets = addEnergyToTargets(
+      working,
+      targetIndexes,
+      actualShift,
+      {
+        intervalHours,
+        maxPostShiftPowerKw: rule.maxPostShiftPowerKw,
+      },
+    );
 
     if (shiftedToTargets.lt(actualShift)) {
-      addEnergyToTargets(working, sourceIndexes, actualShift.minus(shiftedToTargets), { intervalHours });
-      warnings.push(`Rule ${rule.name} was capped by target interval capacity.`);
+      addEnergyToTargets(
+        working,
+        sourceIndexes,
+        actualShift.minus(shiftedToTargets),
+        { intervalHours },
+      );
+      warnings.push(
+        `Rule ${rule.name} was capped by target interval capacity.`,
+      );
     }
 
     rulesApplied.push({
@@ -405,12 +496,14 @@ export function applyLoadShiftRules(
       requestedKwh: requestedShift.toDecimalPlaces(6).toNumber(),
       actualKwh: shiftedToTargets.toDecimalPlaces(6).toNumber(),
       sourceIntervalCount: sourceIndexes.length,
-      targetIntervalCount: targetIndexes.length
+      targetIntervalCount: targetIndexes.length,
     });
 
     const targetEnergyAfter = sumIndexedEnergy(working, targetIndexes);
     if (targetEnergyAfter.lt(targetEnergyBefore)) {
-      warnings.push(`Rule ${rule.name} did not increase target off-peak energy as expected.`);
+      warnings.push(
+        `Rule ${rule.name} did not increase target off-peak energy as expected.`,
+      );
     }
   }
 
@@ -418,16 +511,27 @@ export function applyLoadShiftRules(
   const totalAfter = sumEnergy(working);
   return {
     intervals: working,
-    requestedShiftKwh: rulesApplied.reduce((sum, rule) => sum + rule.requestedKwh, 0),
+    requestedShiftKwh: rulesApplied.reduce(
+      (sum, rule) => sum + rule.requestedKwh,
+      0,
+    ),
     actualShiftKwh: rulesApplied.reduce((sum, rule) => sum + rule.actualKwh, 0),
-    sourcePeakKwhBefore: summarizeLoadProfile(normalized, { tariffVersion: options.tariffVersion }).peakPeriodKwh,
-    sourcePeakKwhAfter: summarizeLoadProfile(working, { tariffVersion: options.tariffVersion }).peakPeriodKwh,
-    targetOffPeakKwhBefore: summarizeLoadProfile(normalized, { tariffVersion: options.tariffVersion }).offPeakPeriodKwh,
-    targetOffPeakKwhAfter: summarizeLoadProfile(working, { tariffVersion: options.tariffVersion }).offPeakPeriodKwh,
+    sourcePeakKwhBefore: summarizeLoadProfile(normalized, {
+      tariffVersion: options.tariffVersion,
+    }).peakPeriodKwh,
+    sourcePeakKwhAfter: summarizeLoadProfile(working, {
+      tariffVersion: options.tariffVersion,
+    }).peakPeriodKwh,
+    targetOffPeakKwhBefore: summarizeLoadProfile(normalized, {
+      tariffVersion: options.tariffVersion,
+    }).offPeakPeriodKwh,
+    targetOffPeakKwhAfter: summarizeLoadProfile(working, {
+      tariffVersion: options.tariffVersion,
+    }).offPeakPeriodKwh,
     totalKwhBefore: totalBefore.toDecimalPlaces(6).toNumber(),
     totalKwhAfter: totalAfter.toDecimalPlaces(6).toNumber(),
     rulesApplied,
-    warnings
+    warnings,
   };
 }
 
@@ -440,8 +544,11 @@ export function analyzeTouBreakEven(input: {
   meterSwitchingCostThb?: number | undefined;
 }): TouBreakEvenAnalysis {
   const intervals = normalizeIntervals(input.intervals);
-  const billDate = input.billDate ?? getBangkokDate(intervals[0]?.timestamp ?? input.normalTariff.effectiveFrom);
-  const monthlyScaleFactor = input.monthlyScaleFactor ?? inferMonthlyScaleFactor(intervals);
+  const billDate =
+    input.billDate ??
+    getBangkokDate(intervals[0]?.timestamp ?? input.normalTariff.effectiveFrom);
+  const monthlyScaleFactor =
+    input.monthlyScaleFactor ?? inferMonthlyScaleFactor(intervals);
   const normalResult = calculateScenario({
     kind: "CURRENT_NORMAL",
     name: "Current Normal",
@@ -451,7 +558,7 @@ export function analyzeTouBreakEven(input: {
     billDate,
     monthlyScaleFactor,
     meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0,
-    baselineGrandTotal: null
+    baselineGrandTotal: null,
   });
   const currentTou = calculateScenario({
     kind: "CURRENT_TOU",
@@ -462,20 +569,24 @@ export function analyzeTouBreakEven(input: {
     billDate,
     monthlyScaleFactor,
     meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0,
-    baselineGrandTotal: normalResult.grandTotal
+    baselineGrandTotal: normalResult.grandTotal,
   });
   const totalKwh = new Decimal(currentTou.totalKwh);
-  const currentOffPeakRatio = totalKwh.gt(0) ? new Decimal(currentTou.offPeakKwh).div(totalKwh).mul(100) : zero;
+  const currentOffPeakRatio = totalKwh.gt(0)
+    ? new Decimal(currentTou.offPeakKwh).div(totalKwh).mul(100)
+    : zero;
 
   if (currentTou.grandTotal <= normalResult.grandTotal) {
-    const savings = new Decimal(normalResult.grandTotal).minus(currentTou.grandTotal);
+    const savings = new Decimal(normalResult.grandTotal).minus(
+      currentTou.grandTotal,
+    );
     return {
       currentOffPeakRatio: currentOffPeakRatio.toDecimalPlaces(2).toNumber(),
       requiredOffPeakRatio: currentOffPeakRatio.toDecimalPlaces(2).toNumber(),
       requiredShiftKwhPerMonth: 0,
       estimatedSavingsAfterShift: savings.toDecimalPlaces(2).toNumber(),
       paybackMonths: paybackMonths(input.meterSwitchingCostThb ?? 0, savings),
-      explanation: `Current TOU is already lower by ${savings.toDecimalPlaces(2).toString()} THB/month.`
+      explanation: `Current TOU is already lower by ${savings.toDecimalPlaces(2).toString()} THB/month.`,
     };
   }
 
@@ -492,9 +603,9 @@ export function analyzeTouBreakEven(input: {
       rules: [
         {
           name: "Break-even scan",
-          shiftKwhPerMonth: requestedShiftPerMonth.toNumber()
-        }
-      ]
+          shiftKwhPerMonth: requestedShiftPerMonth.toNumber(),
+        },
+      ],
     });
     const candidate = calculateScenario({
       kind: "LOAD_SHIFT_TO_OFF_PEAK",
@@ -506,7 +617,7 @@ export function analyzeTouBreakEven(input: {
       monthlyScaleFactor,
       meterSwitchingCostThb: input.meterSwitchingCostThb ?? 0,
       baselineGrandTotal: normalResult.grandTotal,
-      loadShift
+      loadShift,
     });
     if (candidate.grandTotal <= normalResult.grandTotal) {
       bestShift = requestedShiftPerMonth;
@@ -519,15 +630,20 @@ export function analyzeTouBreakEven(input: {
   const requiredOffPeakRatio = totalKwh.gt(0)
     ? new Decimal(bestTou.offPeakKwh).div(totalKwh).mul(100)
     : currentOffPeakRatio;
-  const estimatedSavings = new Decimal(normalResult.grandTotal).minus(bestTou.grandTotal);
+  const estimatedSavings = new Decimal(normalResult.grandTotal).minus(
+    bestTou.grandTotal,
+  );
 
   return {
     currentOffPeakRatio: currentOffPeakRatio.toDecimalPlaces(2).toNumber(),
     requiredOffPeakRatio: requiredOffPeakRatio.toDecimalPlaces(2).toNumber(),
     requiredShiftKwhPerMonth: bestShift.toDecimalPlaces(2).toNumber(),
     estimatedSavingsAfterShift: estimatedSavings.toDecimalPlaces(2).toNumber(),
-    paybackMonths: paybackMonths(input.meterSwitchingCostThb ?? 0, estimatedSavings),
-    explanation: `Current Off-Peak ratio is ${currentOffPeakRatio.toDecimalPlaces(2).toString()}%. TOU is estimated to break even around ${requiredOffPeakRatio.toDecimalPlaces(2).toString()}% Off-Peak.`
+    paybackMonths: paybackMonths(
+      input.meterSwitchingCostThb ?? 0,
+      estimatedSavings,
+    ),
+    explanation: `Current Off-Peak ratio is ${currentOffPeakRatio.toDecimalPlaces(2).toString()}%. TOU is estimated to break even around ${requiredOffPeakRatio.toDecimalPlaces(2).toString()}% Off-Peak.`,
   };
 }
 
@@ -541,7 +657,11 @@ export function scoreScenarioDataQuality(input: {
   const intervalDays = countUniqueBangkokDates(intervals);
   const intervalCount = intervals.length;
   const detectedInterval = detectIntervalMinutes(intervals);
-  const missingRatio = detectedInterval ? estimateMissingRatio(intervals, detectedInterval) : intervalCount > 0 ? 0 : 1;
+  const missingRatio = detectedInterval
+    ? estimateMissingRatio(intervals, detectedInterval)
+    : intervalCount > 0
+      ? 0
+      : 1;
   const dayTypes = intervals.reduce(
     (acc, interval) => {
       const dayOfWeek = getBangkokParts(interval.timestamp).dayOfWeek;
@@ -549,43 +669,87 @@ export function scoreScenarioDataQuality(input: {
       else acc.hasWeekday = true;
       return acc;
     },
-    { hasWeekday: false, hasWeekend: false }
+    { hasWeekday: false, hasWeekend: false },
   );
   const reasons: string[] = [];
   const limitations: string[] = [];
 
-  if (intervalDays >= 30 && missingRatio <= 0.01 && dayTypes.hasWeekday && dayTypes.hasWeekend) {
-    reasons.push("Interval load profile covers at least 30 days with low missing data.");
+  if (
+    intervalDays >= 30 &&
+    missingRatio <= 0.01 &&
+    dayTypes.hasWeekday &&
+    dayTypes.hasWeekend
+  ) {
+    reasons.push(
+      "Interval load profile covers at least 30 days with low missing data.",
+    );
     return {
       level: "HIGH",
       score: 90,
       reasons,
       limitations,
-      metrics: { intervalDays, intervalCount, missingRatio, hasWeekday: dayTypes.hasWeekday, hasWeekend: dayTypes.hasWeekend, billMonthCount }
+      metrics: {
+        intervalDays,
+        intervalCount,
+        missingRatio,
+        hasWeekday: dayTypes.hasWeekday,
+        hasWeekend: dayTypes.hasWeekend,
+        billMonthCount,
+      },
     };
   }
 
   if (intervalDays >= 7 || billMonthCount >= 3) {
-    reasons.push(intervalDays >= 7 ? "Interval load profile covers at least 7 days." : "Multiple historical bills are available.");
-    if (intervalDays < 30) limitations.push("Interval data is shorter than 30 days, so monthly behavior is estimated.");
-    if (missingRatio > 0.01) limitations.push("Some missing or irregular intervals may affect scenario accuracy.");
+    reasons.push(
+      intervalDays >= 7
+        ? "Interval load profile covers at least 7 days."
+        : "Multiple historical bills are available.",
+    );
+    if (intervalDays < 30)
+      limitations.push(
+        "Interval data is shorter than 30 days, so monthly behavior is estimated.",
+      );
+    if (missingRatio > 0.01)
+      limitations.push(
+        "Some missing or irregular intervals may affect scenario accuracy.",
+      );
     return {
       level: "MEDIUM",
       score: 65,
       reasons,
       limitations,
-      metrics: { intervalDays, intervalCount, missingRatio, hasWeekday: dayTypes.hasWeekday, hasWeekend: dayTypes.hasWeekend, billMonthCount }
+      metrics: {
+        intervalDays,
+        intervalCount,
+        missingRatio,
+        hasWeekday: dayTypes.hasWeekday,
+        hasWeekend: dayTypes.hasWeekend,
+        billMonthCount,
+      },
     };
   }
 
-  reasons.push(input.source === "appliance" ? "Data comes from appliance estimates." : "Load profile is too short for a reliable comparison.");
-  limitations.push("Use at least 30 days of interval data for a high-confidence recommendation.");
+  reasons.push(
+    input.source === "appliance"
+      ? "Data comes from appliance estimates."
+      : "Load profile is too short for a reliable comparison.",
+  );
+  limitations.push(
+    "Use at least 30 days of interval data for a high-confidence recommendation.",
+  );
   return {
     level: "LOW",
     score: 35,
     reasons,
     limitations,
-    metrics: { intervalDays, intervalCount, missingRatio, hasWeekday: dayTypes.hasWeekday, hasWeekend: dayTypes.hasWeekend, billMonthCount }
+    metrics: {
+      intervalDays,
+      intervalCount,
+      missingRatio,
+      hasWeekday: dayTypes.hasWeekday,
+      hasWeekend: dayTypes.hasWeekend,
+      billMonthCount,
+    },
   };
 }
 
@@ -595,25 +759,36 @@ export function validateLoadShiftRule(rule: LoadShiftRuleInput): string[] {
     shiftKwhPerDay: rule.shiftKwhPerDay,
     shiftKwhPerMonth: rule.shiftKwhPerMonth,
     maxShiftKwh: rule.maxShiftKwh,
-    maxPostShiftPowerKw: rule.maxPostShiftPowerKw
+    maxPostShiftPowerKw: rule.maxPostShiftPowerKw,
   })) {
-    if (value !== undefined && value < 0) errors.push(`${field} must be non-negative`);
+    if (value !== undefined && value < 0)
+      errors.push(`${field} must be non-negative`);
   }
-  if (rule.shiftPercentOfPeak !== undefined && (rule.shiftPercentOfPeak < 0 || rule.shiftPercentOfPeak > 100)) {
+  if (
+    rule.shiftPercentOfPeak !== undefined &&
+    (rule.shiftPercentOfPeak < 0 || rule.shiftPercentOfPeak > 100)
+  ) {
     errors.push("shiftPercentOfPeak must be between 0 and 100");
   }
   for (const [field, value] of Object.entries({
     sourceStartTime: rule.sourceStartTime,
     sourceEndTime: rule.sourceEndTime,
     targetStartTime: rule.targetStartTime,
-    targetEndTime: rule.targetEndTime
+    targetEndTime: rule.targetEndTime,
   })) {
-    if (value !== undefined && !isValidTime(value)) errors.push(`${field} is invalid`);
+    if (value !== undefined && !isValidTime(value))
+      errors.push(`${field} is invalid`);
   }
-  if ((rule.sourceStartTime && !rule.sourceEndTime) || (!rule.sourceStartTime && rule.sourceEndTime)) {
+  if (
+    (rule.sourceStartTime && !rule.sourceEndTime) ||
+    (!rule.sourceStartTime && rule.sourceEndTime)
+  ) {
     errors.push("source time window must include start and end");
   }
-  if ((rule.targetStartTime && !rule.targetEndTime) || (!rule.targetStartTime && rule.targetEndTime)) {
+  if (
+    (rule.targetStartTime && !rule.targetEndTime) ||
+    (!rule.targetStartTime && rule.targetEndTime)
+  ) {
     errors.push("target time window must include start and end");
   }
   return errors;
@@ -621,7 +796,7 @@ export function validateLoadShiftRule(rule: LoadShiftRuleInput): string[] {
 
 export function createDemoScenarioInput(
   profile: "evening_home" | "night_home" | "daytime_shop" = "evening_home",
-  options: { meterSwitchingCostThb?: number | undefined } = {}
+  options: { meterSwitchingCostThb?: number | undefined } = {},
 ): ScenarioEngineInput {
   return {
     intervals: createDemoLoadProfile(profile, 7),
@@ -637,26 +812,39 @@ export function createDemoScenarioInput(
         sourceEndTime: "22:00",
         targetStartTime: "22:00",
         targetEndTime: "06:00",
-        shiftPercentOfPeak: profile === "night_home" ? 10 : 25
-      }
-    ]
+        shiftPercentOfPeak: profile === "night_home" ? 10 : 25,
+      },
+    ],
   };
 }
 
-export function createDemoScenarioComparison(profile: "evening_home" | "night_home" | "daytime_shop" = "evening_home") {
-  return runScenarioComparison(createDemoScenarioInput(profile, { meterSwitchingCostThb: 2500 }));
+export function createDemoScenarioComparison(
+  profile: "evening_home" | "night_home" | "daytime_shop" = "evening_home",
+) {
+  return runScenarioComparison(
+    createDemoScenarioInput(profile, { meterSwitchingCostThb: 2500 }),
+  );
 }
 
 function validateScenarioEngineInput(input: ScenarioEngineInput) {
-  if (input.intervals.length === 0) throw new Error("Scenario requires a load profile.");
-  if (input.normalTariff.meterMode !== "normal") throw new Error("normalTariff must use normal meter mode.");
-  if (input.touTariff.meterMode !== "tou") throw new Error("touTariff must use TOU meter mode.");
-  if (input.meterSwitchingCostThb !== undefined && input.meterSwitchingCostThb < 0) {
+  if (input.intervals.length === 0)
+    throw new Error("Scenario requires a load profile.");
+  if (input.normalTariff.meterMode !== "normal")
+    throw new Error("normalTariff must use normal meter mode.");
+  if (input.touTariff.meterMode !== "tou")
+    throw new Error("touTariff must use TOU meter mode.");
+  if (
+    input.meterSwitchingCostThb !== undefined &&
+    input.meterSwitchingCostThb < 0
+  ) {
     throw new Error("Meter switching cost must be non-negative.");
   }
   input.loadShiftRules?.forEach((rule) => {
     const errors = validateLoadShiftRule(rule);
-    if (errors.length > 0) throw new Error(`Invalid load shift rule ${rule.name}: ${errors.join(", ")}`);
+    if (errors.length > 0)
+      throw new Error(
+        `Invalid load shift rule ${rule.name}: ${errors.join(", ")}`,
+      );
   });
   normalizeIntervals(input.intervals);
 }
@@ -669,9 +857,17 @@ function buildRecommendations(input: {
   loadSummary: ReturnType<typeof summarizeLoadProfile>;
 }): ScenarioRecommendation[] {
   const recommendations: ScenarioRecommendation[] = [];
-  const currentTou = input.scenarios.find((scenario) => scenario.kind === "CURRENT_TOU");
-  const shiftedTou = input.scenarios.find((scenario) => scenario.kind === "LOAD_SHIFT_TO_OFF_PEAK");
-  const best = input.scenarios.reduce((candidate, scenario) => (scenario.grandTotal < candidate.grandTotal ? scenario : candidate), input.baseline);
+  const currentTou = input.scenarios.find(
+    (scenario) => scenario.kind === "CURRENT_TOU",
+  );
+  const shiftedTou = input.scenarios.find(
+    (scenario) => scenario.kind === "LOAD_SHIFT_TO_OFF_PEAK",
+  );
+  const best = input.scenarios.reduce(
+    (candidate, scenario) =>
+      scenario.grandTotal < candidate.grandTotal ? scenario : candidate,
+    input.baseline,
+  );
 
   if (input.dataQuality.level === "LOW") {
     recommendations.push({
@@ -679,10 +875,14 @@ function buildRecommendations(input: {
       priority: 1,
       title: "ข้อมูลยังไม่พอสำหรับตัดสินใจแบบมั่นใจ",
       explanation: `Data quality score is ${input.dataQuality.score}/100 with ${input.dataQuality.metrics.intervalDays} interval days.`,
-      supportingMetrics: { dataQualityScore: input.dataQuality.score, intervalDays: input.dataQuality.metrics.intervalDays },
+      supportingMetrics: {
+        dataQualityScore: input.dataQuality.score,
+        intervalDays: input.dataQuality.metrics.intervalDays,
+      },
       confidence: "low",
       limitations: input.dataQuality.limitations,
-      nextAction: "เพิ่ม Load Profile อย่างน้อย 30 วันก่อนตัดสินใจลงทุนหรือเปลี่ยนมิเตอร์"
+      nextAction:
+        "เพิ่ม Load Profile อย่างน้อย 30 วันก่อนตัดสินใจลงทุนหรือเปลี่ยนมิเตอร์",
     });
   }
 
@@ -695,11 +895,11 @@ function buildRecommendations(input: {
       supportingMetrics: {
         monthlySavingsThb: currentTou.savingsMonthly,
         annualSavingsThb: currentTou.savingsAnnual,
-        offPeakRatioPercent: input.breakEven.currentOffPeakRatio
+        offPeakRatioPercent: input.breakEven.currentOffPeakRatio,
       },
       confidence: input.dataQuality.level === "HIGH" ? "high" : "medium",
       limitations: input.dataQuality.limitations,
-      nextAction: "ตรวจสอบเงื่อนไขการเปลี่ยนมิเตอร์ TOU กับหน่วยงานไฟฟ้า"
+      nextAction: "ตรวจสอบเงื่อนไขการเปลี่ยนมิเตอร์ TOU กับหน่วยงานไฟฟ้า",
     });
   } else if (shiftedTou && shiftedTou.savingsMonthly > 0) {
     recommendations.push({
@@ -710,11 +910,12 @@ function buildRecommendations(input: {
       supportingMetrics: {
         requiredShiftKwhPerMonth: input.breakEven.requiredShiftKwhPerMonth,
         shiftedMonthlySavingsThb: shiftedTou.savingsMonthly,
-        requiredOffPeakRatioPercent: input.breakEven.requiredOffPeakRatio
+        requiredOffPeakRatioPercent: input.breakEven.requiredOffPeakRatio,
       },
       confidence: input.dataQuality.level === "LOW" ? "low" : "medium",
       limitations: input.dataQuality.limitations,
-      nextAction: "เลือกโหลดที่เลื่อนเวลาได้ เช่น ซักผ้า ปั๊มน้ำ หรือชาร์จอุปกรณ์หลัง 22:00"
+      nextAction:
+        "เลือกโหลดที่เลื่อนเวลาได้ เช่น ซักผ้า ปั๊มน้ำ หรือชาร์จอุปกรณ์หลัง 22:00",
     });
   } else {
     recommendations.push({
@@ -725,11 +926,12 @@ function buildRecommendations(input: {
       supportingMetrics: {
         normalMonthlyBillThb: input.baseline.grandTotal,
         bestMonthlyBillThb: best.grandTotal,
-        requiredShiftKwhPerMonth: input.breakEven.requiredShiftKwhPerMonth
+        requiredShiftKwhPerMonth: input.breakEven.requiredShiftKwhPerMonth,
       },
       confidence: input.dataQuality.level === "HIGH" ? "high" : "medium",
       limitations: input.dataQuality.limitations,
-      nextAction: "เก็บข้อมูลโหลดเพิ่มหรือทดสอบ load shifting ก่อนเปลี่ยนมิเตอร์"
+      nextAction:
+        "เก็บข้อมูลโหลดเพิ่มหรือทดสอบ load shifting ก่อนเปลี่ยนมิเตอร์",
     });
   }
 
@@ -741,11 +943,11 @@ function buildRecommendations(input: {
       explanation: `Peak energy is ${formatEnergy(input.loadSummary.peakPeriodKwh)} kWh/month from total ${formatEnergy(input.loadSummary.totalKwh)} kWh/month.`,
       supportingMetrics: {
         peakKwh: input.loadSummary.peakPeriodKwh,
-        totalKwh: input.loadSummary.totalKwh
+        totalKwh: input.loadSummary.totalKwh,
       },
       confidence: "medium",
       limitations: input.dataQuality.limitations,
-      nextAction: "ดูกราฟรายชั่วโมงเพื่อหาโหลดช่วง 09:00-22:00 ที่ควบคุมได้"
+      nextAction: "ดูกราฟรายชั่วโมงเพื่อหาโหลดช่วง 09:00-22:00 ที่ควบคุมได้",
     });
   }
 
@@ -757,11 +959,13 @@ function buildRecommendations(input: {
       explanation: `Daytime energy is ${formatEnergy(input.loadSummary.daytimeKwh)} kWh/month, but this phase does not calculate solar generation.`,
       supportingMetrics: {
         daytimeKwh: input.loadSummary.daytimeKwh,
-        totalKwh: input.loadSummary.totalKwh
+        totalKwh: input.loadSummary.totalKwh,
       },
       confidence: "medium",
-      limitations: ["Phase 4 only flags solar suitability; it does not size or simulate solar."],
-      nextAction: "นำโปรไฟล์นี้ไปวิเคราะห์ Solar เมื่อเข้าสู่ Phase 5"
+      limitations: [
+        "Phase 4 only flags solar suitability; it does not size or simulate solar.",
+      ],
+      nextAction: "นำโปรไฟล์นี้ไปวิเคราะห์ Solar เมื่อเข้าสู่ Phase 5",
     });
   }
 
@@ -773,11 +977,11 @@ function buildRecommendations(input: {
       explanation: `Nighttime energy is ${formatEnergy(input.loadSummary.nighttimeKwh)} kWh/month, which tends to align with Off-Peak periods.`,
       supportingMetrics: {
         nighttimeKwh: input.loadSummary.nighttimeKwh,
-        offPeakKwh: input.loadSummary.offPeakPeriodKwh
+        offPeakKwh: input.loadSummary.offPeakPeriodKwh,
       },
       confidence: "medium",
       limitations: input.dataQuality.limitations,
-      nextAction: "ตรวจสอบว่าพฤติกรรมนี้ต่อเนื่องอย่างน้อย 30 วัน"
+      nextAction: "ตรวจสอบว่าพฤติกรรมนี้ต่อเนื่องอย่างน้อย 30 วัน",
     });
   }
 
@@ -791,40 +995,68 @@ function findShiftCandidateIndexes(
     periodType: "peak" | "off_peak";
     startTime?: string | undefined;
     endTime?: string | undefined;
-  }
+  },
 ) {
   return intervals.flatMap((interval, index) => {
-    const isHoliday = input.tariffVersion.holidays.some((holiday) => getBangkokDate(holiday.date) === getBangkokDate(interval.timestamp));
-    const period = selectTouPeriod(input.tariffVersion.touPeriods, interval.timestamp, isHoliday);
+    const isHoliday = input.tariffVersion.holidays.some(
+      (holiday) =>
+        getBangkokDate(holiday.date) === getBangkokDate(interval.timestamp),
+    );
+    const period = selectTouPeriod(
+      input.tariffVersion.touPeriods,
+      interval.timestamp,
+      isHoliday,
+    );
     const local = getBangkokParts(interval.timestamp);
     const timeMatches =
-      input.startTime && input.endTime ? isMinuteInRange(local.minuteOfDay, input.startTime, input.endTime) : true;
+      input.startTime && input.endTime
+        ? isMinuteInRange(local.minuteOfDay, input.startTime, input.endTime)
+        : true;
     return period.periodType === input.periodType && timeMatches ? [index] : [];
   });
 }
 
 function resolveRequestedShiftKwh(
   rule: LoadShiftRuleInput,
-  input: { sourcePeakKwh: Decimal; profileDayCount: number; monthlyScaleFactor: number }
+  input: {
+    sourcePeakKwh: Decimal;
+    profileDayCount: number;
+    monthlyScaleFactor: number;
+  },
 ) {
   let requested = zero;
-  if (rule.shiftKwhPerDay !== undefined) requested = requested.plus(new Decimal(rule.shiftKwhPerDay).mul(input.profileDayCount));
-  if (rule.shiftKwhPerMonth !== undefined) requested = requested.plus(new Decimal(rule.shiftKwhPerMonth).div(input.monthlyScaleFactor));
-  if (rule.shiftPercentOfPeak !== undefined) requested = requested.plus(input.sourcePeakKwh.mul(rule.shiftPercentOfPeak).div(100));
-  if (rule.maxShiftKwh !== undefined) requested = Decimal.min(requested, new Decimal(rule.maxShiftKwh));
+  if (rule.shiftKwhPerDay !== undefined)
+    requested = requested.plus(
+      new Decimal(rule.shiftKwhPerDay).mul(input.profileDayCount),
+    );
+  if (rule.shiftKwhPerMonth !== undefined)
+    requested = requested.plus(
+      new Decimal(rule.shiftKwhPerMonth).div(input.monthlyScaleFactor),
+    );
+  if (rule.shiftPercentOfPeak !== undefined)
+    requested = requested.plus(
+      input.sourcePeakKwh.mul(rule.shiftPercentOfPeak).div(100),
+    );
+  if (rule.maxShiftKwh !== undefined)
+    requested = Decimal.min(requested, new Decimal(rule.maxShiftKwh));
   return requested;
 }
 
-function removeEnergyProportionally(intervals: LoadIntervalInput[], indexes: number[], amount: Decimal) {
+function removeEnergyProportionally(
+  intervals: LoadIntervalInput[],
+  indexes: number[],
+  amount: Decimal,
+) {
   const sourceEnergy = sumIndexedEnergy(intervals, indexes);
   if (sourceEnergy.lte(0)) return;
+  const intervalMinutes = detectIntervalMinutes(intervals) ?? 60;
   indexes.forEach((index) => {
     const interval = intervals[index];
     if (!interval) return;
     const originalEnergy = new Decimal(interval.energyKwh);
     const removal = amount.mul(originalEnergy).div(sourceEnergy);
     const nextEnergy = Decimal.max(zero, originalEnergy.minus(removal));
-    updateIntervalEnergy(interval, nextEnergy, detectIntervalMinutes(intervals) ?? 60);
+    updateIntervalEnergy(interval, nextEnergy, intervalMinutes);
   });
 }
 
@@ -832,7 +1064,7 @@ function addEnergyToTargets(
   intervals: LoadIntervalInput[],
   indexes: number[],
   amount: Decimal,
-  options: { intervalHours: number; maxPostShiftPowerKw?: number | undefined }
+  options: { intervalHours: number; maxPostShiftPowerKw?: number | undefined },
 ) {
   if (indexes.length === 0 || amount.lte(0)) return zero;
   let remaining = amount;
@@ -846,34 +1078,61 @@ function addEnergyToTargets(
     const capacity =
       options.maxPostShiftPowerKw === undefined
         ? equalShare
-        : Decimal.max(zero, new Decimal(options.maxPostShiftPowerKw).mul(options.intervalHours).minus(interval.energyKwh));
+        : Decimal.max(
+            zero,
+            new Decimal(options.maxPostShiftPowerKw)
+              .mul(options.intervalHours)
+              .minus(interval.energyKwh),
+          );
     const addition = Decimal.min(equalShare, capacity, remaining);
     if (addition.lte(0)) continue;
     addedByIndex.set(index, addition);
     remaining = remaining.minus(addition);
   }
 
+  const intervalMinutes = detectIntervalMinutes(intervals) ?? 60;
   for (const [index, addition] of addedByIndex.entries()) {
     const interval = intervals[index];
     if (!interval) continue;
-    updateIntervalEnergy(interval, new Decimal(interval.energyKwh).plus(addition), detectIntervalMinutes(intervals) ?? 60);
+    updateIntervalEnergy(
+      interval,
+      new Decimal(interval.energyKwh).plus(addition),
+      intervalMinutes,
+    );
   }
 
   return amount.minus(remaining);
 }
 
-function updateIntervalEnergy(interval: LoadIntervalInput, energy: Decimal, intervalMinutes: number) {
+function updateIntervalEnergy(
+  interval: LoadIntervalInput,
+  energy: Decimal,
+  intervalMinutes: number,
+) {
   const energyNumber = energy.toDecimalPlaces(9).toNumber();
   interval.energyKwh = energyNumber;
-  interval.powerKw = energy.div(intervalMinutes / 60).toDecimalPlaces(9).toNumber();
+  interval.powerKw = energy
+    .div(intervalMinutes / 60)
+    .toDecimalPlaces(9)
+    .toNumber();
 }
 
-function restoreTotalEnergy(intervals: LoadIntervalInput[], expectedTotal: Decimal, intervalMinutes: number) {
+function restoreTotalEnergy(
+  intervals: LoadIntervalInput[],
+  expectedTotal: Decimal,
+  intervalMinutes: number,
+) {
   const delta = expectedTotal.minus(sumEnergy(intervals));
   if (delta.abs().lte(0.000000001)) return;
-  const target = intervals.find((interval) => new Decimal(interval.energyKwh).plus(delta).gte(0));
+  const target = intervals.find((interval) =>
+    new Decimal(interval.energyKwh).plus(delta).gte(0),
+  );
   if (!target) return;
-  updateIntervalEnergy(target, new Decimal(target.energyKwh).plus(delta), intervalMinutes);
+  updateIntervalEnergy(
+    target,
+    new Decimal(target.energyKwh).plus(delta),
+    intervalMinutes,
+  );
 }
 
 function normalizeIntervals(intervals: LoadIntervalInput[]) {
@@ -882,43 +1141,62 @@ function normalizeIntervals(intervals: LoadIntervalInput[]) {
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
-function scaleIntervalsForBilling(intervals: LoadIntervalInput[], monthlyScaleFactor: number): LoadIntervalInput[] {
-  const intervalMinutes = detectIntervalMinutes(intervals) ?? 60;
-  const intervalHours = intervalMinutes / 60;
+function scaleIntervalsForBilling(
+  intervals: LoadIntervalInput[],
+  monthlyScaleFactor: number,
+): LoadIntervalInput[] {
   return intervals.map((interval) => {
     const energy = new Decimal(interval.energyKwh).mul(monthlyScaleFactor);
     return {
       ...interval,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
-      powerKw: energy.div(intervalHours).toDecimalPlaces(6).toNumber()
+      ...(interval.powerKw === undefined ? {} : { powerKw: interval.powerKw }),
     };
   });
 }
 
 function inferMonthlyScaleFactor(intervals: LoadIntervalInput[]) {
   const days = countUniqueBangkokDates(intervals);
-  return days > 0 ? new Decimal(30).div(days).toDecimalPlaces(6).toNumber() : 1;
+  const firstDate = intervals[0]
+    ? getBangkokDate(intervals[0].timestamp)
+    : null;
+  const targetDays = firstDate ? daysInMonth(firstDate) : 30;
+  return days > 0
+    ? new Decimal(targetDays).div(days).toDecimalPlaces(6).toNumber()
+    : 1;
 }
 
-function estimateMissingRatio(intervals: LoadIntervalInput[], intervalMinutes: number) {
+function estimateMissingRatio(
+  intervals: LoadIntervalInput[],
+  intervalMinutes: number,
+) {
   if (intervals.length < 2) return 0;
   const first = new Date(intervals[0]?.timestamp ?? "").getTime();
   const last = new Date(intervals.at(-1)?.timestamp ?? "").getTime();
-  if (!Number.isFinite(first) || !Number.isFinite(last) || last <= first) return 0;
+  if (!Number.isFinite(first) || !Number.isFinite(last) || last <= first)
+    return 0;
   const expected = Math.floor((last - first) / (intervalMinutes * 60000)) + 1;
   return expected > 0 ? Math.max(0, expected - intervals.length) / expected : 0;
 }
 
 function sumEnergy(intervals: LoadIntervalInput[]) {
-  return intervals.reduce((sum, interval) => sum.plus(interval.energyKwh), zero);
+  return intervals.reduce(
+    (sum, interval) => sum.plus(interval.energyKwh),
+    zero,
+  );
 }
 
 function sumIndexedEnergy(intervals: LoadIntervalInput[], indexes: number[]) {
-  return indexes.reduce((sum, index) => sum.plus(intervals[index]?.energyKwh ?? 0), zero);
+  return indexes.reduce(
+    (sum, index) => sum.plus(intervals[index]?.energyKwh ?? 0),
+    zero,
+  );
 }
 
 function countUniqueBangkokDates(intervals: LoadIntervalInput[]) {
-  return new Set(intervals.map((interval) => getBangkokDate(interval.timestamp))).size;
+  return new Set(
+    intervals.map((interval) => getBangkokDate(interval.timestamp)),
+  ).size;
 }
 
 function getBangkokDate(timestamp: string) {
@@ -926,22 +1204,18 @@ function getBangkokDate(timestamp: string) {
   return getBangkokParts(timestamp).date;
 }
 
+function daysInMonth(date: string) {
+  const [year = "2026", month = "01"] = date.split("-");
+  return new Date(Number(year), Number(month), 0).getDate();
+}
+
 function getBangkokParts(timestamp: string) {
   const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Bangkok",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-      weekday: "short"
-    })
+    bangkokFormatter
       .formatToParts(new Date(timestamp))
-      .map((part) => [part.type, part.value])
+      .map((part) => [part.type, part.value]),
   );
-  const dayOfWeek = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[parts.weekday ?? ""] ?? 0;
+  const dayOfWeek = dayOfWeekByName[parts.weekday ?? ""] ?? 0;
   const hour = Number(parts.hour ?? 0);
   const minute = Number(parts.minute ?? 0);
   return {
@@ -949,11 +1223,15 @@ function getBangkokParts(timestamp: string) {
     hour,
     minute,
     dayOfWeek,
-    minuteOfDay: hour * 60 + minute
+    minuteOfDay: hour * 60 + minute,
   };
 }
 
-function isMinuteInRange(minuteOfDay: number, startTime: string, endTime: string) {
+function isMinuteInRange(
+  minuteOfDay: number,
+  startTime: string,
+  endTime: string,
+) {
   const start = timeToMinute(startTime);
   const end = timeToMinute(endTime);
   if (start === end) return true;
@@ -978,7 +1256,7 @@ function defaultLoadShiftRule(): LoadShiftRuleInput {
     sourceStartTime: "18:00",
     sourceEndTime: "22:00",
     targetStartTime: "22:00",
-    targetEndTime: "06:00"
+    targetEndTime: "06:00",
   };
 }
 
@@ -992,12 +1270,14 @@ function scenarioName(kind: ScenarioKind) {
     CURRENT_TOU: "Current TOU",
     SWITCH_TO_TOU_NO_BEHAVIOR_CHANGE: "Switch to TOU - no behavior change",
     LOAD_SHIFT_TO_OFF_PEAK: "Load Shift to Off-Peak",
-    CUSTOM_LOAD_SHIFT: "Custom Load Shift"
+    CUSTOM_LOAD_SHIFT: "Custom Load Shift",
   }[kind];
 }
 
 function paybackMonths(cost: number, monthlySavings: Decimal) {
-  return cost > 0 && monthlySavings.gt(0) ? new Decimal(cost).div(monthlySavings).toDecimalPlaces(2).toNumber() : null;
+  return cost > 0 && monthlySavings.gt(0)
+    ? new Decimal(cost).div(monthlySavings).toDecimalPlaces(2).toNumber()
+    : null;
 }
 
 function toNumber(value: string | number) {
@@ -1009,19 +1289,28 @@ function nearlyEqual(a: number, b: number) {
 }
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
 function formatEnergy(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
-function createDemoLoadProfile(profile: "evening_home" | "night_home" | "daytime_shop", days: number): LoadIntervalInput[] {
+function createDemoLoadProfile(
+  profile: "evening_home" | "night_home" | "daytime_shop",
+  days: number,
+): LoadIntervalInput[] {
   const intervals: LoadIntervalInput[] = [];
   const start = Date.UTC(2026, 0, 5, -7, 0, 0);
   for (let day = 0; day < days; day += 1) {
     for (let hour = 0; hour < 24; hour += 1) {
-      const timestamp = new Date(start + day * 24 * 60 * 60000 + hour * 60 * 60000).toISOString();
+      const timestamp = new Date(
+        start + day * 24 * 60 * 60000 + hour * 60 * 60000,
+      ).toISOString();
       const localHour = getBangkokParts(timestamp).hour;
       const energyKwh = demoHourlyEnergy(profile, localHour);
       intervals.push({ timestamp, energyKwh, powerKw: energyKwh });
@@ -1030,7 +1319,10 @@ function createDemoLoadProfile(profile: "evening_home" | "night_home" | "daytime
   return intervals;
 }
 
-function demoHourlyEnergy(profile: "evening_home" | "night_home" | "daytime_shop", hour: number) {
+function demoHourlyEnergy(
+  profile: "evening_home" | "night_home" | "daytime_shop",
+  hour: number,
+) {
   if (profile === "evening_home") {
     if (hour >= 18 && hour < 22) return 2.4;
     if (hour >= 22 || hour < 6) return 0.45;
@@ -1051,18 +1343,20 @@ export function createScenarioInputSnapshot(input: ScenarioEngineInput) {
     engineVersion: scenarioEngineVersion,
     loadProfileSnapshot: {
       intervalCount: input.intervals.length,
-      totalKwh: sumEnergy(normalizeIntervals(input.intervals)).toDecimalPlaces(6).toNumber(),
-      detectedIntervalMinutes: detectIntervalMinutes(input.intervals)
+      totalKwh: sumEnergy(normalizeIntervals(input.intervals))
+        .toDecimalPlaces(6)
+        .toNumber(),
+      detectedIntervalMinutes: detectIntervalMinutes(input.intervals),
     },
     tariffSnapshot: {
       normal: createTariffSnapshot(input.normalTariff),
-      tou: createTariffSnapshot(input.touTariff)
+      tou: createTariffSnapshot(input.touTariff),
     },
     assumptions: {
       billDate: input.billDate,
       meterSwitchingCostThb: input.meterSwitchingCostThb,
       monthlyScaleFactor: input.monthlyScaleFactor,
-      scenarioKinds: input.scenarioKinds
-    }
+      scenarioKinds: input.scenarioKinds,
+    },
   };
 }

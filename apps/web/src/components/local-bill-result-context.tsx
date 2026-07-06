@@ -91,7 +91,7 @@ export function LocalBillResultContext({
               ผล {moduleName} นี้เริ่มจาก saved bills
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              ใช้บิล {snapshot.monthCount} เดือนใน browser นี้เป็นจุดตั้งต้น ผลคำนวณอิง tariff seed ที่มี snapshot และ profile ประเมินเบื้องต้นของแต่ละโมดูล
+              ใช้บิล {snapshot.monthCount} เดือนใน browser นี้เป็นจุดตั้งต้น ผลคำนวณอิง tariff snapshot และ screening profile ของแต่ละโมดูล
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

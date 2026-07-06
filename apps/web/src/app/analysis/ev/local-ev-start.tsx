@@ -107,7 +107,7 @@ export function LocalEvStart() {
               ตั้งค่า EV จากบิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนใน browser นี้ โดยยังใช้ EV charging profile แบบ demo/draft
+              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนในเซสชันนี้ โดยยังใช้ EV charging profile แบบประเมินเบื้องต้น
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

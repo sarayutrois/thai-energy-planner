@@ -5,41 +5,41 @@
 @layer base {
   :root {
     --font-sans: "Inter", "Noto Sans Thai", Arial, sans-serif;
-    /* Dark Mode Defaults */
-    --background: 240 10% 3.9%;
-    --foreground: 0 0% 98%;
+    /* Light Mode Defaults */
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
     
-    --card: 240 10% 6%;
-    --card-foreground: 0 0% 98%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
     
-    --popover: 240 10% 3.9%;
-    --popover-foreground: 0 0% 98%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
     
-    /* Vibrant Cyan/Blue for primary actions */
-    --primary: 199 89% 50%;
-    --primary-foreground: 240 5.9% 10%;
+    /* Vibrant Orange for primary actions */
+    --primary: 32 98% 53%;
+    --primary-foreground: 0 0% 98%;
     
-    --secondary: 240 3.7% 15.9%;
-    --secondary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
     
-    --muted: 240 3.7% 15.9%;
-    --muted-foreground: 240 5% 64.9%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
     
-    --accent: 240 3.7% 15.9%;
-    --accent-foreground: 0 0% 98%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     
-    --destructive: 0 62.8% 30.6%;
+    --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 98%;
     
     --success: 151 62% 45%;
-    --success-foreground: 240 5.9% 10%;
+    --success-foreground: 0 0% 98%;
     
     --warning: 41 96% 55%;
-    --warning-foreground: 240 5.9% 10%;
+    --warning-foreground: 0 0% 98%;
     
-    --border: 240 3.7% 15.9%;
-    --input: 240 3.7% 15.9%;
-    --ring: 199 89% 50%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 32 98% 53%;
     
     --radius: 0.75rem;
   }
@@ -55,14 +55,8 @@
     @apply bg-background text-foreground font-sans;
     min-height: 100vh;
     margin: 0;
-    /* Smooth radial gradient for a premium feel */
-    background: radial-gradient(
-      circle at top center,
-      hsl(240, 15%, 12%) 0%,
-      hsl(var(--background)) 50%,
-      hsl(var(--background)) 100%
-    );
-    background-attachment: fixed;
+    /* Clean white background */
+    background: hsl(var(--background));
     /* Smooth scrolling */
     scroll-behavior: smooth;
   }
@@ -88,10 +82,10 @@
 /* Custom Utilities for Premium Look */
 @layer utilities {
   .glass-panel {
-    @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
+    @apply bg-white/60 backdrop-blur-xl border border-black/5 shadow-xl;
   }
   
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-primary to-cyan-300;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-400;
   }
 }

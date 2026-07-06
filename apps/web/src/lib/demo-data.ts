@@ -50,36 +50,36 @@ export const workflowSteps = [
 
 export const scenarioPreviewRows = [
   {
-    name: "มิเตอร์ปกติ",
-    monthlyCost: "รออัตรา verified",
+    name: "มิเตอร์ปกติ (Baseline)",
+    monthlyCost: "6,500 บาท",
     investment: "0 บาท",
     annualSaving: "-",
     payback: "-",
-    note: "ใช้เป็น baseline"
+    note: "อัตราก้าวหน้าปกติ"
   },
   {
-    name: "TOU ไม่เปลี่ยนพฤติกรรม",
-    monthlyCost: "รอ engine Phase 2",
-    investment: "ตามค่าบริการจริง",
-    annualSaving: "ต้องคำนวณจาก profile",
-    payback: "-",
-    note: "พิจารณา Peak/Off-Peak ตามเวลาไทย"
+    name: "เปลี่ยนมิเตอร์ TOU",
+    monthlyCost: "5,800 บาท",
+    investment: "6,900 บาท",
+    annualSaving: "8,400 บาท/ปี",
+    payback: "0.8 ปี",
+    note: "เหมาะกับบ้านที่ใช้ไฟกลางคืนเยอะ"
   },
   {
-    name: "Solar",
-    monthlyCost: "รอ Solar Phase 5",
-    investment: "ตามขนาดระบบ",
-    annualSaving: "จาก self-consumption",
-    payback: "คำนวณภายหลัง",
-    note: "ไม่แนะนำจาก kWh รายเดือนอย่างเดียว"
+    name: "TOU + โซลาร์เซลล์ (5kW)",
+    monthlyCost: "2,500 บาท",
+    investment: "150,000 บาท",
+    annualSaving: "48,000 บาท/ปี",
+    payback: "3.1 ปี",
+    note: "คุ้มค่าที่สุดสำหรับคนอยู่บ้านกลางวัน"
   },
   {
-    name: "TOU + Solar + EV",
-    monthlyCost: "รอ Scenario Phase 4-6",
-    investment: "รวมหลายโมดูล",
-    annualSaving: "จากหลายสมมติฐาน",
-    payback: "คำนวณภายหลัง",
-    note: "ต้องบันทึก assumption snapshot"
+    name: "TOU + โซลาร์เซลล์ + แบตเตอรี่",
+    monthlyCost: "800 บาท",
+    investment: "280,000 บาท",
+    annualSaving: "68,400 บาท/ปี",
+    payback: "4.1 ปี",
+    note: "อิสระจากบิลค่าไฟอย่างแท้จริง"
   }
 ];
 

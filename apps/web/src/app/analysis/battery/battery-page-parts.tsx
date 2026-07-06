@@ -41,7 +41,7 @@ export function BatteryPageShell({
         <div className="flex flex-wrap gap-2">
           <Badge>Phase 6</Badge>
           <Badge variant="outline">Battery Engine</Badge>
-          <Badge variant="warning">Demo/draft equipment data</Badge>
+          <Badge variant="warning">ข้อมูลตัวอย่างอุปกรณ์ (ประเมินเบื้องต้น)</Badge>
         </div>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -86,7 +86,7 @@ export function BatteryControls({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Settings aria-hidden="true" className="h-5 w-5 text-primary" />
-          Battery demo inputs
+          ข้อมูลระบบแบตเตอรี่เบื้องต้น
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -99,7 +99,7 @@ export function BatteryControls({
         ) : null}
         <form action={action} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <SavedBillHiddenInputs context={savedBillContext} />
-          <Field label="Demo profile">
+          <Field label="โปรไฟล์สำหรับประเมินเบื้องต้น">
             <select name="profile" defaultValue={settings.profile} className={inputClassName}>
               {phase6ProfileOptions.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -259,7 +259,7 @@ export function BatterySourcePanel({ analysis }: { analysis: BatteryAnalysisResu
       <InfoCard title="Tariff version" icon={<Database aria-hidden="true" className="h-5 w-5 text-primary" />}>
         <InfoRow label="Version" value={analysis.billAfterBattery.tariffVersionLabel} />
         <InfoRow label="Status" value={analysis.billAfterBattery.tariffStatus} />
-        <InfoRow label="Source" value={analysis.billAfterBattery.sourceUrl ?? "demo/draft"} />
+        <InfoRow label="Source" value={analysis.billAfterBattery.sourceUrl ?? "ค่าจากข้อมูลตัวอย่าง"} />
       </InfoCard>
       <InfoCard title="Dispatch totals" icon={<BatteryCharging aria-hidden="true" className="h-5 w-5 text-primary" />}>
         <InfoRow label="Charged from solar" value={`${formatNumber(analysis.dispatch.chargedFromSolarKwh)} kWh`} />

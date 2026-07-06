@@ -10,6 +10,9 @@ const reportReadiness = [
   { label: "Input summary", done: true },
   { label: "Tariff snapshot", done: true },
   { label: "Assumptions", done: true },
+  { label: "Data quality", done: true },
+  { label: "Calculation trace", done: true },
+  { label: "Limitations", done: true },
   { label: "Recommendations", done: true },
   { label: "Print/JSON/CSV export", done: true },
   { label: "PDF export", done: true }
@@ -28,7 +31,7 @@ export default function AnalysisReportsPage() {
           <div>
             <h1 className="text-3xl font-semibold tracking-normal">รายงานผลวิเคราะห์</h1>
             <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-              หน้านี้รวมรายงานที่สร้างจากข้อมูลบิลและผลวิเคราะห์ที่บันทึกไว้ใน browser นี้
+              หน้านี้รวมรายงานที่สร้างจากข้อมูลบิลและผลวิเคราะห์ที่บันทึกไว้ในเซสชันนี้
               ถ้ายังไม่มีรายงาน ให้เริ่มจากเพิ่มบิลหรือรัน Scenario/Solar แล้วกดบันทึกเป็นรายงาน
             </p>
           </div>
@@ -48,8 +51,8 @@ export default function AnalysisReportsPage() {
                 ))}
               </div>
               <p className="text-sm leading-6 text-muted-foreground">
-                รายงานต้องมี {defaultReportManifest.requiredSections.length} ส่วนหลัก เช่น input, tariff source,
-                assumptions, results, recommendations และ disclaimer
+                รายงานต้องมี {defaultReportManifest.requiredSections.length} ส่วนหลัก เช่น input, tariff snapshot,
+                assumptions, data quality, calculation trace, limitations, recommendations และ disclaimer
               </p>
             </CardContent>
           </Card>

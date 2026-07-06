@@ -217,7 +217,7 @@ export function runSolarAnalyzeApiCalculation(request: SolarAnalyzeApiRequest): 
       uploadedSolarIntervalCount: request.solarProfile?.length ?? 0,
       tariffVersionIds: analysis.billComparison.calculationTrace.tariffVersionIds
     },
-    warnings: request.loadIntervals ? [] : ["No uploaded load intervals were provided; the API used a generated screening profile."]
+    warnings: request.loadIntervals ? [] : ["No uploaded load intervals were provided; the API used a sample screening profile."]
   };
 }
 

@@ -100,7 +100,7 @@ export function LocalSolarStart() {
               ตั้งค่า Solar จากบิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนใน browser นี้ เป็น screening estimate ก่อนตรวจหน้างานและใบเสนอราคาจริง
+              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนในเซสชันนี้ เป็นข้อมูลประกอบการตัดสินใจเบื้องต้นก่อนตรวจหน้างานและใบเสนอราคาจริง
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

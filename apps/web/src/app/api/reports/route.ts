@@ -1,78 +1,153 @@
 import { NextResponse } from "next/server";
 import type { Prisma } from "@prisma/client";
+import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
 
-type LocalReportPayload = {
-  id?: string;
-  title?: string;
-  module?: string;
-  moduleLabel?: string;
-  summary?: string;
-  sourceBill?: unknown;
-  resultRows?: unknown;
-  recommendations?: unknown;
-};
+type JsonValue =
+  string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
-export async function GET() {
+const jsonValueSchema: z.ZodType<JsonValue> = z.lazy(() =>
+  z.union([
+    z.string(),
+    z.number(),
+    z.boolean(),
+    z.null(),
+    z.array(jsonValueSchema),
+    z.record(jsonValueSchema),
+  ]),
+) as z.ZodType<JsonValue>;
+
+const localReportIdSchema = z
+  .string()
+  .trim()
+  .regex(/^[a-z0-9_-]{1,160}$/i);
+
+const localReportPayloadSchema = z
+  .object({
+    createdAt: z.string().datetime().optional(),
+    disclaimer: z.string().trim().max(5_000).optional(),
+    id: localReportIdSchema.optional(),
+    title: z.string().trim().min(1).max(240),
+    reportTitle: z.string().trim().min(1).max(240).optional(),
+    module: z.enum(["scenario", "solar", "battery", "ev"]),
+    moduleLabel: z.string().trim().min(1).max(80).optional(),
+    printedAtLabel: z.string().trim().max(120).optional(),
+    summary: z.string().trim().max(5_000).optional(),
+    sourceBillReportId: z.string().trim().max(160).optional(),
+    sourcePath: z.string().trim().max(300).optional(),
+    sourceBill: jsonValueSchema.optional(),
+    resultRows: z.array(z.record(jsonValueSchema)).max(500).optional(),
+    recommendations: z.array(jsonValueSchema).max(100).optional(),
+    metrics: z.array(jsonValueSchema).max(100).optional(),
+    assumptions: z.array(jsonValueSchema).max(150).optional(),
+    sections: z.array(jsonValueSchema).max(50).optional(),
+    limitations: z.array(jsonValueSchema).max(50).optional(),
+    references: z.array(jsonValueSchema).max(50).optional(),
+  })
+  .strict();
+
+type LocalReportPayload = z.infer<typeof localReportPayloadSchema>;
+
+export async function GET(request: Request) {
+  if (!isTrustedOrigin(request)) {
+    return NextResponse.json(
+      { ok: false, error: "Untrusted request origin." },
+      { status: 403 },
+    );
+  }
+
   try {
     const reports = await prisma.generatedReport.findMany({
       orderBy: { generatedAt: "desc" },
       take: 50,
-      include: {
+      select: {
+        id: true,
+        format: true,
+        fileName: true,
+        storageUrl: true,
+        generatedAt: true,
+        metadata: true,
         analysisRun: {
           select: {
             id: true,
             name: true,
             createdAt: true,
-            assumptions: true
-          }
-        }
-      }
+          },
+        },
+      },
     });
 
     return NextResponse.json({ ok: true, reports });
   } catch {
-    return NextResponse.json({ ok: false, error: "Database is not available." }, { status: 503 });
+    return NextResponse.json(
+      { ok: false, error: "Database is not available." },
+      { status: 503 },
+    );
   }
 }
 
 export async function POST(request: Request) {
-  let payload: LocalReportPayload;
+  if (!isTrustedOrigin(request)) {
+    return NextResponse.json(
+      { ok: false, error: "Untrusted request origin." },
+      { status: 403 },
+    );
+  }
+
+  let body: unknown;
   try {
-    payload = (await request.json()) as LocalReportPayload;
+    body = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "Invalid JSON payload." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "Invalid JSON payload." },
+      { status: 400 },
+    );
   }
 
-  if (!payload.title || !payload.module) {
-    return NextResponse.json({ ok: false, error: "Report title and module are required." }, { status: 400 });
+  const parsed = localReportPayloadSchema.safeParse(body);
+  if (!parsed.success) {
+    return NextResponse.json(
+      {
+        ok: false,
+        error: "Invalid report payload.",
+        issues: parsed.error.issues.map((issue) => ({
+          path: issue.path.join("."),
+          message: issue.message,
+        })),
+      },
+      { status: 400 },
+    );
   }
+
+  const payload: LocalReportPayload = parsed.data;
 
   try {
-    const jsonPayload = JSON.parse(JSON.stringify(payload)) as Prisma.InputJsonValue;
+    const jsonPayload = JSON.parse(
+      JSON.stringify(payload),
+    ) as Prisma.InputJsonObject;
     const analysisRun = await prisma.analysisRun.create({
       data: {
         name: payload.title,
         engineVersion: "0.1.0",
         tariffSnapshot: {
           status: "local-draft",
-          source: "browser saved bill workflow"
+          source: "browser saved bill workflow",
         },
         inputSnapshot: {
           localReportId: payload.id,
-          sourceBill: payload.sourceBill ?? null
+          sourceBill: payload.sourceBill ?? null,
         },
-        assumptions: jsonPayload
-      }
+        assumptions: jsonPayload,
+      },
     });
     const report = await prisma.generatedReport.create({
       data: {
         analysisRunId: analysisRun.id,
         format: "JSON",
         fileName: `${payload.id ?? "local-analysis-report"}.json`,
-        metadata: jsonPayload
-      }
+        metadata: jsonPayload,
+      },
     });
 
     await logAudit(prisma, {
@@ -82,16 +157,25 @@ export async function POST(request: Request) {
       after: {
         analysisRunId: analysisRun.id,
         module: payload.module,
-        title: payload.title
-      }
+        title: payload.title,
+      },
     });
 
     return NextResponse.json({
       ok: true,
       analysisRunId: analysisRun.id,
-      generatedReportId: report?.id ?? null
+      generatedReportId: report?.id ?? null,
     });
   } catch {
-    return NextResponse.json({ ok: false, error: "Database is not available." }, { status: 503 });
+    return NextResponse.json(
+      { ok: false, error: "Database is not available." },
+      { status: 503 },
+    );
   }
+}
+
+function isTrustedOrigin(request: Request) {
+  const origin = request.headers.get("origin");
+  if (!origin) return true;
+  return origin === new URL(request.url).origin;
 }

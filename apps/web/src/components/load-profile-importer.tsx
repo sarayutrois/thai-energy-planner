@@ -1,14 +1,19 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import {
-  defaultColumnMapping,
-  parseCsvLoadProfile,
-  parseXlsxLoadProfile,
-  type LoadProfilePreview
-} from "@thai-energy-planner/calculation-engine/load-data";
+import { useState } from "react";
+import type { LoadProfilePreview } from "@thai-energy-planner/calculation-engine/load-data";
 import { Button } from "@/components/ui/button";
 import { saveLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+
+type LoadProfilePreviewResponse =
+  | {
+      ok: true;
+      preview: LoadProfilePreview;
+    }
+  | {
+      ok: false;
+      error: string;
+    };
 
 export function LoadProfileImporter() {
   const [preview, setPreview] = useState<LoadProfilePreview | null>(null);
@@ -19,22 +24,8 @@ export function LoadProfileImporter() {
   const [mapping, setMapping] = useState({
     timestamp: "timestamp",
     energyKwh: "energy_kwh",
-    powerKw: "power_kw"
+    powerKw: "power_kw",
   });
-
-  const options = useMemo(
-    () => ({
-      mapping: {
-        ...defaultColumnMapping,
-        timestamp: mapping.timestamp,
-        energyKwh: mapping.energyKwh || undefined,
-        powerKw: mapping.powerKw || undefined
-      },
-      intervalMinutes,
-      timezone: "Asia/Bangkok" as const
-    }),
-    [intervalMinutes, mapping]
-  );
 
   async function handleFile(file: File | null) {
     setError(null);
@@ -42,26 +33,7 @@ export function LoadProfileImporter() {
     setSavedMessage(null);
     if (!file) return;
 
-    setIsLoading(true);
-    try {
-      const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB
-      if (file.size > MAX_FILE_SIZE) {
-        throw new Error("ขนาดไฟล์เกิน 50MB กรุณาแบ่งไฟล์หรือลดขนาดไฟล์");
-      }
-
-      const fileName = file.name.toLowerCase();
-      if (fileName.endsWith(".csv")) {
-        setPreview(parseCsvLoadProfile(await file.text(), options));
-      } else if (fileName.endsWith(".xlsx")) {
-        setPreview(parseXlsxLoadProfile(await file.arrayBuffer(), options));
-      } else {
-        setError("รองรับเฉพาะ CSV หรือ XLSX");
-      }
-    } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "อ่านไฟล์ไม่สำเร็จ");
-    } finally {
-      setIsLoading(false);
-    }
+    await requestPreview(file);
   }
 
   async function loadTestCsv() {
@@ -72,34 +44,74 @@ export function LoadProfileImporter() {
     try {
       const response = await fetch("/test-upload-15min.csv");
       if (!response.ok) throw new Error("ไม่สามารถโหลดไฟล์ CSV ทดสอบได้");
-      setPreview(parseCsvLoadProfile(await response.text(), options));
+      const file = new File([await response.blob()], "test-upload-15min.csv", {
+        type: "text/csv",
+      });
+      await requestPreview(file, 15);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "โหลดไฟล์ CSV ทดสอบไม่สำเร็จ");
-    } finally {
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "โหลดไฟล์ CSV ทดสอบไม่สำเร็จ",
+      );
       setIsLoading(false);
     }
   }
 
-  function loadInlineDemo() {
+  async function loadInlineDemo() {
     setError(null);
     setPreview(null);
     setSavedMessage(null);
 
+    const file = new File(
+      [
+        [
+          "timestamp,energy_kwh,power_kw,meter_id",
+          "2026-07-01 09:00,1.0,1.0,m1",
+          "2026-07-01 10:00,1.2,1.2,m1",
+          "2026-07-01 11:00,1.4,1.4,m1",
+          "2026-07-01 12:00,1.1,1.1,m1",
+        ].join("\n"),
+      ],
+      "inline-demo.csv",
+      { type: "text/csv" },
+    );
+    await requestPreview(file, 60);
+  }
+
+  async function requestPreview(
+    file: File,
+    overrideIntervalMinutes = intervalMinutes,
+  ) {
+    setIsLoading(true);
     try {
-      setPreview(
-        parseCsvLoadProfile(
-          [
-            "timestamp,energy_kwh,power_kw,meter_id",
-            "2026-07-01 09:00,1.0,1.0,m1",
-            "2026-07-01 10:00,1.2,1.2,m1",
-            "2026-07-01 11:00,1.4,1.4,m1",
-            "2026-07-01 12:00,1.1,1.1,m1"
-          ].join("\n"),
-          { ...options, intervalMinutes: 60 }
-        )
-      );
+      const formData = new FormData();
+      formData.set("file", file);
+      formData.set("intervalMinutes", String(overrideIntervalMinutes));
+      formData.set("timestamp", mapping.timestamp);
+      formData.set("energyKwh", mapping.energyKwh);
+      formData.set("powerKw", mapping.powerKw);
+
+      const response = await fetch("/api/load-profiles/preview", {
+        method: "POST",
+        body: formData,
+      });
+      const result = (await response.json()) as LoadProfilePreviewResponse;
+      if (!response.ok || !result.ok) {
+        throw new Error(
+          result.ok ? "Load profile preview failed." : result.error,
+        );
+      }
+
+      setPreview(result.preview);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "โหลดข้อมูลตัวอย่างไม่สำเร็จ");
+      setError(
+        caught instanceof Error
+          ? caught.message
+          : "อ่านไฟล์โหลดโปรไฟล์ไม่สำเร็จ",
+      );
+    } finally {
+      setIsLoading(false);
     }
   }
 
@@ -115,11 +127,13 @@ export function LoadProfileImporter() {
         timestamp: row.timestamp,
         energyKwh: row.energyKwh,
         ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw }),
-        ...(row.meterId === undefined ? {} : { meterId: row.meterId })
-      }))
+        ...(row.meterId === undefined ? {} : { meterId: row.meterId }),
+      })),
     });
 
-    setSavedMessage(`บันทึก ${snapshot.rowCount.toLocaleString("th-TH")} intervals แล้ว พร้อมใช้ใน Solar Analysis`);
+    setSavedMessage(
+      `บันทึก ${snapshot.rowCount.toLocaleString("th-TH")} intervals แล้ว พร้อมใช้ใน Solar Analysis`,
+    );
   }
 
   return (
@@ -130,7 +144,9 @@ export function LoadProfileImporter() {
           <input
             accept=".csv,.xlsx"
             className="rounded-md border border-input bg-white px-3 py-2 text-sm"
-            onChange={(event) => void handleFile(event.target.files?.[0] ?? null)}
+            onChange={(event) =>
+              void handleFile(event.target.files?.[0] ?? null)
+            }
             type="file"
           />
         </label>
@@ -138,7 +154,12 @@ export function LoadProfileImporter() {
           Timestamp column
           <input
             className="h-10 rounded-md border border-input px-3 text-sm"
-            onChange={(event) => setMapping((current) => ({ ...current, timestamp: event.target.value }))}
+            onChange={(event) =>
+              setMapping((current) => ({
+                ...current,
+                timestamp: event.target.value,
+              }))
+            }
             value={mapping.timestamp}
           />
         </label>
@@ -146,7 +167,12 @@ export function LoadProfileImporter() {
           energy_kwh column
           <input
             className="h-10 rounded-md border border-input px-3 text-sm"
-            onChange={(event) => setMapping((current) => ({ ...current, energyKwh: event.target.value }))}
+            onChange={(event) =>
+              setMapping((current) => ({
+                ...current,
+                energyKwh: event.target.value,
+              }))
+            }
             value={mapping.energyKwh}
           />
         </label>
@@ -154,7 +180,12 @@ export function LoadProfileImporter() {
           power_kw column
           <input
             className="h-10 rounded-md border border-input px-3 text-sm"
-            onChange={(event) => setMapping((current) => ({ ...current, powerKw: event.target.value }))}
+            onChange={(event) =>
+              setMapping((current) => ({
+                ...current,
+                powerKw: event.target.value,
+              }))
+            }
             value={mapping.powerKw}
           />
         </label>
@@ -162,7 +193,9 @@ export function LoadProfileImporter() {
           Interval
           <select
             className="h-10 rounded-md border border-input px-3 text-sm"
-            onChange={(event) => setIntervalMinutes(Number(event.target.value) as 15 | 30 | 60)}
+            onChange={(event) =>
+              setIntervalMinutes(Number(event.target.value) as 15 | 30 | 60)
+            }
             value={intervalMinutes}
           >
             <option value={15}>15 นาที</option>
@@ -177,9 +210,7 @@ export function LoadProfileImporter() {
           >
             ดาวน์โหลด CSV ตัวอย่าง
           </a>
-          <Button
-            onClick={() => loadInlineDemo()}
-          >
+          <Button onClick={() => void loadInlineDemo()}>
             ใช้ข้อมูลตัวอย่าง
           </Button>
           <Button onClick={() => void loadTestCsv()} variant="outline">
@@ -190,16 +221,28 @@ export function LoadProfileImporter() {
 
       {isLoading ? <StateBox text="กำลังอ่านไฟล์..." /> : null}
       {error ? <StateBox tone="error" text={error} /> : null}
-      {!preview && !isLoading && !error ? <StateBox text="เลือกไฟล์ CSV/XLSX เพื่อดู Data Preview ก่อน import จริง" /> : null}
+      {!preview && !isLoading && !error ? (
+        <StateBox text="เลือกไฟล์ CSV/XLSX เพื่อดู Data Preview ก่อน import จริง" />
+      ) : null}
 
       {preview ? (
         <div className="grid gap-5">
           <div className="grid gap-3 md:grid-cols-5">
             <Metric label="Rows" value={preview.rowCount.toString()} />
-            <Metric label="Interval" value={preview.detectedIntervalMinutes ? `${preview.detectedIntervalMinutes} นาที` : "-"} />
+            <Metric
+              label="Interval"
+              value={
+                preview.detectedIntervalMinutes
+                  ? `${preview.detectedIntervalMinutes} นาที`
+                  : "-"
+              }
+            />
             <Metric label="Total kWh" value={formatNumber(preview.totalKwh)} />
             <Metric label="Peak kW" value={formatNumber(preview.peakKw)} />
-            <Metric label="Warnings/Errors" value={`${preview.warningCount}/${preview.errorCount}`} />
+            <Metric
+              label="Warnings/Errors"
+              value={`${preview.warningCount}/${preview.errorCount}`}
+            />
           </div>
 
           {preview.canImport && preview.rowCount > 0 ? (
@@ -214,7 +257,8 @@ export function LoadProfileImporter() {
                 ไปหน้า Solar Analysis
               </a>
               <span className="text-muted-foreground">
-                {savedMessage ?? "ข้อมูลจะถูกเก็บใน browser นี้และส่งเข้า /api/solar/analyze"}
+                {savedMessage ??
+                  "ข้อมูลจะถูกเก็บใน browser นี้และส่งเข้า /api/solar/analyze"}
               </span>
             </div>
           ) : null}
@@ -224,8 +268,16 @@ export function LoadProfileImporter() {
               <h3 className="font-semibold">Validation issues</h3>
               <ul className="mt-3 grid gap-2 text-sm">
                 {preview.issues.map((issue, index) => (
-                  <li key={`${issue.code}-${index}`} className={issue.severity === "error" ? "text-destructive" : "text-warning-foreground"}>
-                    {issue.severity.toUpperCase()} {issue.code}: {issue.messageTh}
+                  <li
+                    key={`${issue.code}-${index}`}
+                    className={
+                      issue.severity === "error"
+                        ? "text-destructive"
+                        : "text-warning-foreground"
+                    }
+                  >
+                    {issue.severity.toUpperCase()} {issue.code}:{" "}
+                    {issue.messageTh}
                   </li>
                 ))}
               </ul>
@@ -269,14 +321,24 @@ function Metric({ label, value }: { label: string; value: string }) {
   );
 }
 
-function StateBox({ text, tone = "empty" }: { text: string; tone?: "empty" | "error" }) {
+function StateBox({
+  text,
+  tone = "empty",
+}: {
+  text: string;
+  tone?: "empty" | "error";
+}) {
   return (
-    <div className={`rounded-md border p-4 text-sm ${tone === "error" ? "border-destructive text-destructive" : "border-border bg-muted/40 text-muted-foreground"}`}>
+    <div
+      className={`rounded-md border p-4 text-sm ${tone === "error" ? "border-destructive text-destructive" : "border-border bg-muted/40 text-muted-foreground"}`}
+    >
       {text}
     </div>
   );
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }

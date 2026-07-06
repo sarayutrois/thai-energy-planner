@@ -45,6 +45,13 @@ Comprehensive documentation is available in the `docs/` directory:
 - [Deployment Guide](docs/deployment.md)
 - [Production Checklist](docs/production-checklist.md)
 
+## Deployment Smoke Routes
+After deploying (e.g., to Vercel), check the following routes to ensure the app is running correctly:
+- `/` - Landing page (should load without DB)
+- `/analysis/solar` - Main screening page (should load without DB, uses local state)
+- `/api/solar/analyze` - Engine API (can be tested via UI)
+- `/admin` - Requires `ADMIN_ACCESS_TOKEN` and `DATABASE_URL` to be properly set in the environment.
+
 ## เริ่มใช้งานในเครื่อง
 
 1. ติดตั้ง dependencies

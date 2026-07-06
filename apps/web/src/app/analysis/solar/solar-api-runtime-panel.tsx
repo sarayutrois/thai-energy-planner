@@ -109,7 +109,7 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>ยังไม่มี load profile ที่บันทึกไว้ใน browser นี้ ระบบจึงใช้ generated screening profile ก่อน</p>
+          <p>ยังไม่มี load profile ที่บันทึกไว้ในเซสชันนี้ ระบบจึงใช้ข้อมูลสำหรับประเมินเบื้องต้นก่อน</p>
           <a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium text-foreground hover:bg-muted" href="/analysis/load-data/import">
             Upload load profile
           </a>
@@ -139,6 +139,9 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
+        <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
+          ผลลัพธ์นี้เป็นการประเมินเบื้องต้นจากข้อมูลและสมมติฐานที่ผู้ใช้ระบุ ใช้เพื่อประกอบการตัดสินใจเท่านั้น ไม่ใช่ใบเสนอราคา และผลลัพธ์จริงอาจเปลี่ยนแปลงตามหน้างาน
+        </div>
         {isLoading ? (
           <div className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-6 text-muted-foreground">
             กำลังรัน Solar API จาก load profile ที่อัปโหลดไว้ ถ้าใช้เวลานานเกินไป ระบบจะหยุดและแสดง fallback แทน
@@ -169,7 +172,7 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
 
 function getRuntimeErrorMessage(caught: unknown) {
   if (caught instanceof DOMException && caught.name === "AbortError") {
-    return "Solar API ใช้เวลานานเกินไป ระบบหยุดการคำนวณรอบนี้แล้ว และยังคงแสดงผล screening profile ด้านล่างให้ใช้งานต่อได้";
+    return "Solar API ใช้เวลานานเกินไป ระบบหยุดการคำนวณรอบนี้แล้ว และยังคงแสดงผลข้อมูลสำหรับประเมินเบื้องต้นด้านล่างให้ใช้งานต่อได้";
   }
   return caught instanceof Error ? caught.message : "Solar analysis failed.";
 }
@@ -182,10 +185,16 @@ function RuntimeMetrics({
   trace: Extract<SolarAnalyzeResponse, { ok: true }>["trace"];
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
+      <Metric label="System size" value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`} />
+      <Metric label="Annual gen." value={`${formatNumber(analysis.solarProfile.annualGenerationKwh)} kWh`} />
       <Metric label="Best after solar" value={analysis.billComparison.bestWithSolar.label} />
-      <Metric label="Annual benefit" value={`${formatNumber(analysis.billComparison.netAnnualBenefit)} baht`} />
-      <Metric label="Payback" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} years` : "-"} />
+      <Metric label="Annual benefit" value={`${formatNumber(analysis.billComparison.netAnnualBenefit)} ฿`} />
+      <Metric label="CAPEX" value={`${formatNumber(analysis.financial.initialInvestmentThb)} ฿`} />
+      <Metric label="Annual O&M" value={`${formatNumber(analysis.financial.assumptionsSnapshot.oAndMCostPerYear)} ฿`} />
+      <Metric label="Payback" value={analysis.financial.simplePaybackYears ? `${formatNumber(analysis.financial.simplePaybackYears)} yrs` : "-"} />
+      <Metric label="NPV" value={`${formatNumber(analysis.financial.npvThb)} ฿`} />
+      <Metric label="IRR" value={analysis.financial.irrPercent !== null ? `${formatNumber(analysis.financial.irrPercent)}%` : "N/A"} />
       <Metric label="Self-use" value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`} />
       <Metric label="API intervals" value={trace.inputIntervalCount.toLocaleString("th-TH")} />
     </div>

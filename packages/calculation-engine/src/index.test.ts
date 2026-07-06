@@ -5,7 +5,7 @@ import {
   estimateDataQuality,
   estimateMonthlyKwhFromBill,
   simulateIntervalSavings,
-  summarizeMonthlyBills
+  summarizeMonthlyBills,
 } from "./index";
 import * as XLSX from "xlsx";
 import {
@@ -16,7 +16,7 @@ import {
   simulateApplianceLoadProfile,
   summarizeBills,
   summarizeLoadProfile,
-  validateMonthlyBills
+  validateMonthlyBills,
 } from "./load-data";
 import { demoTouTariff } from "@thai-energy-planner/tariff-engine";
 
@@ -25,7 +25,7 @@ const qaManualBills = [
   { month: "2026-02", energyKwh: 460, totalCostThb: 2100 },
   { month: "2026-03", energyKwh: 520, totalCostThb: 2450 },
   { month: "2026-04", energyKwh: 610, totalCostThb: 2950 },
-  { month: "2026-05", energyKwh: 580, totalCostThb: 2750 }
+  { month: "2026-05", energyKwh: 580, totalCostThb: 2750 },
 ];
 
 const sampleLoadProfileCsv = [
@@ -39,7 +39,7 @@ const sampleLoadProfileCsv = [
   "2026-07-01 01:30,0.18",
   "2026-07-01 01:45,0.19",
   "2026-07-01 02:00,0.20",
-  "2026-07-01 02:15,0.21"
+  "2026-07-01 02:15,0.21",
 ].join("\n");
 
 const badLoadProfileCsv = [
@@ -48,14 +48,14 @@ const badLoadProfileCsv = [
   "2026-07-01 00:15,0.18",
   "2026-07-01 00:15,0.19",
   "2026-07-01 01:00,-0.21",
-  "2026-07-01 01:30,0.22"
+  "2026-07-01 01:30,0.22",
 ].join("\n");
 
 describe("calculation foundation", () => {
   it("summarizes monthly bills with decimal arithmetic", () => {
     const summary = summarizeMonthlyBills([
       { month: "2026-01", energyKwh: 100.1, totalCostThb: 401.25 },
-      { month: "2026-02", energyKwh: 200.2, totalCostThb: 802.5 }
+      { month: "2026-02", energyKwh: 200.2, totalCostThb: 802.5 },
     ]);
 
     expect(summary.totalKwh).toBe(300.3);
@@ -68,8 +68,8 @@ describe("calculation foundation", () => {
       estimateDataQuality({
         source: "interval",
         intervalMonths: 12,
-        hasTwelveMonthBills: true
-      }).level
+        hasTwelveMonthBills: true,
+      }).level,
     ).toBe("high");
   });
 
@@ -80,7 +80,7 @@ describe("calculation foundation", () => {
       billDate: "2026-07-01",
       energyKwh: 250,
       peakKwh: 140,
-      offPeakKwh: 110
+      offPeakKwh: 110,
     });
 
     expect(comparison.normalBill.grandTotal).toBe("1042.86");
@@ -94,7 +94,7 @@ describe("calculation foundation", () => {
       customerSegment: "residential",
       billDate: "2026-07-01",
       energyKwh: 0,
-      monthlyBillThb: 1042.86
+      monthlyBillThb: 1042.86,
     });
 
     expect(estimatedKwh).toBeCloseTo(250, 1);
@@ -104,18 +104,21 @@ describe("calculation foundation", () => {
     const intervals = [
       { timestamp: "2026-07-01T10:00:00+07:00", energyKwh: 10, powerKw: 20 },
       { timestamp: "2026-07-01T10:30:00+07:00", energyKwh: 8, powerKw: 16 },
-      { timestamp: "2026-07-01T23:00:00+07:00", energyKwh: 6, powerKw: 12 }
+      { timestamp: "2026-07-01T23:00:00+07:00", energyKwh: 6, powerKw: 12 },
     ];
     const result = simulateIntervalSavings({
       authority: "PEA",
       customerSegment: "small_business",
       billDate: "2026-07-01",
       intervals,
-      offsetIntervals: [{ timestamp: "2026-07-01T10:00:00+07:00", energyKwh: 3 }]
+      offsetIntervals: [
+        { timestamp: "2026-07-01T10:00:00+07:00", energyKwh: 3 },
+      ],
     });
 
     expect(result.totalOffsetKwh).toBe(3);
     expect(result.reducedIntervals[0]?.energyKwh).toBe(7);
+    expect(result.reducedIntervals[0]?.powerKw).toBe(14);
     expect(result.bestSavingsThb).toBeGreaterThan(0);
   });
 
@@ -124,7 +127,7 @@ describe("calculation foundation", () => {
       systemCostThb: 210000,
       annualSavingsThb: 30000,
       annualExportRevenueThb: 2000,
-      annualOperatingCostThb: 1500
+      annualOperatingCostThb: 1500,
     });
 
     expect(roi.annualNetBenefitThb).toBe(30500);
@@ -150,40 +153,65 @@ describe("phase 3 manual bill validation", () => {
       "2026-02",
       "2026-03",
       "2026-04",
-      "2026-05"
+      "2026-05",
     ]);
   });
 
   it("rejects duplicate months and warns for unusually low total cost", () => {
     const result = validateMonthlyBills([
-      { month: "2026-01", energyKwh: 100, totalCostThb: 20, authority: "PEA", meterMode: "normal" },
-      { month: "2026-01", energyKwh: 120, totalCostThb: 500, authority: "PEA", meterMode: "normal" }
+      {
+        month: "2026-01",
+        energyKwh: 100,
+        totalCostThb: 20,
+        authority: "PEA",
+        meterMode: "normal",
+      },
+      {
+        month: "2026-01",
+        energyKwh: 120,
+        totalCostThb: 500,
+        authority: "PEA",
+        meterMode: "normal",
+      },
     ]);
 
     expect(result.canSave).toBe(false);
-    expect(result.issues.some((issue) => issue.code === "duplicate_month")).toBe(true);
-    expect(result.issues.some((issue) => issue.code === "unusually_low_total_cost")).toBe(true);
+    expect(
+      result.issues.some((issue) => issue.code === "duplicate_month"),
+    ).toBe(true);
+    expect(
+      result.issues.some((issue) => issue.code === "unusually_low_total_cost"),
+    ).toBe(true);
   });
 
   it("rejects negative kWh and negative total cost while low-cost warnings do not block saving", () => {
     const negative = validateMonthlyBills([
       { month: "2026-01", energyKwh: -1, totalCostThb: 100 },
-      { month: "2026-02", energyKwh: 100, totalCostThb: -1 }
+      { month: "2026-02", energyKwh: 100, totalCostThb: -1 },
     ]);
-    const lowCost = validateMonthlyBills([{ month: "2026-03", energyKwh: 100, totalCostThb: 20 }]);
+    const lowCost = validateMonthlyBills([
+      { month: "2026-03", energyKwh: 100, totalCostThb: 20 },
+    ]);
 
     expect(negative.canSave).toBe(false);
-    expect(negative.issues.filter((issue) => issue.severity === "error")).toHaveLength(2);
+    expect(
+      negative.issues.filter((issue) => issue.severity === "error"),
+    ).toHaveLength(2);
     expect(lowCost.canSave).toBe(true);
     expect(lowCost.issues).toEqual(
-      expect.arrayContaining([expect.objectContaining({ severity: "warning", code: "unusually_low_total_cost" })])
+      expect.arrayContaining([
+        expect.objectContaining({
+          severity: "warning",
+          code: "unusually_low_total_cost",
+        }),
+      ]),
     );
   });
 
   it("summarizes bill trends and highest/lowest month", () => {
     const summary = summarizeBills([
       { month: "2026-01", energyKwh: 100, totalCostThb: 400 },
-      { month: "2026-02", energyKwh: 250, totalCostThb: 1000 }
+      { month: "2026-02", energyKwh: 250, totalCostThb: 1000 },
     ]);
 
     expect(summary.totalKwh).toBe(350);
@@ -194,7 +222,9 @@ describe("phase 3 manual bill validation", () => {
 
 describe("phase 3 load profile import", () => {
   it("parses the QA sample CSV with expected interval, totals, and preview", () => {
-    const preview = parseCsvLoadProfile(sampleLoadProfileCsv, { mapping: defaultColumnMapping });
+    const preview = parseCsvLoadProfile(sampleLoadProfileCsv, {
+      mapping: defaultColumnMapping,
+    });
 
     expect(preview.canImport).toBe(true);
     expect(preview.issues).toEqual([]);
@@ -213,9 +243,9 @@ describe("phase 3 load profile import", () => {
         "timestamp,energy_kwh,power_kw,meter_id",
         "2026-01-05 00:00,1,1,m1",
         "2026-01-05 01:00,2,2,m1",
-        "2026-01-05 02:00,3,3,m1"
+        "2026-01-05 02:00,3,3,m1",
       ].join("\n"),
-      { mapping: defaultColumnMapping, intervalMinutes: 60 }
+      { mapping: defaultColumnMapping, intervalMinutes: 60 },
     );
 
     expect(preview.canImport).toBe(true);
@@ -235,12 +265,17 @@ describe("phase 3 load profile import", () => {
       { timestamp: "2026-07-01 01:30", energy_kwh: 0.18 },
       { timestamp: "2026-07-01 01:45", energy_kwh: 0.19 },
       { timestamp: "2026-07-01 02:00", energy_kwh: 0.2 },
-      { timestamp: "2026-07-01 02:15", energy_kwh: 0.21 }
+      { timestamp: "2026-07-01 02:15", energy_kwh: 0.21 },
     ]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "load");
-    const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-    const preview = parseXlsxLoadProfile(buffer, { mapping: defaultColumnMapping });
+    const buffer = XLSX.write(workbook, {
+      type: "array",
+      bookType: "xlsx",
+    }) as ArrayBuffer;
+    const preview = parseXlsxLoadProfile(buffer, {
+      mapping: defaultColumnMapping,
+    });
 
     expect(preview.canImport).toBe(true);
     expect(preview.issues).toEqual([]);
@@ -253,12 +288,18 @@ describe("phase 3 load profile import", () => {
   it("parses XLSX files with the same mapping contract", () => {
     const worksheet = XLSX.utils.json_to_sheet([
       { timestamp: "2026-01-05 00:00", energy_kwh: 1 },
-      { timestamp: "2026-01-05 01:00", energy_kwh: 1.5 }
+      { timestamp: "2026-01-05 01:00", energy_kwh: 1.5 },
     ]);
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, "load");
-    const buffer = XLSX.write(workbook, { type: "array", bookType: "xlsx" }) as ArrayBuffer;
-    const preview = parseXlsxLoadProfile(buffer, { mapping: defaultColumnMapping, intervalMinutes: 60 });
+    const buffer = XLSX.write(workbook, {
+      type: "array",
+      bookType: "xlsx",
+    }) as ArrayBuffer;
+    const preview = parseXlsxLoadProfile(buffer, {
+      mapping: defaultColumnMapping,
+      intervalMinutes: 60,
+    });
 
     expect(preview.canImport).toBe(true);
     expect(preview.rowCount).toBe(2);
@@ -271,9 +312,12 @@ describe("phase 3 load profile import", () => {
         "timestamp,power_kw",
         "2026-07-01 00:00,1.0",
         "2026-07-01 00:15,0.8",
-        "2026-07-01 00:30,1.2"
+        "2026-07-01 00:30,1.2",
       ].join("\n"),
-      { mapping: { timestamp: "timestamp", powerKw: "power_kw" }, intervalMinutes: 15 }
+      {
+        mapping: { timestamp: "timestamp", powerKw: "power_kw" },
+        intervalMinutes: 15,
+      },
     );
 
     expect(preview.detectedIntervalMinutes).toBe(15);
@@ -282,8 +326,13 @@ describe("phase 3 load profile import", () => {
 
   it("converts power_kw to energy_kwh when energy is missing", () => {
     const preview = parseCsvLoadProfile(
-      ["timestamp,power_kw", "2026-01-05 00:00,4", "2026-01-05 00:30,2"].join("\n"),
-      { mapping: { timestamp: "timestamp", powerKw: "power_kw" }, intervalMinutes: 30 }
+      ["timestamp,power_kw", "2026-01-05 00:00,4", "2026-01-05 00:30,2"].join(
+        "\n",
+      ),
+      {
+        mapping: { timestamp: "timestamp", powerKw: "power_kw" },
+        intervalMinutes: 30,
+      },
     );
 
     expect(preview.rows[0]?.energyKwh).toBe(2);
@@ -296,9 +345,12 @@ describe("phase 3 load profile import", () => {
         "timestamp,energy_kwh",
         "2026-07-01 00:00,0.25",
         "2026-07-01 00:15,0.20",
-        "2026-07-01 00:30,0.30"
+        "2026-07-01 00:30,0.30",
       ].join("\n"),
-      { mapping: { timestamp: "timestamp", energyKwh: "energy_kwh" }, intervalMinutes: 15 }
+      {
+        mapping: { timestamp: "timestamp", energyKwh: "energy_kwh" },
+        intervalMinutes: 15,
+      },
     );
 
     expect(preview.detectedIntervalMinutes).toBe(15);
@@ -307,8 +359,13 @@ describe("phase 3 load profile import", () => {
 
   it("converts energy_kwh to power_kw when power is missing", () => {
     const preview = parseCsvLoadProfile(
-      ["timestamp,energy_kwh", "2026-01-05 00:00,2", "2026-01-05 00:30,1"].join("\n"),
-      { mapping: { timestamp: "timestamp", energyKwh: "energy_kwh" }, intervalMinutes: 30 }
+      ["timestamp,energy_kwh", "2026-01-05 00:00,2", "2026-01-05 00:30,1"].join(
+        "\n",
+      ),
+      {
+        mapping: { timestamp: "timestamp", energyKwh: "energy_kwh" },
+        intervalMinutes: 30,
+      },
     );
 
     expect(preview.rows[0]?.powerKw).toBe(4);
@@ -316,7 +373,9 @@ describe("phase 3 load profile import", () => {
   });
 
   it("reports the QA bad CSV duplicate, negative, missing timestamps, and blocking errors", () => {
-    const preview = parseCsvLoadProfile(badLoadProfileCsv, { mapping: defaultColumnMapping });
+    const preview = parseCsvLoadProfile(badLoadProfileCsv, {
+      mapping: defaultColumnMapping,
+    });
     const issueValues = preview.issues.map((issue) => issue.value);
 
     expect(preview.canImport).toBe(false);
@@ -325,10 +384,21 @@ describe("phase 3 load profile import", () => {
     expect(preview.detectedIntervalMinutes).toBe(15);
     expect(preview.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ severity: "error", code: "duplicate_timestamp", value: "2026-07-01 00:15" }),
-        expect.objectContaining({ severity: "error", code: "negative_energy_kwh", value: "-0.21" }),
-        expect.objectContaining({ severity: "warning", code: "irregular_interval" })
-      ])
+        expect.objectContaining({
+          severity: "error",
+          code: "duplicate_timestamp",
+          value: "2026-07-01 00:15",
+        }),
+        expect.objectContaining({
+          severity: "error",
+          code: "negative_energy_kwh",
+          value: "-0.21",
+        }),
+        expect.objectContaining({
+          severity: "warning",
+          code: "irregular_interval",
+        }),
+      ]),
     );
     expect(issueValues).toContain("2026-07-01 00:30");
     expect(issueValues).toContain("2026-07-01 00:45");
@@ -341,15 +411,21 @@ describe("phase 3 load profile import", () => {
         "2026-01-05 00:00,1,1",
         "2026-01-05 00:00,1,1",
         "2026-01-05 01:00,1,1",
-        "2026-01-05 03:00,-1,-2"
+        "2026-01-05 03:00,-1,-2",
       ].join("\n"),
-      { mapping: defaultColumnMapping, intervalMinutes: 60 }
+      { mapping: defaultColumnMapping, intervalMinutes: 60 },
     );
 
     expect(preview.canImport).toBe(false);
-    expect(preview.issues.some((issue) => issue.code === "duplicate_timestamp")).toBe(true);
-    expect(preview.issues.some((issue) => issue.code === "negative_energy_kwh")).toBe(true);
-    expect(preview.issues.some((issue) => issue.code === "missing_timestamp")).toBe(true);
+    expect(
+      preview.issues.some((issue) => issue.code === "duplicate_timestamp"),
+    ).toBe(true);
+    expect(
+      preview.issues.some((issue) => issue.code === "negative_energy_kwh"),
+    ).toBe(true);
+    expect(
+      preview.issues.some((issue) => issue.code === "missing_timestamp"),
+    ).toBe(true);
   });
 });
 
@@ -371,8 +447,8 @@ describe("phase 3 appliance builder and load dashboard", () => {
             daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
             workingDayOnly: false,
             holidayOnly: false,
-            seasonalMonths: []
-          }
+            seasonalMonths: [],
+          },
         },
         {
           name: "Fridge",
@@ -387,27 +463,30 @@ describe("phase 3 appliance builder and load dashboard", () => {
             daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
             workingDayOnly: false,
             holidayOnly: false,
-            seasonalMonths: []
-          }
-        }
-      ]
+            seasonalMonths: [],
+          },
+        },
+      ],
     });
 
     expect(result.kwhPerDay).toBeCloseTo(8.16, 9);
     expect(result.peakKw).toBeCloseTo(0.9, 9);
-    expect(result.topAppliance).toEqual({ name: "Bedroom AC", energyKwh: 6.72 });
+    expect(result.topAppliance).toEqual({
+      name: "Bedroom AC",
+      energyKwh: 6.72,
+    });
     expect(result.applianceShares).toEqual(
       expect.arrayContaining([
         expect.objectContaining({ name: "Bedroom AC", energyKwh: 6.72 }),
-        expect.objectContaining({ name: "Fridge", energyKwh: 1.44 })
-      ])
+        expect.objectContaining({ name: "Fridge", energyKwh: 1.44 }),
+      ]),
     );
   });
 
   it("simulates a normal appliance schedule", () => {
     const result = simulateApplianceLoadProfile({
       appliances: [demoAppliances[1]!],
-      date: "2026-01-05"
+      date: "2026-01-05",
     });
 
     expect(result.kwhPerDay).toBe(1.5);
@@ -417,7 +496,7 @@ describe("phase 3 appliance builder and load dashboard", () => {
   it("simulates an appliance schedule that crosses midnight", () => {
     const result = simulateApplianceLoadProfile({
       appliances: [demoAppliances[0]!],
-      date: "2026-01-05"
+      date: "2026-01-05",
     });
 
     expect(result.kwhPerDay).toBe(6.24);
@@ -425,8 +504,12 @@ describe("phase 3 appliance builder and load dashboard", () => {
   });
 
   it("summarizes the QA sample dashboard metrics and TOU split via tariff engine periods", () => {
-    const preview = parseCsvLoadProfile(sampleLoadProfileCsv, { mapping: defaultColumnMapping });
-    const summary = summarizeLoadProfile(preview.rows, { tariffVersion: demoTouTariff });
+    const preview = parseCsvLoadProfile(sampleLoadProfileCsv, {
+      mapping: defaultColumnMapping,
+    });
+    const summary = summarizeLoadProfile(preview.rows, {
+      tariffVersion: demoTouTariff,
+    });
 
     expect(summary.totalKwh).toBeCloseTo(1.98, 9);
     expect(summary.averageLoadKw).toBeCloseTo(0.792, 9);
@@ -444,9 +527,11 @@ describe("phase 3 appliance builder and load dashboard", () => {
     const intervals = [
       { timestamp: "2026-01-05T10:00:00+07:00", energyKwh: 10, powerKw: 10 },
       { timestamp: "2026-01-05T23:00:00+07:00", energyKwh: 5, powerKw: 5 },
-      { timestamp: "2026-01-03T10:00:00+07:00", energyKwh: 3, powerKw: 3 }
+      { timestamp: "2026-01-03T10:00:00+07:00", energyKwh: 3, powerKw: 3 },
     ];
-    const summary = summarizeLoadProfile(intervals, { tariffVersion: demoTouTariff });
+    const summary = summarizeLoadProfile(intervals, {
+      tariffVersion: demoTouTariff,
+    });
 
     expect(summary.totalKwh).toBe(18);
     expect(summary.peakDemandKw).toBe(10);

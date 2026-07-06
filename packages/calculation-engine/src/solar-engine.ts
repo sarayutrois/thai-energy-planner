@@ -7,9 +7,13 @@ import {
   demoNormalTariff,
   demoTouTariff,
   type TariffCalculationResult,
-  type TariffVersionConfig
+  type TariffVersionConfig,
 } from "@thai-energy-planner/tariff-engine";
-import { detectIntervalMinutes, parseCsvLoadProfile, type LoadProfilePreview } from "./load-data.js";
+import {
+  detectIntervalMinutes,
+  parseCsvLoadProfile,
+  type LoadProfilePreview,
+} from "./load-data.js";
 import { calculateIRR } from "./financial.js";
 
 export const solarEngineVersion = "0.6.0-solar-xhigh";
@@ -127,7 +131,11 @@ export type SolarSelfConsumptionResult = {
 };
 
 export type SolarBillScenario = {
-  id: "normal_without_solar" | "tou_without_solar" | "normal_with_solar" | "tou_with_solar";
+  id:
+    | "normal_without_solar"
+    | "tou_without_solar"
+    | "normal_with_solar"
+    | "tou_with_solar";
   label: string;
   meterMode: "normal" | "tou";
   usesSolar: boolean;
@@ -239,7 +247,12 @@ export type SolarSizingOptimizationResult = {
 };
 
 export type SensitivityCaseResult = {
-  variable: "capex" | "electricity_escalation" | "solar_generation" | "self_consumption" | "discount_rate";
+  variable:
+    | "capex"
+    | "electricity_escalation"
+    | "solar_generation"
+    | "self_consumption"
+    | "discount_rate";
   label: string;
   value: number;
   npvThb: number;
@@ -346,26 +359,60 @@ export type SolarAnalysisResult = {
   recommendations: SolarRecommendation[];
 };
 
-export type DemoSolarProfileKey = "evening_home" | "daytime_home" | "daytime_shop";
+export type DemoSolarProfileKey =
+  "evening_home" | "daytime_home" | "daytime_shop";
 
 const zero = new Decimal(0);
+const bangkokFormatter = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Bangkok",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+  weekday: "short",
+});
+const dayOfWeekByName: Record<string, number> = {
+  Sun: 0,
+  Mon: 1,
+  Tue: 2,
+  Wed: 3,
+  Thu: 4,
+  Fri: 5,
+  Sat: 6,
+};
 
 export function validateSolarAssumptions(input: SolarAssumptions): string[] {
   const errors: string[] = [];
-  if (input.systemSizeKwp <= 0) errors.push("systemSizeKwp must be greater than 0");
-  if (input.roofAreaSqm !== undefined && input.roofAreaSqm < 0) errors.push("roofAreaSqm must be non-negative");
-  if (input.roofAzimuth !== undefined && (input.roofAzimuth < 0 || input.roofAzimuth > 360)) {
+  if (input.systemSizeKwp <= 0)
+    errors.push("systemSizeKwp must be greater than 0");
+  if (input.roofAreaSqm !== undefined && input.roofAreaSqm < 0)
+    errors.push("roofAreaSqm must be non-negative");
+  if (
+    input.roofAzimuth !== undefined &&
+    (input.roofAzimuth < 0 || input.roofAzimuth > 360)
+  ) {
     errors.push("roofAzimuth must be between 0 and 360");
   }
-  if (input.roofTilt !== undefined && (input.roofTilt < 0 || input.roofTilt > 60)) {
+  if (
+    input.roofTilt !== undefined &&
+    (input.roofTilt < 0 || input.roofTilt > 60)
+  ) {
     errors.push("roofTilt must be between 0 and 60");
   }
-  if (input.systemLossPercent < 0 || input.systemLossPercent > 100) errors.push("systemLossPercent must be between 0 and 100");
-  if (input.shadingLossPercent < 0 || input.shadingLossPercent > 100) errors.push("shadingLossPercent must be between 0 and 100");
-  if (input.degradationPercentPerYear < 0 || input.degradationPercentPerYear > 100) {
+  if (input.systemLossPercent < 0 || input.systemLossPercent > 100)
+    errors.push("systemLossPercent must be between 0 and 100");
+  if (input.shadingLossPercent < 0 || input.shadingLossPercent > 100)
+    errors.push("shadingLossPercent must be between 0 and 100");
+  if (
+    input.degradationPercentPerYear < 0 ||
+    input.degradationPercentPerYear > 100
+  ) {
     errors.push("degradationPercentPerYear must be between 0 and 100");
   }
-  if (![15, 30, 60].includes(input.intervalMinutes)) errors.push("intervalMinutes must be 15, 30, or 60");
+  if (![15, 30, 60].includes(input.intervalMinutes))
+    errors.push("intervalMinutes must be 15, 30, or 60");
   if (input.monthlySpecificYieldKwhPerKwp.length !== 12) {
     errors.push("monthlySpecificYieldKwhPerKwp must include 12 months");
   }
@@ -378,9 +425,12 @@ export function validateSolarAssumptions(input: SolarAssumptions): string[] {
   return errors;
 }
 
-export function validateFinancialAssumptions(input: FinancialAssumptions): string[] {
+export function validateFinancialAssumptions(
+  input: FinancialAssumptions,
+): string[] {
   const errors: string[] = [];
-  if (input.projectLifeYears <= 0) errors.push("projectLifeYears must be greater than 0");
+  if (input.projectLifeYears <= 0)
+    errors.push("projectLifeYears must be greater than 0");
   if (input.discountRatePercent < 0 || input.discountRatePercent > 30) {
     errors.push("discountRatePercent should be between 0 and 30");
   }
@@ -388,22 +438,33 @@ export function validateFinancialAssumptions(input: FinancialAssumptions): strin
     errors.push("degradationRatePercent must be between 0 and 100");
   }
   if (input.capexThb < 0) errors.push("capexThb must be non-negative");
-  if (input.oAndMCostPerYear < 0) errors.push("oAndMCostPerYear must be non-negative");
-  if (input.inverterReplacementCostThb < 0) errors.push("inverterReplacementCostThb must be non-negative");
-  if (input.subsidyAmountThb < 0) errors.push("subsidyAmountThb must be non-negative");
-  if (input.meterChangeCostThb < 0) errors.push("meterChangeCostThb must be non-negative");
-  if (input.otherInitialCostThb < 0) errors.push("otherInitialCostThb must be non-negative");
-  if (input.loanAmountThb !== undefined && input.loanAmountThb < 0) errors.push("loanAmountThb must be non-negative");
-  if (input.loanTermYears !== undefined && input.loanTermYears < 0) errors.push("loanTermYears must be non-negative");
+  if (input.oAndMCostPerYear < 0)
+    errors.push("oAndMCostPerYear must be non-negative");
+  if (input.inverterReplacementCostThb < 0)
+    errors.push("inverterReplacementCostThb must be non-negative");
+  if (input.subsidyAmountThb < 0)
+    errors.push("subsidyAmountThb must be non-negative");
+  if (input.meterChangeCostThb < 0)
+    errors.push("meterChangeCostThb must be non-negative");
+  if (input.otherInitialCostThb < 0)
+    errors.push("otherInitialCostThb must be non-negative");
+  if (input.loanAmountThb !== undefined && input.loanAmountThb < 0)
+    errors.push("loanAmountThb must be non-negative");
+  if (input.loanTermYears !== undefined && input.loanTermYears < 0)
+    errors.push("loanTermYears must be non-negative");
   return errors;
 }
 
 export function validateExportPolicy(input: ExportPolicy): string[] {
   const errors: string[] = [];
-  if (input.exportRateThbPerKwh < 0) errors.push("exportRateThbPerKwh must be non-negative");
-  if (input.exportLimitKw !== undefined && input.exportLimitKw < 0) errors.push("exportLimitKw must be non-negative");
-  if (!input.status || !input.authority) errors.push("exportPolicy must include status and authority");
-  if (!input.notes && !input.sourceUrl) errors.push("exportPolicy must include notes or sourceUrl");
+  if (input.exportRateThbPerKwh < 0)
+    errors.push("exportRateThbPerKwh must be non-negative");
+  if (input.exportLimitKw !== undefined && input.exportLimitKw < 0)
+    errors.push("exportLimitKw must be non-negative");
+  if (!input.status || !input.authority)
+    errors.push("exportPolicy must include status and authority");
+  if (!input.notes && !input.sourceUrl)
+    errors.push("exportPolicy must include notes or sourceUrl");
   return errors;
 }
 
@@ -414,7 +475,8 @@ export function generateApproxSolarProfile(input: {
   profileName?: string | undefined;
 }): SolarGenerationProfileResult {
   const errors = validateSolarAssumptions(input.assumptions);
-  if (errors.length > 0) throw new Error(`Invalid solar assumptions: ${errors.join(", ")}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid solar assumptions: ${errors.join(", ")}`);
 
   const startDate = input.startDate ?? "2026-01-05";
   const days = input.days ?? 7;
@@ -424,35 +486,45 @@ export function generateApproxSolarProfile(input: {
   for (let dayOffset = 0; dayOffset < days; dayOffset += 1) {
     const date = addLocalDays(startDate, dayOffset);
     const monthIndex = Number(date.slice(5, 7)) - 1;
-    const monthYield = input.assumptions.monthlySpecificYieldKwhPerKwp[monthIndex] ?? 0;
+    const monthYield =
+      input.assumptions.monthlySpecificYieldKwhPerKwp[monthIndex] ?? 0;
     const dailyTarget = new Decimal(monthYield)
       .mul(input.assumptions.systemSizeKwp)
       .mul(performanceFactor)
       .div(daysInMonth(date));
     const dailyShape = buildDaylightShape(input.assumptions.intervalMinutes);
-    const totalWeight = dailyShape.reduce((sum, item) => sum.plus(item.weight), zero);
+    const totalWeight = dailyShape.reduce(
+      (sum, item) => sum.plus(item.weight),
+      zero,
+    );
 
     for (const point of dailyShape) {
-      const generation = totalWeight.gt(0) ? dailyTarget.mul(point.weight).div(totalWeight) : zero;
+      const generation = totalWeight.gt(0)
+        ? dailyTarget.mul(point.weight).div(totalWeight)
+        : zero;
       const timestamp = localDateMinuteToBangkokIso(date, point.minuteOfDay);
       const powerKw = generation.div(input.assumptions.intervalMinutes / 60);
       intervals.push({
         timestamp,
         generationKwh: generation.toDecimalPlaces(6).toNumber(),
-        powerKw: powerKw.toDecimalPlaces(6).toNumber()
+        powerKw: powerKw.toDecimalPlaces(6).toNumber(),
       });
     }
   }
 
-  const monthlyGenerationKwh = input.assumptions.monthlySpecificYieldKwhPerKwp.map((yieldKwh, index) => ({
-    month: String(index + 1).padStart(2, "0"),
-    generationKwh: new Decimal(yieldKwh)
-      .mul(input.assumptions.systemSizeKwp)
-      .mul(performanceFactor)
-      .toDecimalPlaces(3)
-      .toNumber()
-  }));
-  const annualGenerationKwh = monthlyGenerationKwh.reduce((sum, row) => sum.plus(row.generationKwh), zero);
+  const monthlyGenerationKwh =
+    input.assumptions.monthlySpecificYieldKwhPerKwp.map((yieldKwh, index) => ({
+      month: String(index + 1).padStart(2, "0"),
+      generationKwh: new Decimal(yieldKwh)
+        .mul(input.assumptions.systemSizeKwp)
+        .mul(performanceFactor)
+        .toDecimalPlaces(3)
+        .toNumber(),
+    }));
+  const annualGenerationKwh = monthlyGenerationKwh.reduce(
+    (sum, row) => sum.plus(row.generationKwh),
+    zero,
+  );
 
   return {
     profileName: input.profileName ?? "Approximate solar yield",
@@ -461,22 +533,30 @@ export function generateApproxSolarProfile(input: {
     annualGenerationKwh: annualGenerationKwh.toDecimalPlaces(3).toNumber(),
     source: input.assumptions.yieldSource,
     assumptionsSnapshot: input.assumptions,
-    method: "approximate_yield"
+    method: "approximate_yield",
   };
 }
 
 export function parseSolarGenerationCsv(
   csvText: string,
-  options: { intervalMinutes?: 15 | 30 | 60 | undefined; source: SolarSourceMetadata }
-): LoadProfilePreview & { solarIntervals: SolarGenerationIntervalInput[]; source: SolarSourceMetadata } {
+  options: {
+    intervalMinutes?: 15 | 30 | 60 | undefined;
+    source: SolarSourceMetadata;
+  },
+): LoadProfilePreview & {
+  solarIntervals: SolarGenerationIntervalInput[];
+  source: SolarSourceMetadata;
+} {
   const preview = parseCsvLoadProfile(csvText, {
     mapping: {
       timestamp: "timestamp",
       energyKwh: "generation_kwh",
-      powerKw: "power_kw"
+      powerKw: "power_kw",
     },
     timezone: "Asia/Bangkok",
-    ...(options.intervalMinutes === undefined ? {} : { intervalMinutes: options.intervalMinutes })
+    ...(options.intervalMinutes === undefined
+      ? {}
+      : { intervalMinutes: options.intervalMinutes }),
   });
 
   return {
@@ -484,9 +564,9 @@ export function parseSolarGenerationCsv(
     solarIntervals: preview.rows.map((row) => ({
       timestamp: row.timestamp,
       generationKwh: row.energyKwh,
-      ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw })
+      ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw }),
     })),
-    source: options.source
+    source: options.source,
   };
 }
 
@@ -495,12 +575,24 @@ export function simulateSolarSelfConsumption(input: {
   solarIntervals: SolarGenerationIntervalInput[];
 }): SolarSelfConsumptionResult {
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
-  const solarIntervals = normalizeSolarIntervals(input.solarIntervals, detectIntervalMinutes(loadIntervals) ?? undefined);
-  const intervalMinutes = detectIntervalMinutes(loadIntervals) ?? detectSolarIntervalMinutes(solarIntervals) ?? 60;
+  const solarIntervals = normalizeSolarIntervals(
+    input.solarIntervals,
+    detectIntervalMinutes(loadIntervals) ?? undefined,
+  );
+  const intervalMinutes =
+    detectIntervalMinutes(loadIntervals) ??
+    detectSolarIntervalMinutes(solarIntervals) ??
+    60;
   const intervalHours = intervalMinutes / 60;
-  const loadByTimestamp = new Map(loadIntervals.map((interval) => [interval.timestamp, interval]));
-  const solarByTimestamp = new Map(solarIntervals.map((interval) => [interval.timestamp, interval]));
-  const timestamps = [...new Set([...loadByTimestamp.keys(), ...solarByTimestamp.keys()])].sort();
+  const loadByTimestamp = new Map(
+    loadIntervals.map((interval) => [interval.timestamp, interval]),
+  );
+  const solarByTimestamp = new Map(
+    solarIntervals.map((interval) => [interval.timestamp, interval]),
+  );
+  const timestamps = [
+    ...new Set([...loadByTimestamp.keys(), ...solarByTimestamp.keys()]),
+  ].sort();
   const monthly = new Map<string, SolarMonthlyEnergy>();
 
   let totalLoad = zero;
@@ -522,7 +614,9 @@ export function simulateSolarSelfConsumption(input: {
     const consumed = Decimal.min(loadKwh, solarKwh);
     const imported = Decimal.max(loadKwh.minus(solarKwh), zero);
     const exported = Decimal.max(solarKwh.minus(loadKwh), zero);
-    const loadPowerKw = new Decimal(load?.powerKw ?? loadKwh.div(intervalHours));
+    const loadPowerKw = new Decimal(
+      load?.powerKw ?? loadKwh.div(intervalHours),
+    );
     const importPowerKw = imported.div(intervalHours);
     const local = getBangkokParts(timestamp);
 
@@ -546,13 +640,25 @@ export function simulateSolarSelfConsumption(input: {
       totalSolarGenerationKwh: 0,
       selfConsumedKwh: 0,
       gridImportKwh: 0,
-      gridExportKwh: 0
+      gridExportKwh: 0,
     };
-    monthRow.totalLoadKwh = new Decimal(monthRow.totalLoadKwh).plus(loadKwh).toNumber();
-    monthRow.totalSolarGenerationKwh = new Decimal(monthRow.totalSolarGenerationKwh).plus(solarKwh).toNumber();
-    monthRow.selfConsumedKwh = new Decimal(monthRow.selfConsumedKwh).plus(consumed).toNumber();
-    monthRow.gridImportKwh = new Decimal(monthRow.gridImportKwh).plus(imported).toNumber();
-    monthRow.gridExportKwh = new Decimal(monthRow.gridExportKwh).plus(exported).toNumber();
+    monthRow.totalLoadKwh = new Decimal(monthRow.totalLoadKwh)
+      .plus(loadKwh)
+      .toNumber();
+    monthRow.totalSolarGenerationKwh = new Decimal(
+      monthRow.totalSolarGenerationKwh,
+    )
+      .plus(solarKwh)
+      .toNumber();
+    monthRow.selfConsumedKwh = new Decimal(monthRow.selfConsumedKwh)
+      .plus(consumed)
+      .toNumber();
+    monthRow.gridImportKwh = new Decimal(monthRow.gridImportKwh)
+      .plus(imported)
+      .toNumber();
+    monthRow.gridExportKwh = new Decimal(monthRow.gridExportKwh)
+      .plus(exported)
+      .toNumber();
     monthly.set(month, monthRow);
 
     intervalResults.push({
@@ -563,7 +669,7 @@ export function simulateSolarSelfConsumption(input: {
       gridImportKwh: imported.toDecimalPlaces(6).toNumber(),
       gridExportKwh: exported.toDecimalPlaces(6).toNumber(),
       loadPowerKw: loadPowerKw.toDecimalPlaces(6).toNumber(),
-      gridImportPowerKw: importPowerKw.toDecimalPlaces(6).toNumber()
+      gridImportPowerKw: importPowerKw.toDecimalPlaces(6).toNumber(),
     });
   }
 
@@ -591,8 +697,8 @@ export function simulateSolarSelfConsumption(input: {
         totalSolarGenerationKwh: round(row.totalSolarGenerationKwh, 6),
         selfConsumedKwh: round(row.selfConsumedKwh, 6),
         gridImportKwh: round(row.gridImportKwh, 6),
-        gridExportKwh: round(row.gridExportKwh, 6)
-      }))
+        gridExportKwh: round(row.gridExportKwh, 6),
+      })),
   };
 }
 
@@ -606,41 +712,59 @@ export function calculateBillAfterSolar(input: {
   monthlyScaleFactor?: number | undefined;
 }): SolarBillComparison {
   const exportPolicyErrors = validateExportPolicy(input.exportPolicy);
-  if (exportPolicyErrors.length > 0) throw new Error(`Invalid export policy: ${exportPolicyErrors.join(", ")}`);
+  if (exportPolicyErrors.length > 0)
+    throw new Error(`Invalid export policy: ${exportPolicyErrors.join(", ")}`);
 
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
-  const billDate = input.billDate ?? getBangkokDate(loadIntervals[0]?.timestamp ?? input.normalTariff.effectiveFrom);
-  const monthlyScaleFactor = input.monthlyScaleFactor ?? inferMonthlyScaleFactor(loadIntervals);
+  const billDate =
+    input.billDate ??
+    getBangkokDate(
+      loadIntervals[0]?.timestamp ?? input.normalTariff.effectiveFrom,
+    );
+  const monthlyScaleFactor =
+    input.monthlyScaleFactor ?? inferMonthlyScaleFactor(loadIntervals);
   const selfConsumption = simulateSolarSelfConsumption({
     loadIntervals,
-    solarIntervals: input.solarIntervals
+    solarIntervals: input.solarIntervals,
   });
-  const billingLoadIntervals = scaleLoadIntervals(loadIntervals, monthlyScaleFactor);
-  const billingImportIntervals = scaleGridImportIntervals(selfConsumption, monthlyScaleFactor);
+  const billingLoadIntervals = scaleLoadIntervals(
+    loadIntervals,
+    monthlyScaleFactor,
+  );
+  const billingImportIntervals = scaleGridImportIntervals(
+    selfConsumption,
+    monthlyScaleFactor,
+  );
   const monthlyLoadKwh = sumLoadEnergy(billingLoadIntervals);
   const monthlyImportKwh = sumLoadEnergy(billingImportIntervals);
-  const monthlyExportKwh = new Decimal(selfConsumption.gridExportKwh).mul(monthlyScaleFactor);
+  const monthlyPhysicalExportKwh = new Decimal(
+    selfConsumption.gridExportKwh,
+  ).mul(monthlyScaleFactor);
+  const monthlyBillableExportKwh = sumBillableGridExport(
+    selfConsumption,
+    input.exportPolicy,
+  ).mul(monthlyScaleFactor);
   const monthlyExportRevenue = input.exportPolicy.enabled
-    ? monthlyExportKwh.mul(input.exportPolicy.exportRateThbPerKwh)
+    ? monthlyBillableExportKwh.mul(input.exportPolicy.exportRateThbPerKwh)
     : zero;
 
   const normalBaselineBill = calculateNormalBill({
     tariffVersion: input.normalTariff,
     billDate,
-    energyKwh: monthlyLoadKwh.toString()
+    energyKwh: monthlyLoadKwh.toString(),
   });
   const touBaselineBill = calculateTouBill({
     tariffVersion: input.touTariff,
-    intervals: billingLoadIntervals.map(toTariffInterval)
+    intervals: billingLoadIntervals.map(toTariffInterval),
   });
   const normalSolarBill = calculateNormalBill({
     tariffVersion: input.normalTariff,
     billDate,
-    energyKwh: monthlyImportKwh.toString()
+    energyKwh: monthlyImportKwh.toString(),
   });
   const touSolarBill = calculateTouBill({
     tariffVersion: input.touTariff,
-    intervals: billingImportIntervals.map(toTariffInterval)
+    intervals: billingImportIntervals.map(toTariffInterval),
   });
 
   const normalWithoutSolar = buildBillScenario({
@@ -648,40 +772,46 @@ export function calculateBillAfterSolar(input: {
     label: "Normal without Solar",
     bill: normalBaselineBill,
     monthlyExportRevenue,
-    annualGridExportKwh: monthlyExportKwh.mul(12),
+    annualGridExportKwh: monthlyPhysicalExportKwh.mul(12),
     baselineBill: normalBaselineBill,
-    usesSolar: false
+    usesSolar: false,
   });
   const touWithoutSolar = buildBillScenario({
     id: "tou_without_solar",
     label: "TOU without Solar",
     bill: touBaselineBill,
     monthlyExportRevenue,
-    annualGridExportKwh: monthlyExportKwh.mul(12),
+    annualGridExportKwh: monthlyPhysicalExportKwh.mul(12),
     baselineBill: touBaselineBill,
-    usesSolar: false
+    usesSolar: false,
   });
   const normalWithSolar = buildBillScenario({
     id: "normal_with_solar",
     label: "Normal + Solar",
     bill: normalSolarBill,
     monthlyExportRevenue,
-    annualGridExportKwh: monthlyExportKwh.mul(12),
+    annualGridExportKwh: monthlyPhysicalExportKwh.mul(12),
     baselineBill: normalBaselineBill,
-    usesSolar: true
+    usesSolar: true,
   });
   const touWithSolar = buildBillScenario({
     id: "tou_with_solar",
     label: "TOU + Solar",
     bill: touSolarBill,
     monthlyExportRevenue,
-    annualGridExportKwh: monthlyExportKwh.mul(12),
+    annualGridExportKwh: monthlyPhysicalExportKwh.mul(12),
     baselineBill: touBaselineBill,
-    usesSolar: true
+    usesSolar: true,
   });
-  const bestWithoutSolar = [normalWithoutSolar, touWithoutSolar].sort((a, b) => a.monthlyBillThb - b.monthlyBillThb)[0]!;
-  const bestWithSolar = [normalWithSolar, touWithSolar].sort((a, b) => a.netMonthlyCostThb - b.netMonthlyCostThb)[0]!;
-  const billSavings = new Decimal(bestWithoutSolar.annualBillThb).minus(bestWithSolar.annualBillThb);
+  const bestWithoutSolar = [normalWithoutSolar, touWithoutSolar].sort(
+    (a, b) => a.monthlyBillThb - b.monthlyBillThb,
+  )[0]!;
+  const bestWithSolar = [normalWithSolar, touWithSolar].sort(
+    (a, b) => a.netMonthlyCostThb - b.netMonthlyCostThb,
+  )[0]!;
+  const billSavings = new Decimal(bestWithoutSolar.annualBillThb).minus(
+    bestWithSolar.annualBillThb,
+  );
   const exportRevenue = new Decimal(bestWithSolar.annualExportRevenueThb);
   const netAnnualBenefit = billSavings.plus(exportRevenue);
 
@@ -703,9 +833,18 @@ export function calculateBillAfterSolar(input: {
     netAnnualBenefit: round(netAnnualBenefit, 2),
     effectiveRateBefore: bestWithoutSolar.effectiveRatePerKwh,
     effectiveRateAfter: bestWithSolar.effectiveRatePerKwh,
-    annualGridImportBefore: new Decimal(monthlyLoadKwh).mul(12).toDecimalPlaces(6).toNumber(),
-    annualGridImportAfter: new Decimal(monthlyImportKwh).mul(12).toDecimalPlaces(6).toNumber(),
-    annualGridExport: monthlyExportKwh.mul(12).toDecimalPlaces(6).toNumber(),
+    annualGridImportBefore: new Decimal(monthlyLoadKwh)
+      .mul(12)
+      .toDecimalPlaces(6)
+      .toNumber(),
+    annualGridImportAfter: new Decimal(monthlyImportKwh)
+      .mul(12)
+      .toDecimalPlaces(6)
+      .toNumber(),
+    annualGridExport: monthlyPhysicalExportKwh
+      .mul(12)
+      .toDecimalPlaces(6)
+      .toNumber(),
     calculationTrace: {
       engineVersion: solarEngineVersion,
       usedIntervalMatching: true,
@@ -713,14 +852,14 @@ export function calculateBillAfterSolar(input: {
         normalBaselineBill.tariffVersionId,
         touBaselineBill.tariffVersionId,
         normalSolarBill.tariffVersionId,
-        touSolarBill.tariffVersionId
+        touSolarBill.tariffVersionId,
       ],
       lineItemCount:
         normalBaselineBill.lineItems.length +
         touBaselineBill.lineItems.length +
         normalSolarBill.lineItems.length +
-        touSolarBill.lineItems.length
-    }
+        touSolarBill.lineItems.length,
+    },
   };
 }
 
@@ -731,19 +870,29 @@ export function calculateFinancials(input: {
   assumptions: FinancialAssumptions;
 }): FinancialResult {
   const errors = validateFinancialAssumptions(input.assumptions);
-  if (errors.length > 0) throw new Error(`Invalid financial assumptions: ${errors.join(", ")}`);
+  if (errors.length > 0)
+    throw new Error(`Invalid financial assumptions: ${errors.join(", ")}`);
 
   const assumptions = input.assumptions;
   const projectLife = Math.floor(assumptions.projectLifeYears);
   const discountRate = new Decimal(assumptions.discountRatePercent).div(100);
-  const escalationRate = new Decimal(assumptions.electricityEscalationRatePercent).div(100);
-  const degradationRate = new Decimal(assumptions.degradationRatePercent).div(100);
-  const oAndMEscalation = new Decimal(assumptions.oAndMEscalationRatePercent || assumptions.inflationRatePercent).div(100);
+  const escalationRate = new Decimal(
+    assumptions.electricityEscalationRatePercent,
+  ).div(100);
+  const degradationRate = new Decimal(assumptions.degradationRatePercent).div(
+    100,
+  );
+  const oAndMEscalation = new Decimal(
+    assumptions.oAndMEscalationRatePercent || assumptions.inflationRatePercent,
+  ).div(100);
   const totalInitialCost = new Decimal(assumptions.capexThb)
     .plus(assumptions.meterChangeCostThb)
     .plus(assumptions.otherInitialCostThb);
   const loanAmount = new Decimal(assumptions.loanAmountThb ?? 0);
-  const initialInvestment = Decimal.max(zero, totalInitialCost.minus(assumptions.subsidyAmountThb).minus(loanAmount));
+  const initialInvestment = Decimal.max(
+    zero,
+    totalInitialCost.minus(assumptions.subsidyAmountThb).minus(loanAmount),
+  );
   const annualLoanPayment = calculateAnnualLoanPayment(assumptions);
   const cashFlows: SolarCashFlow[] = [];
   let cumulative = zero.minus(initialInvestment);
@@ -766,27 +915,45 @@ export function calculateFinancials(input: {
     discountedCashFlowThb: round(zero.minus(initialInvestment), 2),
     cumulativeCashFlowThb: round(cumulative, 2),
     cumulativeDiscountedCashFlowThb: round(cumulativeDiscounted, 2),
-    generationKwh: 0
+    generationKwh: 0,
   });
 
   for (let year = 1; year <= projectLife; year += 1) {
-    const benefitMultiplier = onePlus(escalationRate).pow(year - 1).mul(oneMinus(degradationRate).pow(year - 1));
+    const benefitMultiplier = onePlus(escalationRate)
+      .pow(year - 1)
+      .mul(oneMinus(degradationRate).pow(year - 1));
     const generationMultiplier = oneMinus(degradationRate).pow(year - 1);
-    const billSavings = new Decimal(input.annualBillSavingsThb).mul(benefitMultiplier);
-    const exportRevenue = new Decimal(input.annualExportRevenueThb).mul(benefitMultiplier);
+    const billSavings = new Decimal(input.annualBillSavingsThb).mul(
+      benefitMultiplier,
+    );
+    const exportRevenue = new Decimal(input.annualExportRevenueThb).mul(
+      benefitMultiplier,
+    );
     const grossBenefit = billSavings.plus(exportRevenue);
-    const oAndM = new Decimal(assumptions.oAndMCostPerYear).mul(onePlus(oAndMEscalation).pow(year - 1));
+    const oAndM = new Decimal(assumptions.oAndMCostPerYear).mul(
+      onePlus(oAndMEscalation).pow(year - 1),
+    );
     const replacement =
-      assumptions.inverterReplacementYear !== null && assumptions.inverterReplacementYear === year
+      assumptions.inverterReplacementYear !== null &&
+      assumptions.inverterReplacementYear === year
         ? new Decimal(assumptions.inverterReplacementCostThb)
         : zero;
-    const loanPayment = year <= (assumptions.loanTermYears ?? 0) ? annualLoanPayment : zero;
-    const netCashFlow = grossBenefit.minus(oAndM).minus(replacement).minus(loanPayment);
+    const loanPayment =
+      year <= (assumptions.loanTermYears ?? 0) ? annualLoanPayment : zero;
+    const netCashFlow = grossBenefit
+      .minus(oAndM)
+      .minus(replacement)
+      .minus(loanPayment);
     const discountFactor = onePlus(discountRate).pow(year);
     const discounted = netCashFlow.div(discountFactor);
     const discountedGrossBenefit = grossBenefit.div(discountFactor);
-    const discountedCost = oAndM.plus(replacement).plus(loanPayment).div(discountFactor);
-    const generation = new Decimal(input.annualGenerationKwh).mul(generationMultiplier);
+    const discountedCost = oAndM
+      .plus(replacement)
+      .plus(loanPayment)
+      .div(discountFactor);
+    const generation = new Decimal(input.annualGenerationKwh).mul(
+      generationMultiplier,
+    );
 
     cumulative = cumulative.plus(netCashFlow);
     cumulativeDiscounted = cumulativeDiscounted.plus(discounted);
@@ -808,18 +975,36 @@ export function calculateFinancials(input: {
       discountedCashFlowThb: round(discounted, 2),
       cumulativeCashFlowThb: round(cumulative, 2),
       cumulativeDiscountedCashFlowThb: round(cumulativeDiscounted, 2),
-      generationKwh: round(generation, 3)
+      generationKwh: round(generation, 3),
     });
   }
 
   const yearOneNet = new Decimal(cashFlows[1]?.netCashFlowThb ?? 0);
-  const simplePaybackYears = initialInvestment.gt(0) && yearOneNet.gt(0) ? round(initialInvestment.div(yearOneNet), 2) : null;
-  const discountedPaybackYears = findPaybackYear(cashFlows, "cumulativeDiscountedCashFlowThb");
+  const simplePaybackYears =
+    initialInvestment.gt(0) && yearOneNet.gt(0)
+      ? round(initialInvestment.div(yearOneNet), 2)
+      : null;
+  const discountedPaybackYears = findPaybackYear(
+    cashFlows,
+    "cumulativeDiscountedCashFlowThb",
+  );
   const totalCostForRoi = totalCosts.gt(0) ? totalCosts : new Decimal(1);
-  const roiPercent = totalBenefits.minus(totalCosts).div(totalCostForRoi).mul(100);
-  const npv = new Decimal(cashFlows.at(-1)?.cumulativeDiscountedCashFlowThb ?? 0);
-  const irrPercent = calculateIRR(cashFlows.map((cashFlow) => ({ year: cashFlow.year, amountThb: cashFlow.netCashFlowThb })));
-  const lcoe = presentGeneration.gt(0) ? presentCostsForLcoe.div(presentGeneration) : null;
+  const roiPercent = totalBenefits
+    .minus(totalCosts)
+    .div(totalCostForRoi)
+    .mul(100);
+  const npv = new Decimal(
+    cashFlows.at(-1)?.cumulativeDiscountedCashFlowThb ?? 0,
+  );
+  const irrPercent = calculateIRR(
+    cashFlows.map((cashFlow) => ({
+      year: cashFlow.year,
+      amountThb: cashFlow.netCashFlowThb,
+    })),
+  );
+  const lcoe = presentGeneration.gt(0)
+    ? presentCostsForLcoe.div(presentGeneration)
+    : null;
 
   return {
     initialInvestmentThb: round(initialInvestment, 2),
@@ -834,7 +1019,7 @@ export function calculateFinancials(input: {
     totalBenefitsThb: round(totalBenefits, 2),
     totalCostsThb: round(totalCosts, 2),
     cashFlows,
-    assumptionsSnapshot: assumptions
+    assumptionsSnapshot: assumptions,
   };
 }
 
@@ -858,9 +1043,17 @@ export function optimizeSolarSize(input: {
   const requestedMaxKwp = input.maxKwp ?? 20;
   const stepKwp = input.stepKwp ?? 1;
   const sqmPerKwp = input.sqmPerKwp ?? 5;
-  const roofLimit = input.roofAreaSqm === undefined ? requestedMaxKwp : input.roofAreaSqm / sqmPerKwp;
-  const exportLimit = input.exportPolicy.enabled ? input.exportPolicy.exportLimitKw ?? requestedMaxKwp : requestedMaxKwp;
-  const appliedMaxKwp = Math.max(minKwp, Math.min(requestedMaxKwp, roofLimit, exportLimit));
+  const roofLimit =
+    input.roofAreaSqm === undefined
+      ? requestedMaxKwp
+      : input.roofAreaSqm / sqmPerKwp;
+  const exportLimit = input.exportPolicy.enabled
+    ? (input.exportPolicy.exportLimitKw ?? requestedMaxKwp)
+    : requestedMaxKwp;
+  const appliedMaxKwp = Math.max(
+    minKwp,
+    Math.min(requestedMaxKwp, roofLimit, exportLimit),
+  );
   const options: SizingOptionResult[] = [];
   const baseSize = input.baseSolarAssumptions.systemSizeKwp;
   const monthlyScaleFactor = inferMonthlyScaleFactor(loadIntervals);
@@ -870,7 +1063,12 @@ export function optimizeSolarSize(input: {
   for (let size = minKwp; size <= appliedMaxKwp + 0.000001; size += stepKwp) {
     const systemSizeKwp = Number(size.toFixed(3));
     const solarAssumptions = { ...input.baseSolarAssumptions, systemSizeKwp };
-    const profile = generateApproxSolarProfile({ assumptions: solarAssumptions, startDate, days, profileName: `${systemSizeKwp} kWp` });
+    const profile = generateApproxSolarProfile({
+      assumptions: solarAssumptions,
+      startDate,
+      days,
+      profileName: `${systemSizeKwp} kWp`,
+    });
     const billComparison = calculateBillAfterSolar({
       loadIntervals,
       solarIntervals: profile.intervals,
@@ -878,45 +1076,74 @@ export function optimizeSolarSize(input: {
       touTariff: input.touTariff,
       exportPolicy: input.exportPolicy,
       billDate: input.billDate,
-      monthlyScaleFactor
+      monthlyScaleFactor,
     });
-    const scaledFinancial = scaleFinancialAssumptions(input.financialAssumptions, systemSizeKwp, baseSize);
-    const billSavingsAnnual = new Decimal(billComparison.bestWithoutSolar.annualBillThb).minus(
-      billComparison.bestWithSolar.annualBillThb
+    const scaledFinancial = scaleFinancialAssumptions(
+      input.financialAssumptions,
+      systemSizeKwp,
+      baseSize,
     );
+    const billSavingsAnnual = new Decimal(
+      billComparison.bestWithoutSolar.annualBillThb,
+    ).minus(billComparison.bestWithSolar.annualBillThb);
     const financial = calculateFinancials({
       annualBillSavingsThb: billSavingsAnnual.toNumber(),
-      annualExportRevenueThb: billComparison.bestWithSolar.annualExportRevenueThb,
-      annualGenerationKwh: new Decimal(billComparison.selfConsumption.totalSolarGenerationKwh).mul(monthlyScaleFactor).mul(12).toNumber(),
-      assumptions: scaledFinancial
+      annualExportRevenueThb:
+        billComparison.bestWithSolar.annualExportRevenueThb,
+      annualGenerationKwh: new Decimal(
+        billComparison.selfConsumption.totalSolarGenerationKwh,
+      )
+        .mul(monthlyScaleFactor)
+        .mul(12)
+        .toNumber(),
+      assumptions: scaledFinancial,
     });
 
     options.push({
       systemSizeKwp,
-      annualGenerationKwh: round(new Decimal(billComparison.selfConsumption.totalSolarGenerationKwh).mul(monthlyScaleFactor).mul(12), 3),
-      annualSelfConsumedKwh: round(new Decimal(billComparison.selfConsumption.selfConsumedKwh).mul(monthlyScaleFactor).mul(12), 3),
+      annualGenerationKwh: round(
+        new Decimal(billComparison.selfConsumption.totalSolarGenerationKwh)
+          .mul(monthlyScaleFactor)
+          .mul(12),
+        3,
+      ),
+      annualSelfConsumedKwh: round(
+        new Decimal(billComparison.selfConsumption.selfConsumedKwh)
+          .mul(monthlyScaleFactor)
+          .mul(12),
+        3,
+      ),
       annualExportedKwh: billComparison.annualGridExport,
       selfConsumptionRatio: billComparison.selfConsumption.selfConsumptionRatio,
       annualBillSavingsThb: round(billSavingsAnnual, 2),
-      annualExportRevenueThb: billComparison.bestWithSolar.annualExportRevenueThb,
+      annualExportRevenueThb:
+        billComparison.bestWithSolar.annualExportRevenueThb,
       annualNetBenefitThb: billComparison.netAnnualBenefit,
       capexThb: scaledFinancial.capexThb,
       simplePaybackYears: financial.simplePaybackYears,
       npvThb: financial.npvThb,
       irrPercent: financial.irrPercent,
-      roiPercent: financial.roiPercent
+      roiPercent: financial.roiPercent,
     });
   }
 
   const fastestPayback = minBy(
     options.filter((option) => option.simplePaybackYears !== null),
-    (option) => option.simplePaybackYears ?? Number.POSITIVE_INFINITY
+    (option) => option.simplePaybackYears ?? Number.POSITIVE_INFINITY,
   );
   const highestNpv = maxBy(options, (option) => option.npvThb);
-  const highestAnnualSavings = maxBy(options, (option) => option.annualNetBenefitThb);
+  const highestAnnualSavings = maxBy(
+    options,
+    (option) => option.annualNetBenefitThb,
+  );
   const threshold = input.selfConsumptionThreshold ?? 0.7;
-  const thresholdOptions = options.filter((option) => option.selfConsumptionRatio >= threshold);
-  const bestSelfConsumption = maxBy(thresholdOptions.length > 0 ? thresholdOptions : options, (option) => option.selfConsumptionRatio);
+  const thresholdOptions = options.filter(
+    (option) => option.selfConsumptionRatio >= threshold,
+  );
+  const bestSelfConsumption = maxBy(
+    thresholdOptions.length > 0 ? thresholdOptions : options,
+    (option) => option.selfConsumptionRatio,
+  );
 
   return {
     options,
@@ -930,8 +1157,10 @@ export function optimizeSolarSize(input: {
       appliedMaxKwp,
       stepKwp,
       roofAreaSqm: input.roofAreaSqm ?? null,
-      exportLimitKw: input.exportPolicy.enabled ? input.exportPolicy.exportLimitKw ?? null : null
-    }
+      exportLimitKw: input.exportPolicy.enabled
+        ? (input.exportPolicy.exportLimitKw ?? null)
+        : null,
+    },
   };
 }
 
@@ -952,13 +1181,16 @@ export function runSensitivityAnalysis(input: {
       annualExportRevenueThb?: number | undefined;
       annualGenerationKwh?: number | undefined;
       assumptions?: Partial<FinancialAssumptions> | undefined;
-    }
+    },
   ) => {
     const candidate = calculateFinancials({
-      annualBillSavingsThb: overrides.annualBillSavingsThb ?? input.annualBillSavingsThb,
-      annualExportRevenueThb: overrides.annualExportRevenueThb ?? input.annualExportRevenueThb,
-      annualGenerationKwh: overrides.annualGenerationKwh ?? input.annualGenerationKwh,
-      assumptions: { ...input.assumptions, ...overrides.assumptions }
+      annualBillSavingsThb:
+        overrides.annualBillSavingsThb ?? input.annualBillSavingsThb,
+      annualExportRevenueThb:
+        overrides.annualExportRevenueThb ?? input.annualExportRevenueThb,
+      annualGenerationKwh:
+        overrides.annualGenerationKwh ?? input.annualGenerationKwh,
+      assumptions: { ...input.assumptions, ...overrides.assumptions },
     });
     cases.push({
       variable,
@@ -967,51 +1199,80 @@ export function runSensitivityAnalysis(input: {
       npvThb: candidate.npvThb,
       simplePaybackYears: candidate.simplePaybackYears,
       roiPercent: candidate.roiPercent,
-      impactOnNpvThb: round(new Decimal(candidate.npvThb).minus(base.npvThb), 2)
+      impactOnNpvThb: round(
+        new Decimal(candidate.npvThb).minus(base.npvThb),
+        2,
+      ),
     });
   };
 
   for (const multiplier of [0.8, 0.9, 1, 1.1, 1.2]) {
     addCase("capex", `CAPEX ${Math.round(multiplier * 100)}%`, multiplier, {
       assumptions: {
-        capexThb: new Decimal(input.assumptions.capexThb).mul(multiplier).toDecimalPlaces(2).toNumber()
-      }
+        capexThb: new Decimal(input.assumptions.capexThb)
+          .mul(multiplier)
+          .toDecimalPlaces(2)
+          .toNumber(),
+      },
     });
   }
 
-  for (const escalation of uniqueNumbers([0, 2, 4, input.assumptions.electricityEscalationRatePercent])) {
+  for (const escalation of uniqueNumbers([
+    0,
+    2,
+    4,
+    input.assumptions.electricityEscalationRatePercent,
+  ])) {
     addCase("electricity_escalation", `Escalation ${escalation}%`, escalation, {
-      assumptions: { electricityEscalationRatePercent: escalation }
+      assumptions: { electricityEscalationRatePercent: escalation },
     });
   }
 
   for (const multiplier of [0.85, 0.9, 1, 1.1]) {
-    addCase("solar_generation", `Generation ${Math.round(multiplier * 100)}%`, multiplier, {
-      annualBillSavingsThb: input.annualBillSavingsThb * multiplier,
-      annualExportRevenueThb: input.annualExportRevenueThb * multiplier,
-      annualGenerationKwh: input.annualGenerationKwh * multiplier
-    });
+    addCase(
+      "solar_generation",
+      `Generation ${Math.round(multiplier * 100)}%`,
+      multiplier,
+      {
+        annualBillSavingsThb: input.annualBillSavingsThb * multiplier,
+        annualExportRevenueThb: input.annualExportRevenueThb * multiplier,
+        annualGenerationKwh: input.annualGenerationKwh * multiplier,
+      },
+    );
   }
 
   for (const multiplier of [0.75, 1, 1.15]) {
-    addCase("self_consumption", `Self consumption ${Math.round(multiplier * 100)}%`, multiplier, {
-      annualBillSavingsThb: input.annualBillSavingsThb * multiplier
-    });
+    addCase(
+      "self_consumption",
+      `Self consumption ${Math.round(multiplier * 100)}%`,
+      multiplier,
+      {
+        annualBillSavingsThb: input.annualBillSavingsThb * multiplier,
+      },
+    );
   }
 
   for (const discountRate of uniqueNumbers([
     Math.max(0, input.assumptions.discountRatePercent - 2),
     input.assumptions.discountRatePercent,
-    input.assumptions.discountRatePercent + 2
+    input.assumptions.discountRatePercent + 2,
   ])) {
     addCase("discount_rate", `Discount ${discountRate}%`, discountRate, {
-      assumptions: { discountRatePercent: discountRate }
+      assumptions: { discountRatePercent: discountRate },
     });
   }
 
   const ranges = new Map<SensitivityCaseResult["variable"], number>();
-  for (const variable of ["capex", "electricity_escalation", "solar_generation", "self_consumption", "discount_rate"] as const) {
-    const values = cases.filter((item) => item.variable === variable).map((item) => item.npvThb);
+  for (const variable of [
+    "capex",
+    "electricity_escalation",
+    "solar_generation",
+    "self_consumption",
+    "discount_rate",
+  ] as const) {
+    const values = cases
+      .filter((item) => item.variable === variable)
+      .map((item) => item.npvThb);
     if (values.length === 0) continue;
     ranges.set(variable, Math.max(...values) - Math.min(...values));
   }
@@ -1023,7 +1284,7 @@ export function runSensitivityAnalysis(input: {
     capexMultiplier: 1.1,
     benefitMultiplier: 0.85,
     discountRatePercent: input.assumptions.discountRatePercent + 2,
-    oAndMMultiplier: 1.15
+    oAndMMultiplier: 1.15,
   });
   const upsideCase = calculateSensitivityStressCase({
     label: "Upside: lower capex, higher generation/self-use, lower discount",
@@ -1031,10 +1292,17 @@ export function runSensitivityAnalysis(input: {
     capexMultiplier: 0.9,
     benefitMultiplier: 1.1,
     discountRatePercent: Math.max(0, input.assumptions.discountRatePercent - 1),
-    oAndMMultiplier: 0.95
+    oAndMMultiplier: 0.95,
   });
-  const allNpvs = [base.npvThb, downsideCase.npvThb, upsideCase.npvThb, ...cases.map((item) => item.npvThb)];
-  const breakEvenCapex = new Decimal(input.assumptions.capexThb).plus(base.npvThb);
+  const allNpvs = [
+    base.npvThb,
+    downsideCase.npvThb,
+    upsideCase.npvThb,
+    ...cases.map((item) => item.npvThb),
+  ];
+  const breakEvenCapex = new Decimal(input.assumptions.capexThb).plus(
+    base.npvThb,
+  );
 
   return {
     baseNpvThb: base.npvThb,
@@ -1045,8 +1313,8 @@ export function runSensitivityAnalysis(input: {
     breakEvenCapexThb: breakEvenCapex.gte(0) ? round(breakEvenCapex, 2) : null,
     npvRangeThb: {
       low: round(Math.min(...allNpvs), 2),
-      high: round(Math.max(...allNpvs), 2)
-    }
+      high: round(Math.max(...allNpvs), 2),
+    },
   };
 }
 
@@ -1065,16 +1333,30 @@ function calculateSensitivityStressCase(input: {
 }): SensitivityStressCaseResult {
   const assumptions = input.input.assumptions;
   const result = calculateFinancials({
-    annualBillSavingsThb: input.input.annualBillSavingsThb * input.benefitMultiplier,
-    annualExportRevenueThb: input.input.annualExportRevenueThb * input.benefitMultiplier,
-    annualGenerationKwh: input.input.annualGenerationKwh * input.benefitMultiplier,
+    annualBillSavingsThb:
+      input.input.annualBillSavingsThb * input.benefitMultiplier,
+    annualExportRevenueThb:
+      input.input.annualExportRevenueThb * input.benefitMultiplier,
+    annualGenerationKwh:
+      input.input.annualGenerationKwh * input.benefitMultiplier,
     assumptions: {
       ...assumptions,
-      capexThb: round(new Decimal(assumptions.capexThb).mul(input.capexMultiplier), 2),
+      capexThb: round(
+        new Decimal(assumptions.capexThb).mul(input.capexMultiplier),
+        2,
+      ),
       discountRatePercent: input.discountRatePercent,
-      oAndMCostPerYear: round(new Decimal(assumptions.oAndMCostPerYear).mul(input.oAndMMultiplier), 2),
-      inverterReplacementCostThb: round(new Decimal(assumptions.inverterReplacementCostThb).mul(input.capexMultiplier), 2)
-    }
+      oAndMCostPerYear: round(
+        new Decimal(assumptions.oAndMCostPerYear).mul(input.oAndMMultiplier),
+        2,
+      ),
+      inverterReplacementCostThb: round(
+        new Decimal(assumptions.inverterReplacementCostThb).mul(
+          input.capexMultiplier,
+        ),
+        2,
+      ),
+    },
   });
 
   return {
@@ -1087,8 +1369,8 @@ function calculateSensitivityStressCase(input: {
       capexMultiplier: input.capexMultiplier,
       benefitMultiplier: input.benefitMultiplier,
       discountRatePercent: input.discountRatePercent,
-      oAndMMultiplier: input.oAndMMultiplier
-    }
+      oAndMMultiplier: input.oAndMMultiplier,
+    },
   };
 }
 
@@ -1100,148 +1382,194 @@ export function buildSolarRecommendations(input: {
   shadingLossPercent: number;
 }): SolarRecommendation[] {
   const recommendations: SolarRecommendation[] = [];
-  const limitations = input.intervalDays < 30 ? ["Load profile covers less than 30 days."] : [];
+  const limitations =
+    input.intervalDays < 30
+      ? ["ข้อมูลการใช้ไฟมีน้อยกว่า 30 วัน (ข้อมูลอาจไม่แม่นยำเพียงพอ)"]
+      : [];
   const payback = input.financial.simplePaybackYears;
 
-  if (input.financial.npvThb > 0 && payback !== null && payback <= input.financial.assumptionsSnapshot.projectLifeYears) {
+  if (
+    input.financial.npvThb > 0 &&
+    payback !== null &&
+    payback <= input.financial.assumptionsSnapshot.projectLifeYears
+  ) {
     recommendations.push({
       type: "solar_worth_it",
-      title: "Solar is financially attractive in this scenario",
-      explanation: `NPV is ${formatMoney(input.financial.npvThb)} THB and simple payback is ${payback} years.`,
-      supportingMetrics: { npvThb: input.financial.npvThb, paybackYears: payback },
+      title: "การติดตั้งโซลาร์เซลล์มีความคุ้มค่า",
+      explanation: `NPV คือ ${formatMoney(input.financial.npvThb)} บาท และระยะเวลาคืนทุนคือ ${payback} ปี`,
+      supportingMetrics: {
+        npvThb: input.financial.npvThb,
+        paybackYears: payback,
+      },
       confidence: input.intervalDays >= 30 ? "high" : "medium",
       limitations,
-      nextAction: "Confirm roof condition, shading, and verified tariff/export policy before investment."
+      nextAction:
+        "ควรตรวจสอบสภาพหลังคา, เงาบัง, และเงื่อนไขการรับซื้อไฟก่อนตัดสินใจลงทุน",
     });
   } else {
     recommendations.push({
       type: "solar_not_worth_it",
-      title: "Solar is not yet attractive under current assumptions",
-      explanation: `NPV is ${formatMoney(input.financial.npvThb)} THB and annual net benefit is ${formatMoney(input.billComparison.netAnnualBenefit)} THB.`,
-      supportingMetrics: { npvThb: input.financial.npvThb, annualNetBenefitThb: input.billComparison.netAnnualBenefit },
+      title: "การติดตั้งโซลาร์เซลล์อาจจะยังไม่คุ้มค่าในตอนนี้",
+      explanation: `NPV คือ ${formatMoney(input.financial.npvThb)} บาท และประหยัดสุทธิต่อปีคือ ${formatMoney(input.billComparison.netAnnualBenefit)} บาท`,
+      supportingMetrics: {
+        npvThb: input.financial.npvThb,
+        annualNetBenefitThb: input.billComparison.netAnnualBenefit,
+      },
       confidence: input.intervalDays >= 30 ? "medium" : "low",
       limitations,
-      nextAction: "Retest with verified CAPEX, export policy, and at least 30 days of interval load data."
+      nextAction:
+        "ลองตรวจสอบตัวเลขเงินลงทุน (CAPEX) และอัตราการรับซื้อไฟใหม่อีกครั้ง",
     });
   }
 
   if (input.billComparison.selfConsumption.selfConsumptionRatio < 0.5) {
     recommendations.push({
       type: "low_self_consumption",
-      title: "Self-consumption is low",
-      explanation: "A large share of solar generation is exported instead of offsetting grid imports.",
+      title: "อัตราการใช้ไฟเองต่ำ (Low Self-consumption)",
+      explanation:
+        "ปริมาณไฟฟ้าส่วนใหญ่ที่ผลิตได้ถูกส่งกลับเข้าสายส่ง แทนที่จะเป็นการนำมาใช้เพื่อลดค่าไฟ",
       supportingMetrics: {
-        selfConsumptionRatio: input.billComparison.selfConsumption.selfConsumptionRatio,
-        exportRatio: input.billComparison.selfConsumption.exportRatio
+        selfConsumptionRatio:
+          input.billComparison.selfConsumption.selfConsumptionRatio,
+        exportRatio: input.billComparison.selfConsumption.exportRatio,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Try a smaller system size or move controllable loads into daytime."
+      nextAction:
+        "ลองพิจารณาลดขนาดระบบลง หรือปรับพฤติกรรมมาใช้ไฟฟ้าช่วงกลางวันมากขึ้น",
     });
   }
 
   if (input.billComparison.selfConsumption.exportRatio > 0.4) {
     recommendations.push({
       type: "reduce_system_size",
-      title: "Consider reducing system size",
-      explanation: "Export ratio is high, so additional panels may deliver lower value unless export policy is favorable.",
-      supportingMetrics: { exportRatio: input.billComparison.selfConsumption.exportRatio },
+      title: "พิจารณาลดขนาดระบบลง",
+      explanation:
+        "มีอัตราการส่งไฟคืนเข้าสายส่งค่อนข้างสูง ซึ่งอาจไม่คุ้มค่าหากการไฟฟ้าให้เรทรับซื้อที่ต่ำ",
+      supportingMetrics: {
+        exportRatio: input.billComparison.selfConsumption.exportRatio,
+      },
       confidence: "medium",
       limitations,
-      nextAction: "Compare the fastest-payback size with the maximum-savings size."
+      nextAction:
+        "ลองเปรียบเทียบระหว่างไซส์ที่คืนทุนเร็วที่สุด กับไซส์ที่ประหยัดค่าไฟได้มากที่สุด",
     });
   }
 
-  if (input.billComparison.selfConsumption.daytimeSolarCoverage < 0.65 && input.billComparison.selfConsumption.exportRatio < 0.2) {
+  if (
+    input.billComparison.selfConsumption.daytimeSolarCoverage < 0.65 &&
+    input.billComparison.selfConsumption.exportRatio < 0.2
+  ) {
     recommendations.push({
       type: "increase_system_size",
-      title: "Daytime load can absorb more solar",
-      explanation: "Daytime solar coverage is still moderate while export ratio remains low.",
+      title: "ยังสามารถเพิ่มขนาดระบบโซลาร์ได้อีก",
+      explanation:
+        "พฤติกรรมการใช้ไฟตอนกลางวันยังสูงพอที่จะรองรับไฟจากโซลาร์เซลล์ได้มากกว่านี้",
       supportingMetrics: {
-        daytimeSolarCoverage: input.billComparison.selfConsumption.daytimeSolarCoverage,
-        exportRatio: input.billComparison.selfConsumption.exportRatio
+        daytimeSolarCoverage:
+          input.billComparison.selfConsumption.daytimeSolarCoverage,
+        exportRatio: input.billComparison.selfConsumption.exportRatio,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Review the next larger sizing options and roof constraints."
+      nextAction: "ลองพิจารณาเพิ่มขนาดแผง และตรวจสอบพื้นที่หลังคาว่าพอหรือไม่",
     });
   }
 
-  if (input.billComparison.touWithSolar.netMonthlyCostThb < input.billComparison.normalWithSolar.netMonthlyCostThb) {
+  if (
+    input.billComparison.touWithSolar.netMonthlyCostThb <
+    input.billComparison.normalWithSolar.netMonthlyCostThb
+  ) {
     recommendations.push({
       type: "tou_solar_better",
-      title: "TOU + Solar is lower than Normal + Solar",
-      explanation: "TOU has the lower net monthly cost after solar and export revenue.",
+      title: "TOU + โซลาร์ ประหยัดกว่าการใช้มิเตอร์ปกติ",
+      explanation:
+        "การเปลี่ยนมาใช้มิเตอร์ TOU พร้อมกับติดโซลาร์ จะทำให้ค่าไฟสุทธิต่อเดือนถูกลง",
       supportingMetrics: {
-        touSolarNetMonthlyThb: input.billComparison.touWithSolar.netMonthlyCostThb,
-        normalSolarNetMonthlyThb: input.billComparison.normalWithSolar.netMonthlyCostThb
+        touSolarNetMonthlyThb:
+          input.billComparison.touWithSolar.netMonthlyCostThb,
+        normalSolarNetMonthlyThb:
+          input.billComparison.normalWithSolar.netMonthlyCostThb,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Check meter switching requirements and TOU eligibility."
+      nextAction:
+        "ตรวจสอบเงื่อนไขและค่าใช้จ่ายในการขอเปลี่ยนมิเตอร์ TOU กับการไฟฟ้า",
     });
   } else {
     recommendations.push({
       type: "normal_solar_better",
-      title: "Normal + Solar is lower than TOU + Solar",
-      explanation: "Normal tariff has the lower net monthly cost after solar in this profile.",
+      title: "มิเตอร์ปกติ + โซลาร์ ประหยัดกว่า TOU",
+      explanation:
+        "จากรูปแบบการใช้ไฟของคุณ การใช้มิเตอร์ปกติควบคู่กับโซลาร์ให้ผลลัพธ์ทางการเงินที่ดีกว่า",
       supportingMetrics: {
-        normalSolarNetMonthlyThb: input.billComparison.normalWithSolar.netMonthlyCostThb,
-        touSolarNetMonthlyThb: input.billComparison.touWithSolar.netMonthlyCostThb
+        normalSolarNetMonthlyThb:
+          input.billComparison.normalWithSolar.netMonthlyCostThb,
+        touSolarNetMonthlyThb:
+          input.billComparison.touWithSolar.netMonthlyCostThb,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Keep TOU as a comparison case if load behavior changes."
+      nextAction:
+        "ยังไม่ต้องเปลี่ยนเป็น TOU แต่อาจกลับมาดูใหม่หากพฤติกรรมการใช้ไฟเปลี่ยนไป",
     });
   }
 
   if (input.intervalDays < 30) {
     recommendations.push({
       type: "insufficient_data",
-      title: "More interval data is needed",
-      explanation: `Current profile covers ${input.intervalDays} day(s), below the 30-day threshold.`,
+      title: "ควรมีข้อมูลการใช้ไฟให้มากขึ้น",
+      explanation: `ปัจจุบันระบบมีข้อมูลเพียง ${input.intervalDays} วัน ซึ่งอาจส่งผลให้การประเมินคลาดเคลื่อน`,
       supportingMetrics: { intervalDays: input.intervalDays },
       confidence: "high",
       limitations,
-      nextAction: "Import at least 30 days of 15, 30, or 60 minute load intervals."
+      nextAction:
+        "แนะนำให้อัปโหลดข้อมูลบิลหรือ Load Profile ที่ครอบคลุมอย่างน้อย 30 วัน",
     });
   }
 
   if (input.shadingLossPercent > 10) {
     recommendations.push({
       type: "check_roof_shading",
-      title: "Check shading and roof layout before deciding",
-      explanation: "Shading loss is material and can change payback, NPV, and best size.",
+      title: "ตรวจสอบพื้นที่หลังคาและเงาบัง",
+      explanation:
+        "พบการสูญเสียประสิทธิภาพจากเงาบังค่อนข้างเยอะ ซึ่งอาจทำให้ผลลัพธ์ NPV และการคืนทุนเปลี่ยนไป",
       supportingMetrics: { shadingLossPercent: input.shadingLossPercent },
       confidence: "medium",
       limitations,
-      nextAction: "Verify shading, usable roof area, azimuth, and tilt with a site survey."
+      nextAction:
+        "สำรวจพื้นที่จริงเพื่อหาจุดติดตั้งบนหลังคาที่โดนแสงดีที่สุดและไม่มีเงาบัง",
     });
   }
 
   if (
     input.sizing.fastestPayback &&
     input.sizing.highestAnnualSavings &&
-    input.sizing.fastestPayback.systemSizeKwp !== input.sizing.highestAnnualSavings.systemSizeKwp
+    input.sizing.fastestPayback.systemSizeKwp !==
+      input.sizing.highestAnnualSavings.systemSizeKwp
   ) {
     recommendations.push({
       type: "payback_vs_max_savings",
-      title: "Fastest payback is not the maximum-savings size",
-      explanation: "The best financial choice depends on whether the goal is quick payback or highest annual savings.",
+      title: "จุดที่คืนทุนไวสุด ไม่ใช่ขนาดที่ประหยัดที่สุดเสมอไป",
+      explanation:
+        "ระบบพบว่าเป้าหมายคืนทุนเร็วสุด กับเป้าหมายลดค่าไฟรายปีให้ได้มากที่สุดตกอยู่ที่ระบบคนละขนาดกัน",
       supportingMetrics: {
         fastestPaybackKwp: input.sizing.fastestPayback.systemSizeKwp,
-        maxSavingsKwp: input.sizing.highestAnnualSavings.systemSizeKwp
+        maxSavingsKwp: input.sizing.highestAnnualSavings.systemSizeKwp,
       },
       confidence: "medium",
       limitations,
-      nextAction: "Compare NPV, annual savings, and self-consumption before selecting size."
+      nextAction:
+        "ให้ตัดสินใจเลือกจากเป้าหมายหลัก ว่าอยากคืนทุนไว หรืออยากลดยอดบิลค่าไฟให้มากที่สุด",
     });
   }
 
   return recommendations;
 }
 
-export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult {
+export function runSolarAnalysis(
+  input: SolarAnalysisInput,
+): SolarAnalysisResult {
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
   const startDate = getBangkokDate(loadIntervals[0]?.timestamp ?? "2026-01-05");
   const intervalDays = countUniqueBangkokDates(loadIntervals);
@@ -1251,9 +1579,10 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
         assumptions: input.solarAssumptions,
         startDate,
         days: intervalDays,
-        profileName: `${input.solarAssumptions.systemSizeKwp} kWp demo profile`
+        profileName: `${input.solarAssumptions.systemSizeKwp} kWp demo profile`,
       });
-  const monthlyScaleFactor = input.monthlyScaleFactor ?? inferMonthlyScaleFactor(loadIntervals);
+  const monthlyScaleFactor =
+    input.monthlyScaleFactor ?? inferMonthlyScaleFactor(loadIntervals);
   const billComparison = calculateBillAfterSolar({
     loadIntervals,
     solarIntervals: solarProfile.intervals,
@@ -1261,17 +1590,21 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
     touTariff: input.touTariff,
     exportPolicy: input.exportPolicy,
     billDate: input.billDate,
-    monthlyScaleFactor
+    monthlyScaleFactor,
   });
-  const annualBillSavings = new Decimal(billComparison.bestWithoutSolar.annualBillThb).minus(
-    billComparison.bestWithSolar.annualBillThb
-  );
-  const annualGenerationKwh = new Decimal(billComparison.selfConsumption.totalSolarGenerationKwh).mul(monthlyScaleFactor).mul(12);
+  const annualBillSavings = new Decimal(
+    billComparison.bestWithoutSolar.annualBillThb,
+  ).minus(billComparison.bestWithSolar.annualBillThb);
+  const annualGenerationKwh = new Decimal(
+    billComparison.selfConsumption.totalSolarGenerationKwh,
+  )
+    .mul(monthlyScaleFactor)
+    .mul(12);
   const financial = calculateFinancials({
     annualBillSavingsThb: annualBillSavings.toNumber(),
     annualExportRevenueThb: billComparison.bestWithSolar.annualExportRevenueThb,
     annualGenerationKwh: annualGenerationKwh.toNumber(),
-    assumptions: input.financialAssumptions
+    assumptions: input.financialAssumptions,
   });
   const sizing = optimizeSolarSize({
     loadIntervals,
@@ -1284,20 +1617,20 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
     minKwp: 1,
     maxKwp: 20,
     stepKwp: 1,
-    roofAreaSqm: input.solarAssumptions.roofAreaSqm
+    roofAreaSqm: input.solarAssumptions.roofAreaSqm,
   });
   const sensitivity = runSensitivityAnalysis({
     annualBillSavingsThb: annualBillSavings.toNumber(),
     annualExportRevenueThb: billComparison.bestWithSolar.annualExportRevenueThb,
     annualGenerationKwh: annualGenerationKwh.toNumber(),
-    assumptions: input.financialAssumptions
+    assumptions: input.financialAssumptions,
   });
   const recommendations = buildSolarRecommendations({
     billComparison,
     financial,
     sizing,
     intervalDays,
-    shadingLossPercent: input.solarAssumptions.shadingLossPercent
+    shadingLossPercent: input.solarAssumptions.shadingLossPercent,
   });
   const modelQuality = assessSolarModelQuality({
     detailLevel: input.modelDetailLevel ?? "easy",
@@ -1306,7 +1639,7 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
     solarAssumptions: input.solarAssumptions,
     exportPolicy: input.exportPolicy,
     billComparison,
-    financial
+    financial,
   });
 
   return {
@@ -1317,7 +1650,7 @@ export function runSolarAnalysis(input: SolarAnalysisInput): SolarAnalysisResult
     sizing,
     sensitivity,
     modelQuality,
-    recommendations
+    recommendations,
   };
 }
 
@@ -1342,9 +1675,10 @@ export function createDemoSolarInput(
     inverterReplacementCostThb?: number | undefined;
     inverterReplacementYear?: number | null | undefined;
     modelDetailLevel?: SolarModelDetailLevel | undefined;
-  } = {}
+  } = {},
 ): SolarAnalysisInput {
-  const systemSizeKwp = overrides.systemSizeKwp ?? (profile === "daytime_shop" ? 8 : 5);
+  const systemSizeKwp =
+    overrides.systemSizeKwp ?? (profile === "daytime_shop" ? 8 : 5);
   const capexThb = overrides.capexThb ?? systemSizeKwp * 42000;
 
   return {
@@ -1360,17 +1694,21 @@ export function createDemoSolarInput(
       roofAreaSqm: overrides.roofAreaSqm ?? systemSizeKwp * 6,
       roofAzimuth: overrides.roofAzimuth ?? 180,
       roofTilt: overrides.roofTilt ?? 12,
-      monthlySpecificYieldKwhPerKwp: [112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106],
+      monthlySpecificYieldKwhPerKwp: [
+        112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106,
+      ],
       systemLossPercent: overrides.systemLossPercent ?? 12,
-      shadingLossPercent: overrides.shadingLossPercent ?? (profile === "evening_home" ? 8 : 4),
+      shadingLossPercent:
+        overrides.shadingLossPercent ?? (profile === "evening_home" ? 8 : 4),
       degradationPercentPerYear: overrides.degradationPercentPerYear ?? 0.5,
       intervalMinutes: 60,
       yieldSource: {
         status: "demo",
         sourceUrl: null,
         authority: "Thai Energy Planner demo",
-        notes: "Synthetic monthly specific yield for Phase 5 demo only; not verified irradiance data."
-      }
+        notes:
+          "Synthetic monthly specific yield for Phase 5 demo only; not verified irradiance data.",
+      },
     },
     exportPolicy: {
       enabled: overrides.exportEnabled ?? true,
@@ -1379,49 +1717,65 @@ export function createDemoSolarInput(
       status: "demo",
       sourceUrl: null,
       authority: "Thai Energy Planner demo",
-      notes: "Synthetic demo export rate; not an official feed-in tariff."
+      notes: "Synthetic demo export rate; not an official feed-in tariff.",
     },
     financialAssumptions: {
       projectLifeYears: overrides.projectLifeYears ?? 20,
       discountRatePercent: overrides.discountRatePercent ?? 6,
-      electricityEscalationRatePercent: overrides.electricityEscalationRatePercent ?? 2,
+      electricityEscalationRatePercent:
+        overrides.electricityEscalationRatePercent ?? 2,
       inflationRatePercent: 2,
       oAndMEscalationRatePercent: 2,
       degradationRatePercent: 0.5,
       capexThb,
       oAndMCostPerYear: overrides.oAndMCostPerYear ?? capexThb * 0.01,
-      inverterReplacementCostThb: overrides.inverterReplacementCostThb ?? systemSizeKwp * 5500,
-      inverterReplacementYear: overrides.inverterReplacementYear === undefined ? 10 : overrides.inverterReplacementYear,
+      inverterReplacementCostThb:
+        overrides.inverterReplacementCostThb ?? systemSizeKwp * 5500,
+      inverterReplacementYear:
+        overrides.inverterReplacementYear === undefined
+          ? 10
+          : overrides.inverterReplacementYear,
       subsidyAmountThb: 0,
       meterChangeCostThb: 0,
-      otherInitialCostThb: 0
+      otherInitialCostThb: 0,
     },
-    modelDetailLevel: overrides.modelDetailLevel ?? "easy"
+    modelDetailLevel: overrides.modelDetailLevel ?? "easy",
   };
 }
 
 export function runDemoSolarAnalysis(
   profile: DemoSolarProfileKey = "evening_home",
-  overrides: Parameters<typeof createDemoSolarInput>[1] = {}
+  overrides: Parameters<typeof createDemoSolarInput>[1] = {},
 ): SolarAnalysisResult {
   return runSolarAnalysis(createDemoSolarInput(profile, overrides));
 }
 
 function profileFromUploadedIntervals(
   intervals: SolarGenerationIntervalInput[],
-  assumptions: SolarAssumptions
+  assumptions: SolarAssumptions,
 ): SolarGenerationProfileResult {
-  const normalized = normalizeSolarIntervals(intervals, assumptions.intervalMinutes);
+  const normalized = normalizeSolarIntervals(
+    intervals,
+    assumptions.intervalMinutes,
+  );
   const monthMap = new Map<string, Decimal>();
   for (const interval of normalized) {
     const month = getBangkokDate(interval.timestamp).slice(0, 7);
-    monthMap.set(month, (monthMap.get(month) ?? zero).plus(interval.generationKwh));
+    monthMap.set(
+      month,
+      (monthMap.get(month) ?? zero).plus(interval.generationKwh),
+    );
   }
-  const monthlyGenerationKwh = [...monthMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, generation]) => ({
-    month,
-    generationKwh: generation.toDecimalPlaces(3).toNumber()
-  }));
-  const annualGenerationKwh = monthlyGenerationKwh.reduce((sum, row) => sum.plus(row.generationKwh), zero);
+  const monthlyGenerationKwh = [...monthMap.entries()]
+    .sort(([a], [b]) => a.localeCompare(b))
+    .map(([month, generation]) => ({
+      month,
+      generationKwh: generation.toDecimalPlaces(3).toNumber(),
+    }));
+  const annualGenerationKwh = monthlyGenerationKwh.reduce(
+    (sum, row) => sum.plus(row.generationKwh),
+    zero,
+  );
 
   return {
     profileName: "Uploaded solar profile",
@@ -1430,7 +1784,7 @@ function profileFromUploadedIntervals(
     annualGenerationKwh: annualGenerationKwh.toDecimalPlaces(3).toNumber(),
     source: assumptions.yieldSource,
     assumptionsSnapshot: assumptions,
-    method: "uploaded_profile"
+    method: "uploaded_profile",
   };
 }
 
@@ -1447,8 +1801,12 @@ function buildBillScenario(input: {
   const baseline = new Decimal(input.baselineBill.grandTotal);
   const monthlyBillSavings = baseline.minus(monthlyBill);
   const annualBill = monthlyBill.mul(12);
-  const annualExportRevenue = input.usesSolar ? input.monthlyExportRevenue.mul(12) : zero;
-  const monthlyExportRevenue = input.usesSolar ? input.monthlyExportRevenue : zero;
+  const annualExportRevenue = input.usesSolar
+    ? input.monthlyExportRevenue.mul(12)
+    : zero;
+  const monthlyExportRevenue = input.usesSolar
+    ? input.monthlyExportRevenue
+    : zero;
   const netMonthlyCost = monthlyBill.minus(monthlyExportRevenue);
 
   return {
@@ -1461,72 +1819,106 @@ function buildBillScenario(input: {
     annualBillThb: round(annualBill, 2),
     monthlyEnergyKwh: round(input.bill.energyKwh, 6),
     annualGridImportKwh: round(new Decimal(input.bill.energyKwh).mul(12), 6),
-    annualGridExportKwh: input.usesSolar ? round(input.annualGridExportKwh, 6) : 0,
+    annualGridExportKwh: input.usesSolar
+      ? round(input.annualGridExportKwh, 6)
+      : 0,
     monthlyExportRevenueThb: round(monthlyExportRevenue, 2),
     annualExportRevenueThb: round(annualExportRevenue, 2),
     monthlyBillSavingsThb: input.usesSolar ? round(monthlyBillSavings, 2) : 0,
-    annualBillSavingsThb: input.usesSolar ? round(monthlyBillSavings.mul(12), 2) : 0,
+    annualBillSavingsThb: input.usesSolar
+      ? round(monthlyBillSavings.mul(12), 2)
+      : 0,
     netMonthlyCostThb: round(netMonthlyCost, 2),
     netAnnualCostThb: round(netMonthlyCost.mul(12), 2),
-    effectiveRatePerKwh: round(input.bill.effectiveRatePerKwh, 6)
+    effectiveRatePerKwh: round(input.bill.effectiveRatePerKwh, 6),
   };
 }
 
 function normalizeLoadIntervals(intervals: LoadIntervalInput[]) {
   return intervals
-    .map((interval) => LoadIntervalSchema.parse(interval))
+    .map((interval) => {
+      const parsed = LoadIntervalSchema.parse(interval);
+      return { ...parsed, timestamp: normalizeTimestamp(parsed.timestamp) };
+    })
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
 }
 
-function normalizeSolarIntervals(intervals: SolarGenerationIntervalInput[], fallbackIntervalMinutes?: number | undefined) {
-  const sorted = [...intervals].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  const intervalMinutes = detectSolarIntervalMinutes(sorted) ?? fallbackIntervalMinutes ?? 60;
+function normalizeSolarIntervals(
+  intervals: SolarGenerationIntervalInput[],
+  fallbackIntervalMinutes?: number | undefined,
+) {
+  const normalized = intervals.map((interval) => {
+    if (!Number.isFinite(new Date(interval.timestamp).getTime()))
+      throw new Error(`Invalid solar timestamp ${interval.timestamp}`);
+    if (interval.generationKwh < 0)
+      throw new Error("Solar generation cannot be negative");
+    if (interval.powerKw !== undefined && interval.powerKw < 0)
+      throw new Error("Solar power cannot be negative");
+    return { ...interval, timestamp: normalizeTimestamp(interval.timestamp) };
+  });
+  const sorted = normalized.sort((a, b) =>
+    a.timestamp.localeCompare(b.timestamp),
+  );
+  const intervalMinutes =
+    detectSolarIntervalMinutes(sorted) ?? fallbackIntervalMinutes ?? 60;
   const intervalHours = intervalMinutes / 60;
   return sorted.map((interval) => {
-    if (!Number.isFinite(new Date(interval.timestamp).getTime())) throw new Error(`Invalid solar timestamp ${interval.timestamp}`);
-    if (interval.generationKwh < 0) throw new Error("Solar generation cannot be negative");
-    if (interval.powerKw !== undefined && interval.powerKw < 0) throw new Error("Solar power cannot be negative");
     return {
-      timestamp: new Date(interval.timestamp).toISOString(),
-      generationKwh: new Decimal(interval.generationKwh).toDecimalPlaces(9).toNumber(),
-      powerKw: new Decimal(interval.powerKw ?? interval.generationKwh / intervalHours).toDecimalPlaces(9).toNumber()
+      timestamp: interval.timestamp,
+      generationKwh: new Decimal(interval.generationKwh)
+        .toDecimalPlaces(9)
+        .toNumber(),
+      powerKw: new Decimal(
+        interval.powerKw ?? interval.generationKwh / intervalHours,
+      )
+        .toDecimalPlaces(9)
+        .toNumber(),
     };
   });
 }
 
 function detectSolarIntervalMinutes(intervals: SolarGenerationIntervalInput[]) {
   if (intervals.length < 2) return null;
-  const sorted = [...intervals].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const sorted = [...intervals].sort((a, b) =>
+    a.timestamp.localeCompare(b.timestamp),
+  );
   const minutes = sorted.slice(1).map((row, index) => {
     const previous = sorted[index];
     if (!previous) return 0;
-    return (new Date(row.timestamp).getTime() - new Date(previous.timestamp).getTime()) / 60000;
+    return (
+      (new Date(row.timestamp).getTime() -
+        new Date(previous.timestamp).getTime()) /
+      60000
+    );
   });
   const positive = minutes.filter((value) => value > 0);
   return positive.length === 0 ? null : mode(positive);
 }
 
-function scaleLoadIntervals(intervals: LoadIntervalInput[], factor: number): LoadIntervalInput[] {
-  const intervalMinutes = detectIntervalMinutes(intervals) ?? 60;
-  const intervalHours = intervalMinutes / 60;
+function scaleLoadIntervals(
+  intervals: LoadIntervalInput[],
+  factor: number,
+): LoadIntervalInput[] {
   return intervals.map((interval) => {
     const energy = new Decimal(interval.energyKwh).mul(factor);
     return {
       timestamp: interval.timestamp,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
-      powerKw: energy.div(intervalHours).toDecimalPlaces(6).toNumber()
+      ...(interval.powerKw === undefined ? {} : { powerKw: interval.powerKw }),
     };
   });
 }
 
-function scaleGridImportIntervals(result: SolarSelfConsumptionResult, factor: number): LoadIntervalInput[] {
-  const intervalHours = result.intervalMinutes / 60;
+function scaleGridImportIntervals(
+  result: SolarSelfConsumptionResult,
+  factor: number,
+): LoadIntervalInput[] {
   return result.intervalResults.map((interval) => {
     const energy = new Decimal(interval.gridImportKwh).mul(factor);
     return {
       timestamp: interval.timestamp,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
-      powerKw: energy.div(intervalHours).toDecimalPlaces(6).toNumber()
+      powerKw: interval.gridImportPowerKw,
     };
   });
 }
@@ -1535,25 +1927,70 @@ function toTariffInterval(interval: LoadIntervalInput) {
   return {
     timestamp: interval.timestamp,
     energyKwh: interval.energyKwh.toString(),
-    ...(interval.powerKw === undefined ? {} : { powerKw: interval.powerKw.toString() })
+    ...(interval.powerKw === undefined
+      ? {}
+      : { powerKw: interval.powerKw.toString() }),
   };
 }
 
 function inferMonthlyScaleFactor(intervals: LoadIntervalInput[]) {
   const days = countUniqueBangkokDates(intervals);
-  return days > 0 ? new Decimal(30).div(days).toDecimalPlaces(6).toNumber() : 1;
+  const firstDate = intervals[0]
+    ? getBangkokDate(intervals[0].timestamp)
+    : null;
+  const targetDays = firstDate ? daysInMonth(firstDate) : 30;
+  return days > 0
+    ? new Decimal(targetDays).div(days).toDecimalPlaces(6).toNumber()
+    : 1;
 }
 
 function countUniqueBangkokDates(intervals: LoadIntervalInput[]) {
-  return new Set(intervals.map((interval) => getBangkokDate(interval.timestamp))).size;
+  return new Set(
+    intervals.map((interval) => getBangkokDate(interval.timestamp)),
+  ).size;
 }
 
 function sumLoadEnergy(intervals: LoadIntervalInput[]) {
-  return intervals.reduce((sum, interval) => sum.plus(interval.energyKwh), zero);
+  return intervals.reduce(
+    (sum, interval) => sum.plus(interval.energyKwh),
+    zero,
+  );
+}
+
+function sumBillableGridExport(
+  result: SolarSelfConsumptionResult,
+  exportPolicy: ExportPolicy,
+) {
+  if (!exportPolicy.enabled) return zero;
+  const exportLimitKwh =
+    exportPolicy.exportLimitKw === undefined
+      ? null
+      : new Decimal(exportPolicy.exportLimitKw)
+          .mul(result.intervalMinutes)
+          .div(60);
+
+  return result.intervalResults.reduce((sum, interval) => {
+    const exported = new Decimal(interval.gridExportKwh);
+    return sum.plus(
+      exportLimitKwh === null
+        ? exported
+        : Decimal.min(exported, exportLimitKwh),
+    );
+  }, zero);
+}
+
+function normalizeTimestamp(timestamp: string) {
+  if (/^\d{4}-\d{2}-\d{2}$/.test(timestamp)) return timestamp;
+  const parsed = new Date(timestamp);
+  if (!Number.isFinite(parsed.getTime()))
+    throw new Error(`Invalid timestamp ${timestamp}`);
+  return parsed.toISOString();
 }
 
 function solarLossFactor(assumptions: SolarAssumptions) {
-  const lossPercent = new Decimal(assumptions.systemLossPercent).plus(assumptions.shadingLossPercent);
+  const lossPercent = new Decimal(assumptions.systemLossPercent).plus(
+    assumptions.shadingLossPercent,
+  );
   return Decimal.max(zero, new Decimal(1).minus(lossPercent.div(100)));
 }
 
@@ -1562,14 +1999,24 @@ function solarPerformanceFactor(assumptions: SolarAssumptions) {
 }
 
 function roofOrientationFactor(assumptions: SolarAssumptions) {
-  if (assumptions.roofAzimuth === undefined && assumptions.roofTilt === undefined) return new Decimal(1);
+  if (
+    assumptions.roofAzimuth === undefined &&
+    assumptions.roofTilt === undefined
+  )
+    return new Decimal(1);
 
   const azimuth = assumptions.roofAzimuth ?? 180;
   const tilt = assumptions.roofTilt ?? 12;
-  const azimuthDelta = Math.min(Math.abs(azimuth - 180), 360 - Math.abs(azimuth - 180));
+  const azimuthDelta = Math.min(
+    Math.abs(azimuth - 180),
+    360 - Math.abs(azimuth - 180),
+  );
   const azimuthPenalty = Math.min(0.18, (azimuthDelta / 180) * 0.18);
   const tiltPenalty = Math.min(0.1, Math.abs(tilt - 12) / 60);
-  return new Decimal(1).minus(azimuthPenalty).minus(tiltPenalty).toDecimalPlaces(6);
+  return new Decimal(1)
+    .minus(azimuthPenalty)
+    .minus(tiltPenalty)
+    .toDecimalPlaces(6);
 }
 
 function assessSolarModelQuality(input: {
@@ -1583,7 +2030,12 @@ function assessSolarModelQuality(input: {
 }): SolarModelQualityResult {
   const risks: SolarModelRisk[] = [];
   const reasons: string[] = [];
-  let score = input.detailLevel === "xhigh" ? 72 : input.detailLevel === "advanced" ? 62 : 48;
+  let score =
+    input.detailLevel === "xhigh"
+      ? 72
+      : input.detailLevel === "advanced"
+        ? 62
+        : 48;
 
   if (input.intervalDays >= 365) {
     score += 16;
@@ -1598,7 +2050,8 @@ function assessSolarModelQuality(input: {
       severity: "warning",
       title: "Load profile is short",
       explanation: `The model uses ${input.intervalDays} day(s) of interval load data, so seasonality may be missed.`,
-      mitigation: "Use at least 30 days for screening and 12 months for investment-grade review."
+      mitigation:
+        "Use at least 30 days for screening and 12 months for investment-grade review.",
     });
   }
 
@@ -1611,47 +2064,64 @@ function assessSolarModelQuality(input: {
       code: "no_uploaded_solar_profile",
       severity: "info",
       title: "Solar profile is approximate",
-      explanation: "Generation is estimated from monthly specific yield and a generic daylight curve.",
-      mitigation: "Use measured PV output, bankable irradiance data, or a site-specific PV model before committing capital."
+      explanation:
+        "Generation is estimated from monthly specific yield and a generic daylight curve.",
+      mitigation:
+        "Use measured PV output, bankable irradiance data, or a site-specific PV model before committing capital.",
     });
   }
 
-  if (input.solarAssumptions.yieldSource.status === "demo" || input.solarAssumptions.yieldSource.status === "draft") {
+  if (
+    input.solarAssumptions.yieldSource.status === "demo" ||
+    input.solarAssumptions.yieldSource.status === "draft"
+  ) {
     score -= 14;
     risks.push({
       code: "demo_yield_source",
       severity: "warning",
       title: "Yield source is demo/draft",
-      explanation: "The production estimate is not from a verified solar resource source.",
-      mitigation: "Replace with verified irradiance/yield assumptions for the selected site."
+      explanation:
+        "The production estimate is not from a verified solar resource source.",
+      mitigation:
+        "Replace with verified irradiance/yield assumptions for the selected site.",
     });
   } else {
     score += 8;
     reasons.push("Yield source is verified or published.");
   }
 
-  if (input.exportPolicy.status === "demo" || input.exportPolicy.status === "draft") {
+  if (
+    input.exportPolicy.status === "demo" ||
+    input.exportPolicy.status === "draft"
+  ) {
     score -= 10;
     risks.push({
       code: "demo_export_policy",
       severity: "warning",
       title: "Export policy is demo/draft",
-      explanation: "Export revenue is sensitive to eligibility, contract terms, and verified feed-in rates.",
-      mitigation: "Verify export eligibility and rate with the relevant authority before using this as a decision basis."
+      explanation:
+        "Export revenue is sensitive to eligibility, contract terms, and verified feed-in rates.",
+      mitigation:
+        "Verify export eligibility and rate with the relevant authority before using this as a decision basis.",
     });
   } else {
     score += 5;
     reasons.push("Export policy source is verified or published.");
   }
 
-  if (input.solarAssumptions.roofAzimuth === undefined || input.solarAssumptions.roofTilt === undefined) {
+  if (
+    input.solarAssumptions.roofAzimuth === undefined ||
+    input.solarAssumptions.roofTilt === undefined
+  ) {
     score -= 7;
     risks.push({
       code: "missing_roof_geometry",
       severity: "info",
       title: "Roof geometry is incomplete",
-      explanation: "Azimuth or tilt is missing, so the model falls back to default orientation assumptions.",
-      mitigation: "Enter roof azimuth and tilt, then compare sensitivity before choosing system size."
+      explanation:
+        "Azimuth or tilt is missing, so the model falls back to default orientation assumptions.",
+      mitigation:
+        "Enter roof azimuth and tilt, then compare sensitivity before choosing system size.",
     });
   } else {
     score += 5;
@@ -1664,8 +2134,10 @@ function assessSolarModelQuality(input: {
       code: "high_shading_loss",
       severity: "warning",
       title: "Shading loss is material",
-      explanation: "High shading loss can shift payback, NPV, and optimum system size.",
-      mitigation: "Confirm shading with a site survey or hourly shading simulation."
+      explanation:
+        "High shading loss can shift payback, NPV, and optimum system size.",
+      mitigation:
+        "Confirm shading with a site survey or hourly shading simulation.",
     });
   }
 
@@ -1675,8 +2147,10 @@ function assessSolarModelQuality(input: {
       code: "high_export_ratio",
       severity: "warning",
       title: "Export ratio is high",
-      explanation: "A large exported share can make results depend heavily on export-rate assumptions.",
-      mitigation: "Compare smaller systems, load shifting, or battery cases before selecting size."
+      explanation:
+        "A large exported share can make results depend heavily on export-rate assumptions.",
+      mitigation:
+        "Compare smaller systems, load shifting, or battery cases before selecting size.",
     });
   }
 
@@ -1685,21 +2159,37 @@ function assessSolarModelQuality(input: {
       code: "negative_npv",
       severity: "info",
       title: "NPV is negative",
-      explanation: "The current assumptions do not recover the required return over the project life.",
-      mitigation: "Recheck CAPEX, self-consumption, export eligibility, discount rate, and system size."
+      explanation:
+        "The current assumptions do not recover the required return over the project life.",
+      mitigation:
+        "Recheck CAPEX, self-consumption, export eligibility, discount rate, and system size.",
     });
   }
 
   const boundedScore = Math.max(0, Math.min(100, Math.round(score)));
-  const level = boundedScore >= 90 ? "xhigh" : boundedScore >= 75 ? "high" : boundedScore >= 55 ? "medium" : "low";
+  const level =
+    boundedScore >= 90
+      ? "xhigh"
+      : boundedScore >= 75
+        ? "high"
+        : boundedScore >= 55
+          ? "medium"
+          : "low";
 
   return {
     detailLevel: input.detailLevel,
     level,
     score: boundedScore,
-    label: level === "xhigh" ? "XHIGH review-ready" : level === "high" ? "High confidence" : level === "medium" ? "Screening confidence" : "Draft confidence",
+    label:
+      level === "xhigh"
+        ? "XHIGH review-ready"
+        : level === "high"
+          ? "High confidence"
+          : level === "medium"
+            ? "Screening confidence"
+            : "Draft confidence",
     reasons,
-    risks
+    risks,
   };
 }
 
@@ -1710,8 +2200,11 @@ function buildDaylightShape(intervalMinutes: 15 | 30 | 60) {
       points.push({ minuteOfDay: minute, weight: zero });
       continue;
     }
-    const daylightProgress = (minute - 6 * 60 + intervalMinutes / 2) / (12 * 60);
-    const weight = new Decimal(Math.sin(Math.PI * daylightProgress)).toDecimalPlaces(9);
+    const daylightProgress =
+      (minute - 6 * 60 + intervalMinutes / 2) / (12 * 60);
+    const weight = new Decimal(
+      Math.sin(Math.PI * daylightProgress),
+    ).toDecimalPlaces(9);
     points.push({ minuteOfDay: minute, weight });
   }
   return points;
@@ -1719,7 +2212,14 @@ function buildDaylightShape(intervalMinutes: 15 | 30 | 60) {
 
 function addLocalDays(date: string, days: number) {
   const [year = "2026", month = "01", day = "01"] = date.split("-");
-  const utc = Date.UTC(Number(year), Number(month) - 1, Number(day) + days, 0, 0, 0);
+  const utc = Date.UTC(
+    Number(year),
+    Number(month) - 1,
+    Number(day) + days,
+    0,
+    0,
+    0,
+  );
   return new Date(utc).toISOString().slice(0, 10);
 }
 
@@ -1732,7 +2232,9 @@ function localDateMinuteToBangkokIso(date: string, minuteOfDay: number) {
   const [year = "2026", month = "01", day = "01"] = date.split("-");
   const hour = Math.floor(minuteOfDay / 60);
   const minute = minuteOfDay % 60;
-  return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), hour - 7, minute, 0)).toISOString();
+  return new Date(
+    Date.UTC(Number(year), Number(month) - 1, Number(day), hour - 7, minute, 0),
+  ).toISOString();
 }
 
 function getBangkokDate(timestamp: string) {
@@ -1742,20 +2244,11 @@ function getBangkokDate(timestamp: string) {
 
 function getBangkokParts(timestamp: string) {
   const parts = Object.fromEntries(
-    new Intl.DateTimeFormat("en-CA", {
-      timeZone: "Asia/Bangkok",
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-      hour: "2-digit",
-      minute: "2-digit",
-      hourCycle: "h23",
-      weekday: "short"
-    })
+    bangkokFormatter
       .formatToParts(new Date(timestamp))
-      .map((part) => [part.type, part.value])
+      .map((part) => [part.type, part.value]),
   );
-  const dayOfWeek = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[parts.weekday ?? ""] ?? 0;
+  const dayOfWeek = dayOfWeekByName[parts.weekday ?? ""] ?? 0;
   const hour = Number(parts.hour ?? 0);
   const minute = Number(parts.minute ?? 0);
   return {
@@ -1763,17 +2256,33 @@ function getBangkokParts(timestamp: string) {
     hour,
     minute,
     dayOfWeek,
-    minuteOfDay: hour * 60 + minute
+    minuteOfDay: hour * 60 + minute,
   };
 }
 
-function scaleFinancialAssumptions(input: FinancialAssumptions, systemSizeKwp: number, baseSystemSizeKwp: number): FinancialAssumptions {
-  const scale = baseSystemSizeKwp > 0 ? new Decimal(systemSizeKwp).div(baseSystemSizeKwp) : new Decimal(1);
+function scaleFinancialAssumptions(
+  input: FinancialAssumptions,
+  systemSizeKwp: number,
+  baseSystemSizeKwp: number,
+): FinancialAssumptions {
+  const scale =
+    baseSystemSizeKwp > 0
+      ? new Decimal(systemSizeKwp).div(baseSystemSizeKwp)
+      : new Decimal(1);
   return {
     ...input,
-    capexThb: new Decimal(input.capexThb).mul(scale).toDecimalPlaces(2).toNumber(),
-    oAndMCostPerYear: new Decimal(input.oAndMCostPerYear).mul(scale).toDecimalPlaces(2).toNumber(),
-    inverterReplacementCostThb: new Decimal(input.inverterReplacementCostThb).mul(scale).toDecimalPlaces(2).toNumber()
+    capexThb: new Decimal(input.capexThb)
+      .mul(scale)
+      .toDecimalPlaces(2)
+      .toNumber(),
+    oAndMCostPerYear: new Decimal(input.oAndMCostPerYear)
+      .mul(scale)
+      .toDecimalPlaces(2)
+      .toNumber(),
+    inverterReplacementCostThb: new Decimal(input.inverterReplacementCostThb)
+      .mul(scale)
+      .toDecimalPlaces(2)
+      .toNumber(),
   };
 }
 
@@ -1787,14 +2296,19 @@ function calculateAnnualLoanPayment(assumptions: FinancialAssumptions) {
   return principal.mul(rate).mul(factor).div(factor.minus(1));
 }
 
-function findPaybackYear(cashFlows: SolarCashFlow[], field: "cumulativeCashFlowThb" | "cumulativeDiscountedCashFlowThb") {
+function findPaybackYear(
+  cashFlows: SolarCashFlow[],
+  field: "cumulativeCashFlowThb" | "cumulativeDiscountedCashFlowThb",
+) {
   for (let index = 1; index < cashFlows.length; index += 1) {
     const current = cashFlows[index];
     const previous = cashFlows[index - 1];
     if (!current || !previous) continue;
     if (current[field] >= 0) {
       const previousCumulative = new Decimal(previous[field]);
-      const currentCashFlow = new Decimal(current[field]).minus(previousCumulative);
+      const currentCashFlow = new Decimal(current[field]).minus(
+        previousCumulative,
+      );
       if (currentCashFlow.lte(0)) return current.year;
       const fraction = previousCumulative.abs().div(currentCashFlow);
       return round(new Decimal(current.year - 1).plus(fraction), 2);
@@ -1812,41 +2326,66 @@ function oneMinus(value: Decimal) {
 }
 
 function minBy<T>(items: T[], selector: (item: T) => number) {
-  return items.reduce<T | null>((best, item) => (best === null || selector(item) < selector(best) ? item : best), null);
+  return items.reduce<T | null>(
+    (best, item) =>
+      best === null || selector(item) < selector(best) ? item : best,
+    null,
+  );
 }
 
 function maxBy<T>(items: T[], selector: (item: T) => number) {
-  return items.reduce<T | null>((best, item) => (best === null || selector(item) > selector(best) ? item : best), null);
+  return items.reduce<T | null>(
+    (best, item) =>
+      best === null || selector(item) > selector(best) ? item : best,
+    null,
+  );
 }
 
 function uniqueNumbers(values: number[]) {
-  return [...new Set(values.map((value) => Number(value.toFixed(4))))].sort((a, b) => a - b);
+  return [...new Set(values.map((value) => Number(value.toFixed(4))))].sort(
+    (a, b) => a - b,
+  );
 }
 
 function mode(values: number[]) {
   const counts = new Map<number, number>();
   values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? values[0] ?? 0;
+  return (
+    [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ??
+    values[0] ??
+    0
+  );
 }
 
 function ratio(numerator: Decimal, denominator: Decimal) {
-  return denominator.gt(0) ? numerator.div(denominator).toDecimalPlaces(6).toNumber() : 0;
+  return denominator.gt(0)
+    ? numerator.div(denominator).toDecimalPlaces(6).toNumber()
+    : 0;
 }
 
 function round(value: Decimal.Value, places: number) {
-  return new Decimal(value).toDecimalPlaces(places, Decimal.ROUND_HALF_UP).toNumber();
+  return new Decimal(value)
+    .toDecimalPlaces(places, Decimal.ROUND_HALF_UP)
+    .toNumber();
 }
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
-function createDemoLoadProfile(profile: DemoSolarProfileKey, days: number): LoadIntervalInput[] {
+function createDemoLoadProfile(
+  profile: DemoSolarProfileKey,
+  days: number,
+): LoadIntervalInput[] {
   const intervals: LoadIntervalInput[] = [];
   const start = Date.UTC(2026, 0, 5, -7, 0, 0);
   for (let day = 0; day < days; day += 1) {
     for (let hour = 0; hour < 24; hour += 1) {
-      const timestamp = new Date(start + day * 24 * 60 * 60000 + hour * 60 * 60000).toISOString();
+      const timestamp = new Date(
+        start + day * 24 * 60 * 60000 + hour * 60 * 60000,
+      ).toISOString();
       const localHour = getBangkokParts(timestamp).hour;
       const energyKwh = demoHourlyEnergy(profile, localHour);
       intervals.push({ timestamp, energyKwh, powerKw: energyKwh });

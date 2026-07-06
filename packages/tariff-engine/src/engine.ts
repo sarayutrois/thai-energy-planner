@@ -1,5 +1,10 @@
 import Decimal from "decimal.js";
-import { getBangkokParts, getDateKey, isDateInRange, isMinuteInRange } from "./date-time.js";
+import {
+  getBangkokParts,
+  getDateKey,
+  isDateInRange,
+  isMinuteInRange,
+} from "./date-time.js";
 import type {
   CalculationComponent,
   CalculationLineItem,
@@ -20,7 +25,7 @@ import type {
   TaxRateConfig,
   TouPeriodConfig,
   TouPeriodType,
-  TouTariffCalculationInput
+  TouTariffCalculationInput,
 } from "./types.js";
 
 export const tariffEngineVersion = "0.2.0-tariff-engine";
@@ -30,7 +35,7 @@ export const defaultRoundingPolicy: RoundingPolicy = {
   energyDecimalPlaces: 6,
   demandDecimalPlaces: 6,
   roundingMode: "half_up",
-  roundAt: "component"
+  roundAt: "component",
 };
 
 const zero = new Decimal(0);
@@ -41,13 +46,13 @@ export const tariffSeedPolicy = {
     "อัตราที่ใช้ในการคำนวณ",
     "มีผลตั้งแต่วันที่",
     "วันที่ตรวจสอบข้อมูล",
-    "แหล่งข้อมูล"
+    "แหล่งข้อมูล",
   ],
-  unverifiedStatus: "draft"
+  unverifiedStatus: "draft",
 };
 
 export function selectTariffVersion<TVersion extends TariffVersionRef>(
-  input: TariffSelectionInput<TVersion>
+  input: TariffSelectionInput<TVersion>,
 ): TVersion | null {
   const targetDate = getDateKey(input.billDate ?? input.timestamp ?? "");
   const allowedStatuses = input.allowedStatuses ?? ["verified", "published"];
@@ -60,7 +65,11 @@ export function selectTariffVersion<TVersion extends TariffVersionRef>(
         if (version.meterMode !== input.meterMode) return false;
         if (!allowedStatuses.includes(version.status)) return false;
 
-        return isDateInRange(targetDate, version.effectiveFrom, version.effectiveTo);
+        return isDateInRange(
+          targetDate,
+          version.effectiveFrom,
+          version.effectiveTo,
+        );
       })
       .sort((a, b) => b.effectiveFrom.localeCompare(a.effectiveFrom))[0] ?? null
   );
@@ -68,7 +77,7 @@ export function selectTariffVersion<TVersion extends TariffVersionRef>(
 
 export function createTariffSnapshot(
   tariffVersion: TariffVersionConfig,
-  capturedAt = new Date().toISOString()
+  capturedAt = new Date().toISOString(),
 ): TariffSnapshot {
   return {
     tariffVersionId: tariffVersion.id,
@@ -82,24 +91,41 @@ export function createTariffSnapshot(
     verifiedAt: tariffVersion.verifiedAt,
     verifiedBy: tariffVersion.verifiedBy,
     notes: tariffVersion.notes,
-    tariffVersion
+    tariffVersion,
   };
 }
 
-export function calculateNormalBill(input: NormalTariffCalculationInput): TariffCalculationResult {
+export function calculateNormalBill(
+  input: NormalTariffCalculationInput,
+): TariffCalculationResult {
   assertMeterMode(input.tariffVersion, "normal");
-  const roundingPolicy = normalizeRoundingPolicy(input.tariffVersion.roundingPolicy);
+  const roundingPolicy = normalizeRoundingPolicy(
+    input.tariffVersion.roundingPolicy,
+  );
   const energyKwh = toDecimal(input.energyKwh);
-  const baseEnergyChargeExact = calculateTieredEnergyCharge(energyKwh, input.tariffVersion.energyRateTiers).charge;
-  const demandChargeExact = calculateDemandCharge(input.demandKw, input.tariffVersion.demandRates);
-  const ftChargeExact = energyKwh.mul(selectFtPeriod(input.tariffVersion.ftPeriods, input.billDate).ftThbPerKwh);
+  const baseEnergyChargeExact = calculateTieredEnergyCharge(
+    energyKwh,
+    input.tariffVersion.energyRateTiers,
+  ).charge;
+  const demandChargeExact = calculateDemandCharge(
+    input.demandKw,
+    input.tariffVersion.demandRates,
+  );
+  const ftChargeExact = energyKwh.mul(
+    selectFtPeriod(input.tariffVersion.ftPeriods, input.billDate).ftThbPerKwh,
+  );
   const serviceChargeExact = toDecimal(input.tariffVersion.serviceChargeThb);
   const discountExact = calculateDiscount(
     input.tariffVersion.policyIncentives,
     input.billDate,
-    baseEnergyChargeExact.plus(demandChargeExact).plus(ftChargeExact).plus(serviceChargeExact)
+    baseEnergyChargeExact
+      .plus(demandChargeExact)
+      .plus(ftChargeExact)
+      .plus(serviceChargeExact),
   );
-  const taxRate = toDecimal(selectTaxRate(input.tariffVersion.taxRates, input.billDate).ratePercent);
+  const taxRate = toDecimal(
+    selectTaxRate(input.tariffVersion.taxRates, input.billDate).ratePercent,
+  );
 
   return buildResult({
     mode: "normal",
@@ -118,24 +144,62 @@ export function calculateNormalBill(input: NormalTariffCalculationInput): Tariff
     taxRatePercent: taxRate,
     snapshotCapturedAt: input.snapshotCapturedAt,
     lineItemDetails: [
-      lineItem("baseEnergyCharge", "ค่าไฟฟ้าฐานแบบขั้นบันได", energyKwh, "kWh", null, baseEnergyChargeExact, {
-        tiers: calculateTieredEnergyCharge(energyKwh, input.tariffVersion.energyRateTiers).segments
-      }),
-      lineItem("demandCharge", "ค่าความต้องการพลังไฟฟ้า", toDecimal(input.demandKw ?? 0), "kW", null, demandChargeExact, {
-        demandRates: input.tariffVersion.demandRates
-      }),
+      lineItem(
+        "baseEnergyCharge",
+        "ค่าไฟฟ้าฐานแบบขั้นบันได",
+        energyKwh,
+        "kWh",
+        null,
+        baseEnergyChargeExact,
+        {
+          tiers: calculateTieredEnergyCharge(
+            energyKwh,
+            input.tariffVersion.energyRateTiers,
+          ).segments,
+        },
+      ),
+      lineItem(
+        "demandCharge",
+        "ค่าความต้องการพลังไฟฟ้า",
+        toDecimal(input.demandKw ?? 0),
+        "kW",
+        null,
+        demandChargeExact,
+        {
+          demandRates: input.tariffVersion.demandRates,
+        },
+      ),
       lineItem(
         "ftCharge",
         "ค่า Ft",
         energyKwh,
         "kWh",
-        decimalToFixed(toDecimal(selectFtPeriod(input.tariffVersion.ftPeriods, input.billDate).ftThbPerKwh), 6),
+        decimalToFixed(
+          toDecimal(
+            selectFtPeriod(input.tariffVersion.ftPeriods, input.billDate)
+              .ftThbPerKwh,
+          ),
+          6,
+        ),
         ftChargeExact,
-        { ftPeriod: selectFtPeriod(input.tariffVersion.ftPeriods, input.billDate) }
+        {
+          ftPeriod: selectFtPeriod(
+            input.tariffVersion.ftPeriods,
+            input.billDate,
+          ),
+        },
       ),
-      lineItem("serviceCharge", "ค่าบริการรายเดือน", new Decimal(1), "เดือน", null, serviceChargeExact, {})
+      lineItem(
+        "serviceCharge",
+        "ค่าบริการรายเดือน",
+        new Decimal(1),
+        "เดือน",
+        null,
+        serviceChargeExact,
+        {},
+      ),
     ],
-    intervalTraces: []
+    intervalTraces: [],
   });
 }
 
@@ -145,7 +209,7 @@ export function calculateNormalBillFromVersions(
     authority: TariffVersionConfig["authority"];
     customerSegment: TariffVersionConfig["customerSegment"];
     allowedStatuses?: TariffSelectionInput<TariffVersionConfig>["allowedStatuses"];
-  }
+  },
 ): TariffCalculationResult {
   const tariffVersion = selectTariffVersion({
     authority: input.authority,
@@ -153,7 +217,7 @@ export function calculateNormalBillFromVersions(
     meterMode: "normal",
     billDate: input.billDate,
     versions: input.versions,
-    allowedStatuses: input.allowedStatuses
+    allowedStatuses: input.allowedStatuses,
   });
 
   if (!tariffVersion) {
@@ -165,13 +229,17 @@ export function calculateNormalBillFromVersions(
     billDate: input.billDate,
     energyKwh: input.energyKwh,
     demandKw: input.demandKw,
-    snapshotCapturedAt: input.snapshotCapturedAt
+    snapshotCapturedAt: input.snapshotCapturedAt,
   });
 }
 
-export function calculateTouBill(input: TouTariffCalculationInput): TariffCalculationResult {
+export function calculateTouBill(
+  input: TouTariffCalculationInput,
+): TariffCalculationResult {
   assertMeterMode(input.tariffVersion, "tou");
-  const roundingPolicy = normalizeRoundingPolicy(input.tariffVersion.roundingPolicy);
+  const roundingPolicy = normalizeRoundingPolicy(
+    input.tariffVersion.roundingPolicy,
+  );
 
   let peakEnergyKwh = zero;
   let offPeakEnergyKwh = zero;
@@ -184,9 +252,16 @@ export function calculateTouBill(input: TouTariffCalculationInput): TariffCalcul
     const energyKwh = toDecimal(interval.energyKwh);
     const local = getBangkokParts(interval.timestamp);
     const holiday = findHoliday(input.tariffVersion.holidays, local.date);
-    const period = selectTouPeriod(input.tariffVersion.touPeriods, interval.timestamp, Boolean(holiday));
+    const period = selectTouPeriod(
+      input.tariffVersion.touPeriods,
+      interval.timestamp,
+      Boolean(holiday),
+    );
     const intervalCharge = energyKwh.mul(period.rateThbPerKwh);
-    const ftPeriod = selectFtPeriod(input.tariffVersion.ftPeriods, interval.timestamp);
+    const ftPeriod = selectFtPeriod(
+      input.tariffVersion.ftPeriods,
+      interval.timestamp,
+    );
     const intervalFtCharge = energyKwh.mul(ftPeriod.ftThbPerKwh);
 
     if (period.periodType === "peak") {
@@ -210,21 +285,31 @@ export function calculateTouBill(input: TouTariffCalculationInput): TariffCalcul
       rateThbPerKwh: decimalToFixed(toDecimal(period.rateThbPerKwh), 6),
       energyChargeThb: decimalToFixed(intervalCharge, 6),
       ftRateThbPerKwh: decimalToFixed(toDecimal(ftPeriod.ftThbPerKwh), 6),
-      ftChargeThb: decimalToFixed(intervalFtCharge, 6)
+      ftChargeThb: decimalToFixed(intervalFtCharge, 6),
     });
   }
 
   const totalEnergyKwh = peakEnergyKwh.plus(offPeakEnergyKwh);
-  const demandChargeExact = calculateDemandCharge(input.demandKw, input.tariffVersion.demandRates);
+  const demandChargeExact = calculateDemandCharge(
+    input.demandKw,
+    input.tariffVersion.demandRates,
+  );
   const serviceChargeExact = toDecimal(input.tariffVersion.serviceChargeThb);
   const subtotalBeforeDiscount = peakEnergyChargeExact
     .plus(offPeakEnergyChargeExact)
     .plus(demandChargeExact)
     .plus(ftChargeExact)
     .plus(serviceChargeExact);
-  const calculationDate = input.intervals[0]?.timestamp ?? input.tariffVersion.effectiveFrom;
-  const discountExact = calculateDiscount(input.tariffVersion.policyIncentives, calculationDate, subtotalBeforeDiscount);
-  const taxRate = toDecimal(selectTaxRate(input.tariffVersion.taxRates, calculationDate).ratePercent);
+  const calculationDate =
+    input.intervals[0]?.timestamp ?? input.tariffVersion.effectiveFrom;
+  const discountExact = calculateDiscount(
+    input.tariffVersion.policyIncentives,
+    calculationDate,
+    subtotalBeforeDiscount,
+  );
+  const taxRate = toDecimal(
+    selectTaxRate(input.tariffVersion.taxRates, calculationDate).ratePercent,
+  );
 
   return buildResult({
     mode: "tou",
@@ -243,15 +328,55 @@ export function calculateTouBill(input: TouTariffCalculationInput): TariffCalcul
     taxRatePercent: taxRate,
     snapshotCapturedAt: input.snapshotCapturedAt,
     lineItemDetails: [
-      lineItem("peakEnergyCharge", "ค่าไฟช่วง Peak", peakEnergyKwh, "kWh", null, peakEnergyChargeExact, {}),
-      lineItem("offPeakEnergyCharge", "ค่าไฟช่วง Off-Peak", offPeakEnergyKwh, "kWh", null, offPeakEnergyChargeExact, {}),
-      lineItem("demandCharge", "ค่าความต้องการพลังไฟฟ้า", toDecimal(input.demandKw ?? 0), "kW", null, demandChargeExact, {
-        demandRates: input.tariffVersion.demandRates
-      }),
-      lineItem("ftCharge", "ค่า Ft", totalEnergyKwh, "kWh", null, ftChargeExact, {}),
-      lineItem("serviceCharge", "ค่าบริการรายเดือน", new Decimal(1), "เดือน", null, serviceChargeExact, {})
+      lineItem(
+        "peakEnergyCharge",
+        "ค่าไฟช่วง Peak",
+        peakEnergyKwh,
+        "kWh",
+        null,
+        peakEnergyChargeExact,
+        {},
+      ),
+      lineItem(
+        "offPeakEnergyCharge",
+        "ค่าไฟช่วง Off-Peak",
+        offPeakEnergyKwh,
+        "kWh",
+        null,
+        offPeakEnergyChargeExact,
+        {},
+      ),
+      lineItem(
+        "demandCharge",
+        "ค่าความต้องการพลังไฟฟ้า",
+        toDecimal(input.demandKw ?? 0),
+        "kW",
+        null,
+        demandChargeExact,
+        {
+          demandRates: input.tariffVersion.demandRates,
+        },
+      ),
+      lineItem(
+        "ftCharge",
+        "ค่า Ft",
+        totalEnergyKwh,
+        "kWh",
+        null,
+        ftChargeExact,
+        {},
+      ),
+      lineItem(
+        "serviceCharge",
+        "ค่าบริการรายเดือน",
+        new Decimal(1),
+        "เดือน",
+        null,
+        serviceChargeExact,
+        {},
+      ),
     ],
-    intervalTraces: traces
+    intervalTraces: traces,
   });
 }
 
@@ -261,31 +386,49 @@ export function calculateTouBillFromVersions(
     authority: TariffVersionConfig["authority"];
     customerSegment: TariffVersionConfig["customerSegment"];
     allowedStatuses?: TariffSelectionInput<TariffVersionConfig>["allowedStatuses"];
-  }
+  },
 ): TariffCalculationResult {
   const firstTimestamp = input.intervals[0]?.timestamp;
   if (!firstTimestamp) {
     throw new Error("TOU calculation requires at least one interval");
   }
 
-  const tariffVersion = selectTariffVersion({
-    authority: input.authority,
-    customerSegment: input.customerSegment,
-    meterMode: "tou",
-    timestamp: firstTimestamp,
-    versions: input.versions,
-    allowedStatuses: input.allowedStatuses
-  });
+  let tariffVersion: TariffVersionConfig | null = null;
+  const matchedVersionIds = new Set<string>();
+
+  for (const interval of input.intervals) {
+    const matched = selectTariffVersion({
+      authority: input.authority,
+      customerSegment: input.customerSegment,
+      meterMode: "tou",
+      timestamp: interval.timestamp,
+      versions: input.versions,
+      allowedStatuses: input.allowedStatuses,
+    });
+
+    if (!matched) {
+      throw new Error(`No matching tariff version for ${interval.timestamp}`);
+    }
+
+    tariffVersion ??= matched;
+    matchedVersionIds.add(matched.id);
+  }
 
   if (!tariffVersion) {
     throw new Error(`No matching tariff version for ${firstTimestamp}`);
+  }
+
+  if (matchedVersionIds.size > 1) {
+    throw new Error(
+      "TOU intervals span multiple tariff versions; split the interval set by tariff effective period before billing.",
+    );
   }
 
   return calculateTouBill({
     tariffVersion,
     intervals: input.intervals,
     demandKw: input.demandKw,
-    snapshotCapturedAt: input.snapshotCapturedAt
+    snapshotCapturedAt: input.snapshotCapturedAt,
   });
 }
 
@@ -325,7 +468,10 @@ export function calculateFtCharge(input: {
   ftThbPerKwh: Numeric;
   roundingPolicy?: RoundingPolicy | undefined;
 }): MoneyComponentResult {
-  return moneyComponent(toDecimal(input.energyKwh).mul(input.ftThbPerKwh), normalizeRoundingPolicy(input.roundingPolicy));
+  return moneyComponent(
+    toDecimal(input.energyKwh).mul(input.ftThbPerKwh),
+    normalizeRoundingPolicy(input.roundingPolicy),
+  );
 }
 
 export function calculateVat(input: {
@@ -333,7 +479,10 @@ export function calculateVat(input: {
   vatRatePercent: Numeric;
   roundingPolicy?: RoundingPolicy | undefined;
 }): MoneyComponentResult {
-  return moneyComponent(toDecimal(input.totalBeforeVatThb).mul(input.vatRatePercent).div(100), normalizeRoundingPolicy(input.roundingPolicy));
+  return moneyComponent(
+    toDecimal(input.totalBeforeVatThb).mul(input.vatRatePercent).div(100),
+    normalizeRoundingPolicy(input.roundingPolicy),
+  );
 }
 
 export function calculateTotalBill(input: {
@@ -346,13 +495,32 @@ export function calculateTotalBill(input: {
   roundingPolicy?: RoundingPolicy | undefined;
 }): TotalBillBreakdown {
   const roundingPolicy = normalizeRoundingPolicy(input.roundingPolicy);
-  const energyCharge = roundMoney(toDecimal(input.energyChargeThb), roundingPolicy);
+  const energyCharge = roundMoney(
+    toDecimal(input.energyChargeThb),
+    roundingPolicy,
+  );
   const ftCharge = roundMoney(toDecimal(input.ftChargeThb), roundingPolicy);
-  const serviceCharge = roundMoney(toDecimal(input.serviceChargeThb), roundingPolicy);
-  const demandCharge = roundMoney(toDecimal(input.demandChargeThb ?? 0), roundingPolicy);
-  const discount = roundMoney(toDecimal(input.discountThb ?? 0), roundingPolicy);
-  const totalBeforeVat = energyCharge.plus(ftCharge).plus(serviceCharge).plus(demandCharge).minus(discount);
-  const vat = roundMoney(totalBeforeVat.mul(input.vatRatePercent).div(100), roundingPolicy);
+  const serviceCharge = roundMoney(
+    toDecimal(input.serviceChargeThb),
+    roundingPolicy,
+  );
+  const demandCharge = roundMoney(
+    toDecimal(input.demandChargeThb ?? 0),
+    roundingPolicy,
+  );
+  const discount = roundMoney(
+    toDecimal(input.discountThb ?? 0),
+    roundingPolicy,
+  );
+  const totalBeforeVat = energyCharge
+    .plus(ftCharge)
+    .plus(serviceCharge)
+    .plus(demandCharge)
+    .minus(discount);
+  const vat = roundMoney(
+    totalBeforeVat.mul(input.vatRatePercent).div(100),
+    roundingPolicy,
+  );
   const totalBill = totalBeforeVat.plus(vat);
 
   return {
@@ -363,7 +531,7 @@ export function calculateTotalBill(input: {
     discountThb: decimalToFixed(discount, 2),
     totalBeforeVatThb: decimalToFixed(totalBeforeVat, 2),
     vatThb: decimalToFixed(vat, 2),
-    totalBillThb: decimalToFixed(totalBill, 2)
+    totalBillThb: decimalToFixed(totalBill, 2),
   };
 }
 
@@ -386,16 +554,24 @@ export function classifyTouPeriod(input: {
     periodLabel: period.label,
     isHoliday,
     localDate: local.date,
-    localTime: local.time
+    localTime: local.time,
   };
 }
 
-export function selectTouPeriod(periods: TouPeriodConfig[], timestamp: string, isHoliday: boolean): TouPeriodConfig {
+export function selectTouPeriod(
+  periods: TouPeriodConfig[],
+  timestamp: string,
+  isHoliday: boolean,
+): TouPeriodConfig {
   const local = getBangkokParts(timestamp);
   const candidates = periods.filter((period) => {
     const holidayMatches = isHoliday && period.appliesOnHolidays;
-    const dayMatches = !isHoliday && period.daysOfWeek.includes(local.dayOfWeek);
-    return (holidayMatches || dayMatches) && isMinuteInRange(local.minuteOfDay, period.startTime, period.endTime);
+    const dayMatches =
+      !isHoliday && period.daysOfWeek.includes(local.dayOfWeek);
+    return (
+      (holidayMatches || dayMatches) &&
+      isMinuteInRange(local.minuteOfDay, period.startTime, period.endTime)
+    );
   });
 
   const match = candidates[0];
@@ -425,12 +601,27 @@ function buildResult(input: {
   lineItemDetails: CalculationLineItem[];
   intervalTraces: IntervalTrace[];
 }): TariffCalculationResult {
-  const baseEnergyCharge = roundMoney(input.baseEnergyChargeExact, input.roundingPolicy);
-  const peakEnergyCharge = roundMoney(input.peakEnergyChargeExact, input.roundingPolicy);
-  const offPeakEnergyCharge = roundMoney(input.offPeakEnergyChargeExact, input.roundingPolicy);
-  const demandCharge = roundMoney(input.demandChargeExact, input.roundingPolicy);
+  const baseEnergyCharge = roundMoney(
+    input.baseEnergyChargeExact,
+    input.roundingPolicy,
+  );
+  const peakEnergyCharge = roundMoney(
+    input.peakEnergyChargeExact,
+    input.roundingPolicy,
+  );
+  const offPeakEnergyCharge = roundMoney(
+    input.offPeakEnergyChargeExact,
+    input.roundingPolicy,
+  );
+  const demandCharge = roundMoney(
+    input.demandChargeExact,
+    input.roundingPolicy,
+  );
   const ftCharge = roundMoney(input.ftChargeExact, input.roundingPolicy);
-  const serviceCharge = roundMoney(input.serviceChargeExact, input.roundingPolicy);
+  const serviceCharge = roundMoney(
+    input.serviceChargeExact,
+    input.roundingPolicy,
+  );
   const discount = roundMoney(input.discountExact, input.roundingPolicy);
   const subtotalBeforeVat = baseEnergyCharge
     .plus(peakEnergyCharge)
@@ -439,20 +630,60 @@ function buildResult(input: {
     .plus(ftCharge)
     .plus(serviceCharge)
     .minus(discount);
-  const vat = roundMoney(subtotalBeforeVat.mul(input.taxRatePercent).div(100), input.roundingPolicy);
+  const vat = roundMoney(
+    subtotalBeforeVat.mul(input.taxRatePercent).div(100),
+    input.roundingPolicy,
+  );
   const grandTotal = subtotalBeforeVat.plus(vat);
-  const effectiveRatePerKwh = input.energyKwh.gt(0) ? grandTotal.div(input.energyKwh) : zero;
+  const effectiveRatePerKwh = input.energyKwh.gt(0)
+    ? grandTotal.div(input.energyKwh)
+    : zero;
 
   const lineItems = input.lineItemDetails.map((item) => ({
     ...item,
-    amountThb: decimalToFixed(roundMoney(new Decimal(item.exactAmountThb), input.roundingPolicy), 2)
+    amountThb: decimalToFixed(
+      roundMoney(new Decimal(item.exactAmountThb), input.roundingPolicy),
+      2,
+    ),
   }));
 
   lineItems.push(
-    lineItem("discount", "ส่วนลด", new Decimal(1), "รายการ", null, discount, {}),
-    lineItem("subtotalBeforeVat", "รวมก่อน VAT", new Decimal(1), "รายการ", null, subtotalBeforeVat, {}),
-    lineItem("vat", `VAT ${decimalToFixed(input.taxRatePercent, 4)}%`, new Decimal(1), "รายการ", null, vat, {}),
-    lineItem("grandTotal", "รวมทั้งสิ้น", new Decimal(1), "รายการ", null, grandTotal, {})
+    lineItem(
+      "discount",
+      "ส่วนลด",
+      new Decimal(1),
+      "รายการ",
+      null,
+      discount,
+      {},
+    ),
+    lineItem(
+      "subtotalBeforeVat",
+      "รวมก่อน VAT",
+      new Decimal(1),
+      "รายการ",
+      null,
+      subtotalBeforeVat,
+      {},
+    ),
+    lineItem(
+      "vat",
+      `VAT ${decimalToFixed(input.taxRatePercent, 4)}%`,
+      new Decimal(1),
+      "รายการ",
+      null,
+      vat,
+      {},
+    ),
+    lineItem(
+      "grandTotal",
+      "รวมทั้งสิ้น",
+      new Decimal(1),
+      "รายการ",
+      null,
+      grandTotal,
+      {},
+    ),
   );
 
   return {
@@ -462,10 +693,22 @@ function buildResult(input: {
     tariffStatus: input.tariffVersion.status,
     sourceUrl: input.tariffVersion.sourceUrl,
     verifiedAt: input.tariffVersion.verifiedAt,
-    tariffSnapshot: createTariffSnapshot(input.tariffVersion, input.snapshotCapturedAt),
-    energyKwh: decimalToFixed(input.energyKwh, input.roundingPolicy.energyDecimalPlaces),
-    peakEnergyKwh: decimalToFixed(input.peakEnergyKwh, input.roundingPolicy.energyDecimalPlaces),
-    offPeakEnergyKwh: decimalToFixed(input.offPeakEnergyKwh, input.roundingPolicy.energyDecimalPlaces),
+    tariffSnapshot: createTariffSnapshot(
+      input.tariffVersion,
+      input.snapshotCapturedAt,
+    ),
+    energyKwh: decimalToFixed(
+      input.energyKwh,
+      input.roundingPolicy.energyDecimalPlaces,
+    ),
+    peakEnergyKwh: decimalToFixed(
+      input.peakEnergyKwh,
+      input.roundingPolicy.energyDecimalPlaces,
+    ),
+    offPeakEnergyKwh: decimalToFixed(
+      input.offPeakEnergyKwh,
+      input.roundingPolicy.energyDecimalPlaces,
+    ),
     baseEnergyCharge: decimalToFixed(baseEnergyCharge, 2),
     peakEnergyCharge: decimalToFixed(peakEnergyCharge, 2),
     offPeakEnergyCharge: decimalToFixed(offPeakEnergyCharge, 2),
@@ -479,51 +722,75 @@ function buildResult(input: {
     effectiveRatePerKwh: decimalToFixed(effectiveRatePerKwh, 6),
     lineItems,
     intervalTraces: input.intervalTraces,
-    roundingPolicy: input.roundingPolicy
+    roundingPolicy: input.roundingPolicy,
   };
 }
 
-function calculateTieredEnergyCharge(energyKwh: Decimal, tiers: TariffVersionConfig["energyRateTiers"]) {
+function calculateTieredEnergyCharge(
+  energyKwh: Decimal,
+  tiers: TariffVersionConfig["energyRateTiers"],
+) {
   const segments = tiers
     .slice()
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((tier) => {
       const from = toDecimal(tier.fromKwh);
-      const upper = tier.toKwh === null ? energyKwh : Decimal.min(energyKwh, toDecimal(tier.toKwh));
+      const upper =
+        tier.toKwh === null
+          ? energyKwh
+          : Decimal.min(energyKwh, toDecimal(tier.toKwh));
       const segmentKwh = Decimal.max(upper.minus(from), zero);
       const amount = segmentKwh.mul(tier.rateThbPerKwh);
       return {
         label: tier.label ?? `${tier.fromKwh}-${tier.toKwh ?? "∞"} kWh`,
         fromKwh: decimalToFixed(from, 6),
-        toKwh: tier.toKwh === null ? null : decimalToFixed(toDecimal(tier.toKwh), 6),
+        toKwh:
+          tier.toKwh === null ? null : decimalToFixed(toDecimal(tier.toKwh), 6),
         kwh: decimalToFixed(segmentKwh, 6),
         rateThbPerKwh: decimalToFixed(toDecimal(tier.rateThbPerKwh), 6),
-        amountThb: decimalToFixed(amount, 6)
+        amountThb: decimalToFixed(amount, 6),
       };
     });
 
   return {
-    charge: segments.reduce((sum, segment) => sum.plus(segment.amountThb), zero),
-    segments
+    charge: segments.reduce(
+      (sum, segment) => sum.plus(segment.amountThb),
+      zero,
+    ),
+    segments,
   };
 }
 
-function calculateDemandCharge(demandKw: Numeric | undefined, demandRates: DemandRateConfig[]): Decimal {
-  if (!demandKw || demandRates.length === 0) {
+function calculateDemandCharge(
+  demandKw: Numeric | undefined,
+  demandRates: DemandRateConfig[],
+): Decimal {
+  if (demandKw === undefined || demandRates.length === 0) {
     return zero;
   }
 
-  const rate = demandRates[0];
-  if (!rate) {
+  const demand = toDecimal(demandKw);
+  if (demand.lte(0)) {
     return zero;
   }
 
-  return toDecimal(demandKw).mul(rate.rateThbPerKw);
+  const rate = demandRates.reduce(
+    (highest, candidate) =>
+      Decimal.max(highest, toDecimal(candidate.rateThbPerKw)),
+    zero,
+  );
+  return demand.mul(rate);
 }
 
-function calculateDiscount(incentives: PolicyIncentiveConfig[], date: string, subtotal: Decimal): Decimal {
+function calculateDiscount(
+  incentives: PolicyIncentiveConfig[],
+  date: string,
+  subtotal: Decimal,
+): Decimal {
   return incentives
-    .filter((incentive) => isDateInRange(date, incentive.effectiveFrom, incentive.effectiveTo))
+    .filter((incentive) =>
+      isDateInRange(date, incentive.effectiveFrom, incentive.effectiveTo),
+    )
     .reduce((sum, incentive) => {
       if (incentive.valueType === "fixed_thb") {
         return sum.plus(incentive.value);
@@ -533,8 +800,13 @@ function calculateDiscount(incentives: PolicyIncentiveConfig[], date: string, su
     }, zero);
 }
 
-function selectFtPeriod(periods: FtPeriodConfig[], date: string): FtPeriodConfig {
-  const period = periods.find((candidate) => isDateInRange(date, candidate.effectiveFrom, candidate.effectiveTo));
+function selectFtPeriod(
+  periods: FtPeriodConfig[],
+  date: string,
+): FtPeriodConfig {
+  const period = periods.find((candidate) =>
+    isDateInRange(date, candidate.effectiveFrom, candidate.effectiveTo),
+  );
   if (!period) {
     throw new Error(`No Ft period matched ${date}`);
   }
@@ -543,7 +815,9 @@ function selectFtPeriod(periods: FtPeriodConfig[], date: string): FtPeriodConfig
 }
 
 function selectTaxRate(rates: TaxRateConfig[], date: string): TaxRateConfig {
-  const rate = rates.find((candidate) => isDateInRange(date, candidate.effectiveFrom, candidate.effectiveTo));
+  const rate = rates.find((candidate) =>
+    isDateInRange(date, candidate.effectiveFrom, candidate.effectiveTo),
+  );
   if (!rate) {
     throw new Error(`No tax rate matched ${date}`);
   }
@@ -551,7 +825,10 @@ function selectTaxRate(rates: TaxRateConfig[], date: string): TaxRateConfig {
   return rate;
 }
 
-function findHoliday(holidays: HolidayConfig[], date: string): HolidayConfig | null {
+function findHoliday(
+  holidays: HolidayConfig[],
+  date: string,
+): HolidayConfig | null {
   return holidays.find((holiday) => getDateKey(holiday.date) === date) ?? null;
 }
 
@@ -562,7 +839,7 @@ function lineItem(
   unit: string,
   rate: string | null,
   amount: Decimal,
-  trace: Record<string, unknown>
+  trace: Record<string, unknown>,
 ): CalculationLineItem {
   return {
     component,
@@ -572,28 +849,41 @@ function lineItem(
     rate,
     amountThb: decimalToFixed(amount, 2),
     exactAmountThb: decimalToFixed(amount, 6),
-    trace
+    trace,
   };
 }
 
-function assertMeterMode(tariffVersion: TariffVersionConfig, expectedMode: "normal" | "tou") {
+function assertMeterMode(
+  tariffVersion: TariffVersionConfig,
+  expectedMode: "normal" | "tou",
+) {
   if (tariffVersion.meterMode !== expectedMode) {
-    throw new Error(`Tariff version ${tariffVersion.id} is ${tariffVersion.meterMode}, expected ${expectedMode}`);
+    throw new Error(
+      `Tariff version ${tariffVersion.id} is ${tariffVersion.meterMode}, expected ${expectedMode}`,
+    );
   }
 }
 
-function normalizeRoundingPolicy(policy: RoundingPolicy | undefined): RoundingPolicy {
+function normalizeRoundingPolicy(
+  policy: RoundingPolicy | undefined,
+): RoundingPolicy {
   return policy ?? defaultRoundingPolicy;
 }
 
 function roundMoney(value: Decimal, policy: RoundingPolicy): Decimal {
-  return value.toDecimalPlaces(policy.moneyDecimalPlaces, Decimal.ROUND_HALF_UP);
+  return value.toDecimalPlaces(
+    policy.moneyDecimalPlaces,
+    Decimal.ROUND_HALF_UP,
+  );
 }
 
-function moneyComponent(value: Decimal, policy: RoundingPolicy): MoneyComponentResult {
+function moneyComponent(
+  value: Decimal,
+  policy: RoundingPolicy,
+): MoneyComponentResult {
   return {
     amountThb: decimalToFixed(roundMoney(value, policy), 2),
-    exactAmountThb: decimalToFixed(value, 6)
+    exactAmountThb: decimalToFixed(value, 6),
   };
 }
 

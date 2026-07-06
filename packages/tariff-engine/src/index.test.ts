@@ -3,6 +3,7 @@ import {
   calculateNormalBill,
   calculateNormalBillFromVersions,
   calculateTouBill,
+  calculateTouBillFromVersions,
   calculateEnergyCharge,
   calculateFtCharge,
   calculateTotalBill,
@@ -11,7 +12,7 @@ import {
   demoNormalTariff,
   demoTouTariff,
   getOfficialThaiTariff,
-  selectTariffVersion
+  selectTariffVersion,
 } from "./index";
 import type { TariffVersionConfig } from "./index";
 
@@ -26,14 +27,14 @@ describe("tariff version selection", () => {
       id: "older",
       status: "verified" as const,
       effectiveFrom: "2025-01-01",
-      effectiveTo: "2025-12-31"
+      effectiveTo: "2025-12-31",
     };
     const current = {
       ...cloneTariff(demoNormalTariff),
       id: "current",
       status: "verified" as const,
       effectiveFrom: "2026-01-01",
-      effectiveTo: null
+      effectiveTo: null,
     };
 
     const selected = selectTariffVersion({
@@ -41,7 +42,7 @@ describe("tariff version selection", () => {
       customerSegment: "residential",
       meterMode: "normal",
       billDate: "2026-05-01",
-      versions: [older, current]
+      versions: [older, current],
     });
 
     expect(selected?.id).toBe("current");
@@ -54,7 +55,7 @@ describe("tariff version selection", () => {
       meterMode: "normal",
       billDate: "2026-05-01",
       versions: [demoNormalTariff],
-      allowedStatuses: ["draft"]
+      allowedStatuses: ["draft"],
     });
 
     expect(selected?.status).toBe("draft");
@@ -68,12 +69,12 @@ describe("official Thai tariff seed", () => {
       customerSegment: "residential",
       meterMode: "normal",
       monthlyEnergyKwh: 250,
-      billDate: "2026-07-01"
+      billDate: "2026-07-01",
     });
     const result = calculateNormalBill({
       tariffVersion: tariff,
       billDate: "2026-07-01",
-      energyKwh: "250"
+      energyKwh: "250",
     });
 
     expect(result.tariffStatus).toBe("published");
@@ -89,7 +90,7 @@ describe("official Thai tariff seed", () => {
       customerSegment: "residential",
       meterMode: "normal",
       monthlyEnergyKwh: 120,
-      billDate: "2026-07-01"
+      billDate: "2026-07-01",
     });
 
     expect(tariff.id).toContain("low-use");
@@ -101,14 +102,14 @@ describe("official Thai tariff seed", () => {
       authority: "PEA",
       customerSegment: "small_business",
       meterMode: "tou",
-      billDate: "2026-07-01"
+      billDate: "2026-07-01",
     });
     const result = calculateTouBill({
       tariffVersion: tariff,
       intervals: [
         { timestamp: "2026-07-01T10:00:00+07:00", energyKwh: "100" },
-        { timestamp: "2026-07-01T23:00:00+07:00", energyKwh: "100" }
-      ]
+        { timestamp: "2026-07-01T23:00:00+07:00", energyKwh: "100" },
+      ],
     });
 
     expect(result.peakEnergyCharge).toBe("579.82");
@@ -124,7 +125,7 @@ describe("normal tariff calculation", () => {
       tariffVersion: demoNormalTariff,
       billDate: "2026-02-01",
       energyKwh: "250",
-      snapshotCapturedAt: "2026-07-04T00:00:00.000Z"
+      snapshotCapturedAt: "2026-07-04T00:00:00.000Z",
     });
 
     expect(result.baseEnergyCharge).toBe("450.00");
@@ -141,7 +142,7 @@ describe("normal tariff calculation", () => {
     const result = calculateNormalBill({
       tariffVersion: demoNormalTariff,
       billDate: "2026-02-01",
-      energyKwh: "100"
+      energyKwh: "100",
     });
 
     expect(result.baseEnergyCharge).toBe("100.00");
@@ -149,7 +150,9 @@ describe("normal tariff calculation", () => {
 
   it("applies component rounding before VAT according to policy", () => {
     const tariff = cloneTariff(demoNormalTariff);
-    tariff.energyRateTiers = [{ fromKwh: "0", toKwh: null, rateThbPerKwh: "0.333", sortOrder: 1 }];
+    tariff.energyRateTiers = [
+      { fromKwh: "0", toKwh: null, rateThbPerKwh: "0.333", sortOrder: 1 },
+    ];
     const ftPeriod = tariff.ftPeriods[0];
     if (!ftPeriod) {
       throw new Error("Expected demo tariff to include an Ft period");
@@ -160,7 +163,7 @@ describe("normal tariff calculation", () => {
     const result = calculateNormalBill({
       tariffVersion: tariff,
       billDate: "2026-02-01",
-      energyKwh: "1"
+      energyKwh: "1",
     });
 
     expect(result.baseEnergyCharge).toBe("0.33");
@@ -175,10 +178,27 @@ describe("normal tariff calculation", () => {
       allowedStatuses: ["draft"],
       versions: [demoNormalTariff],
       billDate: "2026-05-01",
-      energyKwh: "100"
+      energyKwh: "100",
     });
 
     expect(result.tariffVersionId).toBe(demoNormalTariff.id);
+  });
+
+  it("uses the highest configured demand rate when a single demand peak is supplied", () => {
+    const tariff = cloneTariff(demoNormalTariff);
+    tariff.demandRates = [
+      { label: "Low voltage demand", rateThbPerKw: "10" },
+      { label: "Higher voltage demand", rateThbPerKw: "20" },
+    ];
+
+    const result = calculateNormalBill({
+      tariffVersion: tariff,
+      billDate: "2026-02-01",
+      energyKwh: "0",
+      demandKw: "5",
+    });
+
+    expect(result.demandCharge).toBe("100.00");
   });
 });
 
@@ -187,7 +207,7 @@ describe("TOU tariff calculation", () => {
     const result = classifyTouPeriod({
       timestamp: "2026-01-05T10:00:00+07:00",
       touPeriods: demoTouTariff.touPeriods,
-      holidays: demoTouTariff.holidays
+      holidays: demoTouTariff.holidays,
     });
 
     expect(result.periodType).toBe("peak");
@@ -198,7 +218,7 @@ describe("TOU tariff calculation", () => {
     const result = classifyTouPeriod({
       timestamp: "2026-01-05T23:00:00+07:00",
       touPeriods: demoTouTariff.touPeriods,
-      holidays: demoTouTariff.holidays
+      holidays: demoTouTariff.holidays,
     });
 
     expect(result.periodType).toBe("off_peak");
@@ -208,17 +228,17 @@ describe("TOU tariff calculation", () => {
     const saturday = classifyTouPeriod({
       timestamp: "2026-01-03T10:00:00+07:00",
       touPeriods: demoTouTariff.touPeriods,
-      holidays: demoTouTariff.holidays
+      holidays: demoTouTariff.holidays,
     });
     const sunday = classifyTouPeriod({
       timestamp: "2026-01-04T10:00:00+07:00",
       touPeriods: demoTouTariff.touPeriods,
-      holidays: demoTouTariff.holidays
+      holidays: demoTouTariff.holidays,
     });
     const holiday = classifyTouPeriod({
       timestamp: "2026-01-01T10:00:00+07:00",
       touPeriods: demoTouTariff.touPeriods,
-      holidays: demoTouTariff.holidays
+      holidays: demoTouTariff.holidays,
     });
 
     expect(saturday.periodType).toBe("off_peak");
@@ -230,7 +250,7 @@ describe("TOU tariff calculation", () => {
   it("classifies weekday peak intervals", () => {
     const result = calculateTouBill({
       tariffVersion: demoTouTariff,
-      intervals: [{ timestamp: "2026-01-05T10:00:00+07:00", energyKwh: "10" }]
+      intervals: [{ timestamp: "2026-01-05T10:00:00+07:00", energyKwh: "10" }],
     });
 
     expect(result.peakEnergyKwh).toBe("10.000000");
@@ -241,7 +261,7 @@ describe("TOU tariff calculation", () => {
   it("classifies weekday off-peak intervals", () => {
     const result = calculateTouBill({
       tariffVersion: demoTouTariff,
-      intervals: [{ timestamp: "2026-01-05T23:00:00+07:00", energyKwh: "10" }]
+      intervals: [{ timestamp: "2026-01-05T23:00:00+07:00", energyKwh: "10" }],
     });
 
     expect(result.offPeakEnergyKwh).toBe("10.000000");
@@ -253,8 +273,8 @@ describe("TOU tariff calculation", () => {
       tariffVersion: demoTouTariff,
       intervals: [
         { timestamp: "2026-01-03T10:00:00+07:00", energyKwh: "5" },
-        { timestamp: "2026-01-04T10:00:00+07:00", energyKwh: "5" }
-      ]
+        { timestamp: "2026-01-04T10:00:00+07:00", energyKwh: "5" },
+      ],
     });
 
     expect(result.peakEnergyKwh).toBe("0.000000");
@@ -265,7 +285,7 @@ describe("TOU tariff calculation", () => {
   it("uses the holiday table to override weekday peak periods", () => {
     const result = calculateTouBill({
       tariffVersion: demoTouTariff,
-      intervals: [{ timestamp: "2026-01-01T10:00:00+07:00", energyKwh: "10" }]
+      intervals: [{ timestamp: "2026-01-01T10:00:00+07:00", energyKwh: "10" }],
     });
 
     expect(result.intervalTraces[0]?.isHoliday).toBe(true);
@@ -278,8 +298,8 @@ describe("TOU tariff calculation", () => {
       tariffVersion: demoTouTariff,
       intervals: [
         { timestamp: "2026-01-05T23:30:00+07:00", energyKwh: "1" },
-        { timestamp: "2026-01-06T10:00:00+07:00", energyKwh: "1" }
-      ]
+        { timestamp: "2026-01-06T10:00:00+07:00", energyKwh: "1" },
+      ],
     });
 
     expect(result.offPeakEnergyCharge).toBe("2.00");
@@ -291,8 +311,8 @@ describe("TOU tariff calculation", () => {
       tariffVersion: demoTouTariff,
       intervals: [
         { timestamp: "2026-01-05T10:00:00+07:00", energyKwh: "10" },
-        { timestamp: "2026-01-05T23:00:00+07:00", energyKwh: "10" }
-      ]
+        { timestamp: "2026-01-05T23:00:00+07:00", energyKwh: "10" },
+      ],
     });
 
     expect(result.peakEnergyCharge).toBe("50.00");
@@ -303,8 +323,49 @@ describe("TOU tariff calculation", () => {
     expect(result.vat).toBe("6.30");
     expect(result.grandTotal).toBe("96.30");
 
-    const grandTotalLine = result.lineItems.find((item) => item.component === "grandTotal");
+    const grandTotalLine = result.lineItems.find(
+      (item) => item.component === "grandTotal",
+    );
     expect(grandTotalLine?.amountThb).toBe(result.grandTotal);
+  });
+
+  it("selects a TOU version for every interval and rejects version-spanning interval sets", () => {
+    const older = {
+      ...cloneTariff(demoTouTariff),
+      id: "tou-older",
+      status: "draft" as const,
+      effectiveFrom: "2026-01-01",
+      effectiveTo: "2026-01-31",
+    };
+    const current = {
+      ...cloneTariff(demoTouTariff),
+      id: "tou-current",
+      status: "draft" as const,
+      effectiveFrom: "2026-02-01",
+      effectiveTo: null,
+    };
+
+    const result = calculateTouBillFromVersions({
+      authority: "PEA",
+      customerSegment: "residential",
+      allowedStatuses: ["draft"],
+      versions: [older, current],
+      intervals: [{ timestamp: "2026-02-02T10:00:00+07:00", energyKwh: "10" }],
+    });
+
+    expect(result.tariffVersionId).toBe("tou-current");
+    expect(() =>
+      calculateTouBillFromVersions({
+        authority: "PEA",
+        customerSegment: "residential",
+        allowedStatuses: ["draft"],
+        versions: [older, current],
+        intervals: [
+          { timestamp: "2026-01-30T10:00:00+07:00", energyKwh: "10" },
+          { timestamp: "2026-02-02T10:00:00+07:00", energyKwh: "10" },
+        ],
+      }),
+    ).toThrow("span multiple tariff versions");
   });
 });
 
@@ -316,9 +377,12 @@ describe("tariff primitive calculations", () => {
       energyChargeThb: energy.amountThb,
       ftChargeThb: ft.amountThb,
       serviceChargeThb: 10,
-      vatRatePercent: 7
+      vatRatePercent: 7,
     });
-    const vat = calculateVat({ totalBeforeVatThb: beforeVat.totalBeforeVatThb, vatRatePercent: 7 });
+    const vat = calculateVat({
+      totalBeforeVatThb: beforeVat.totalBeforeVatThb,
+      vatRatePercent: 7,
+    });
 
     expect(energy.amountThb).toBe("400.00");
     expect(ft.amountThb).toBe("50.00");
@@ -333,8 +397,8 @@ describe("tariff primitive calculations", () => {
       energyKwh: 150,
       tiers: [
         { fromKwh: 0, toKwh: 100, rateThbPerKwh: 1, sortOrder: 1 },
-        { fromKwh: 100, toKwh: null, rateThbPerKwh: 2, sortOrder: 2 }
-      ]
+        { fromKwh: 100, toKwh: null, rateThbPerKwh: 2, sortOrder: 2 },
+      ],
     });
 
     expect(result.amountThb).toBe("200.00");

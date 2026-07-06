@@ -46,14 +46,14 @@ export default async function TariffDemoPage({
             <form className="grid gap-4" method="get">
               <label className="grid gap-2 text-sm font-medium">
                 การไฟฟ้า
-                <select className="h-10 rounded-md border border-input bg-white px-3 text-sm" defaultValue={authority} name="authority">
+                <select className="h-10 rounded-md border border-input bg-transparent text-foreground px-3 text-sm" defaultValue={authority} name="authority">
                   <option value="PEA">PEA</option>
                   <option value="MEA">MEA</option>
                 </select>
               </label>
               <label className="grid gap-2 text-sm font-medium">
                 ประเภทผู้ใช้
-                <select className="h-10 rounded-md border border-input bg-white px-3 text-sm" defaultValue={customerSegment} name="customerSegment">
+                <select className="h-10 rounded-md border border-input bg-transparent text-foreground px-3 text-sm" defaultValue={customerSegment} name="customerSegment">
                   <option value="residential">Residential</option>
                   <option value="small_business">Small business</option>
                 </select>
@@ -61,7 +61,7 @@ export default async function TariffDemoPage({
               <label className="grid gap-2 text-sm font-medium">
                 วันที่บิล
                 <input
-                  className="h-10 rounded-md border border-input bg-white px-3 text-sm"
+                  className="h-10 rounded-md border border-input bg-transparent text-foreground px-3 text-sm"
                   defaultValue={billDate}
                   name="billDate"
                   type="date"
@@ -70,7 +70,7 @@ export default async function TariffDemoPage({
               <label className="grid gap-2 text-sm font-medium">
                 หน่วยไฟรายเดือน (kWh)
                 <input
-                  className="h-10 rounded-md border border-input bg-white px-3 text-sm"
+                  className="h-10 rounded-md border border-input bg-transparent text-foreground px-3 text-sm"
                   defaultValue={normalKwh}
                   inputMode="decimal"
                   min="0"

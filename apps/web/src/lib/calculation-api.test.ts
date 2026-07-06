@@ -77,7 +77,7 @@ describe("calculation API helpers", () => {
     expect(payload.trace.customerSegment).toBe("residential");
     expect(payload.trace.tariffVersionIds.every((id) => id.includes("mea-"))).toBe(true);
     expect(payload.analysis.billComparison.bestWithoutSolar.bill.tariffStatus).toBe("published");
-    expect(payload.warnings).toContain("No uploaded load intervals were provided; the API used a generated screening profile.");
+    expect(payload.warnings).toContain("No uploaded load intervals were provided; the API used a sample screening profile.");
   });
 
   it("uses uploaded load intervals when provided to solar analysis", () => {

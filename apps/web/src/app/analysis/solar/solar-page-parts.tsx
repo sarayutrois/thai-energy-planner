@@ -30,9 +30,9 @@ export function SolarPageShell({ active, queryString, children }: { active: stri
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
-          <Badge>Solar XHIGH</Badge>
+          <Badge>ประเมินโซลาร์เซลล์</Badge>
           <Badge variant="outline">แบบจำลองติดตั้งโซลาร์เซลล์</Badge>
-          <Badge variant="warning">screening estimate</Badge>
+          <Badge variant="warning">ข้อมูลเพื่อประกอบการตัดสินใจ</Badge>
         </div>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -111,9 +111,9 @@ export function SolarControls({
           </Field>
           <Field label="Model detail">
             <select name="modelMode" defaultValue={settings.modelMode} className={inputClassName}>
-              <option value="easy">Easy screening</option>
+              <option value="easy">แบบประเมินเบื้องต้น</option>
               <option value="advanced">Advanced assumptions</option>
-              <option value="xhigh">XHIGH review</option>
+              <option value="xhigh">Detailed review</option>
             </select>
           </Field>
           <Field label="Province / area">

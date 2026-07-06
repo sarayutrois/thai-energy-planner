@@ -22,7 +22,8 @@ export default function LoadDashboardPage() {
         </div>
         <h1 className="text-3xl font-semibold tracking-normal">Dashboard ข้อมูลโหลด</h1>
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-          แสดง metric หลักและกราฟเบื้องต้นจาก demo appliance profile โดยแยก Peak/Off-Peak ผ่าน Tariff Engine
+          แสดง metric หลักจาก saved bills เมื่อมีข้อมูลใน browser นี้ และมี sample load profile สำหรับทดลองอ่านกราฟเบื้องต้น
+          โดยแยก Peak/Off-Peak ผ่าน Tariff Engine
         </p>
 
         <LocalBillSummary />

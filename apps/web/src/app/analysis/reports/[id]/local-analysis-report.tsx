@@ -27,7 +27,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
   if (!loaded) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">กำลังโหลดรายงานจาก browser...</CardContent>
+        <CardContent className="p-6 text-sm text-muted-foreground">กำลังโหลดรายงานจากเซสชัน...</CardContent>
       </Card>
     );
   }
@@ -43,7 +43,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            รายงาน local อาจถูกลบจาก browser แล้ว ให้กลับไปหน้า result ที่เริ่มจาก saved bills แล้วกดบันทึกเป็นรายงานใหม่
+            รายงาน local อาจถูกลบจากเซสชันแล้ว ให้กลับไปหน้า result ที่เริ่มจาก saved bills แล้วกดบันทึกเป็นรายงานใหม่
           </p>
           <Link
             className="inline-flex h-10 w-fit items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -224,7 +224,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         ) : null}
 
         <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
-          รายงานนี้เป็นรายงานที่บันทึกไว้ในเครื่องนี้ โดยสร้างจาก saved bills, tariff snapshot และ screening profile ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจข้อมูลหน้างานและแหล่งทางการ
+          รายงานนี้เป็นรายงานที่บันทึกไว้ในเซสชันนี้ โดยสร้างจาก saved bills, tariff snapshot และข้อมูลสำหรับประเมินเบื้องต้น ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจข้อมูลหน้างานและรับใบเสนอราคาทางการ
         </p>
       </section>
     </article>

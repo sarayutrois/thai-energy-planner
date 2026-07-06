@@ -31,7 +31,7 @@ export function LocalBillReport() {
   if (!loaded) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">กำลังโหลดรายงานจาก browser...</CardContent>
+        <CardContent className="p-6 text-sm text-muted-foreground">กำลังโหลดรายงานจากเซสชัน...</CardContent>
       </Card>
     );
   }
@@ -47,7 +47,7 @@ export function LocalBillReport() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            กลับไปหน้ากรอกบิล แล้วกด “สร้างรายงานจากบิลนี้” เพื่อสร้าง snapshot ที่เก็บไว้ใน browser ของคุณ
+            กลับไปหน้ากรอกบิล แล้วกด “สร้างรายงานจากบิลนี้” เพื่อสร้าง snapshot ที่เก็บไว้ในเซสชันนี้
           </p>
           <a
             className="inline-flex h-10 w-fit items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -168,7 +168,7 @@ export function LocalBillReport() {
         </Card>
 
         <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
-          รายงานนี้สร้างจากข้อมูลที่เก็บใน browser ของเครื่องนี้ ยังไม่ใช่ข้อมูลจากฐานข้อมูลกลาง
+          รายงานนี้สร้างจากข้อมูลที่เก็บในเซสชันนี้ ยังไม่ใช่ข้อมูลจากฐานข้อมูลกลาง
           และยังใช้เพื่อประเมินเบื้องต้นก่อนตรวจ tariff ทางการ
         </p>
       </section>
