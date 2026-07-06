@@ -7,7 +7,7 @@ import { exportToCsv } from "@thai-energy-planner/report-engine";
 import { downloadJsonFile, downloadTextFile } from "@/lib/file-download";
 
 function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: number) {
-  const timerRef = useRef<ReturnType<typeof setTimeout>>();
+  const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     timerRef.current = setTimeout(callback, delayMs);
     return () => clearTimeout(timerRef.current);
@@ -229,10 +229,12 @@ function nextMonth(month: string | undefined): string {
   const now = new Date();
   const fallback = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
   if (!month) return fallback;
-  const [year, monthNumber] = month.split("-").map(Number);
-  if (!Number.isFinite(year) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+  const parts = month.split("-").map(Number);
+  const year = parts[0];
+  const monthNumber = parts[1];
+  if (year === undefined || monthNumber === undefined || !Number.isFinite(year) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
     return fallback;
   }
-  const date = new Date(Date.UTC(year, monthNumber, 1));
+  const date = new Date(Date.UTC(year, monthNumber - 1, 1));
   return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
 }
