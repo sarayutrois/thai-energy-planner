@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, SunMedium, UploadCloud } from "lucide-react";
 
 const navItems = [
@@ -15,12 +16,12 @@ export function MainNav() {
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/88 backdrop-blur">
       <div className="mx-auto flex h-16 w-full max-w-7xl items-center justify-between gap-4 px-4 md:px-6">
-        <a href="#" className="flex items-center gap-3 font-semibold" aria-label="Thai Energy Planner">
+        <Link href="/" className="flex items-center gap-3 font-semibold" aria-label="Thai Energy Planner">
           <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
             <Gauge aria-hidden="true" className="h-5 w-5" />
           </span>
           <span className="hidden sm:inline">Thai Energy Planner</span>
-        </a>
+        </Link>
         <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
           {navItems.map((item) => (
             <a

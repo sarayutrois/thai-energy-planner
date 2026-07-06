@@ -12,7 +12,7 @@ export default function NewScenarioPage() {
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
           <Badge>Scenario Setup</Badge>
-          <Badge variant="outline">Demo Load Profile</Badge>
+          <Badge variant="outline">Sample Load Profile</Badge>
         </div>
         <h1 className="mt-4 text-3xl font-semibold tracking-normal">สร้าง Scenario เปรียบเทียบ</h1>
 
@@ -39,13 +39,13 @@ export default function NewScenarioPage() {
                 <label className="grid gap-2 text-sm font-medium">
                   Current tariff
                   <select name="normalTariff" className="h-10 rounded-md border border-input bg-background px-3">
-                    <option value="demo-normal">Demo Residential Normal</option>
+                    <option value="official-seed-normal">Official seed - Normal</option>
                   </select>
                 </label>
                 <label className="grid gap-2 text-sm font-medium">
                   Candidate tariff
                   <select name="touTariff" className="h-10 rounded-md border border-input bg-background px-3">
-                    <option value="demo-tou">Demo Residential TOU</option>
+                    <option value="official-seed-tou">Official seed - TOU</option>
                   </select>
                 </label>
               </div>

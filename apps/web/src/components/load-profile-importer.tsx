@@ -99,7 +99,7 @@ export function LoadProfileImporter() {
         )
       );
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : "โหลด demo data ไม่สำเร็จ");
+      setError(caught instanceof Error ? caught.message : "โหลดข้อมูลตัวอย่างไม่สำเร็จ");
     }
   }
 
@@ -180,7 +180,7 @@ export function LoadProfileImporter() {
           <Button
             onClick={() => loadInlineDemo()}
           >
-            ใช้ demo data
+            ใช้ข้อมูลตัวอย่าง
           </Button>
           <Button onClick={() => void loadTestCsv()} variant="outline">
             ใช้ test CSV

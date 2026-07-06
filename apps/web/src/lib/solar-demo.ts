@@ -78,7 +78,7 @@ export function getSolarDemo(params: SolarSearchParams): {
     roofAreaSqm: getNumberParam(params.roofAreaSqm, systemSizeKwp * 6, 0, "Roof area", validationMessages),
     roofAzimuth: getNumberParam(params.roofAzimuth, demoInput.solarAssumptions.roofAzimuth ?? 180, 0, "Roof azimuth", validationMessages),
     roofTilt: getNumberParam(params.roofTilt, demoInput.solarAssumptions.roofTilt ?? 12, 0, "Roof tilt", validationMessages),
-    province: getSingleParam(params.province) ?? "Bangkok demo",
+    province: getSingleParam(params.province) ?? "Bangkok",
     systemLossPercent: getNumberParam(params.systemLossPercent, demoInput.solarAssumptions.systemLossPercent, 0, "System loss", validationMessages),
     shadingLossPercent: getNumberParam(params.shadingLossPercent, demoInput.solarAssumptions.shadingLossPercent, 0, "Shading loss", validationMessages),
     degradationPercentPerYear: getNumberParam(
@@ -236,7 +236,7 @@ function getNumberParam(
   if (raw === undefined || raw === "") return fallback;
   const parsed = Number(raw);
   if (Number.isFinite(parsed) && parsed >= min) return parsed;
-  validationMessages.push(`${label} must be greater than or equal to ${min}; demo fallback was used.`);
+  validationMessages.push(`${label} must be greater than or equal to ${min}; the default value was used.`);
   return fallback;
 }
 

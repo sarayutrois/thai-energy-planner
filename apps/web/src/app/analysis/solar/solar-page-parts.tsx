@@ -32,7 +32,7 @@ export function SolarPageShell({ active, queryString, children }: { active: stri
         <div className="flex flex-wrap gap-2">
           <Badge>Solar XHIGH</Badge>
           <Badge variant="outline">แบบจำลองติดตั้งโซลาร์เซลล์</Badge>
-          <Badge variant="warning">ข้อมูล demo/draft</Badge>
+          <Badge variant="warning">screening estimate</Badge>
         </div>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>

@@ -7,7 +7,7 @@ import { LocalScenarioStart } from "./local-scenario-start";
 const scenarioRoutes = [
   {
     href: "/analysis/scenarios/results",
-    label: "ดูผล Normal / TOU demo",
+    label: "ดูผล Normal / TOU",
     description: "เริ่มจากผลตัวอย่างเพื่อเข้าใจว่าการย้ายโหลดไป off-peak ช่วยได้แค่ไหน",
     icon: ReceiptText,
     badge: "เริ่มตรงนี้"

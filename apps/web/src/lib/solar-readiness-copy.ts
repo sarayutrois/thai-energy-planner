@@ -12,9 +12,9 @@ export const solarReadinessCopy = {
   nextStep:
     "ติดต่อผู้รับเหมาหรือวิศวกรเพื่อสำรวจสถานที่ ตรวจสภาพหลังคา เงาบัง และประเมินราคาจริงก่อนตัดสินใจลงทุน",
   tariffReference:
-    "ใช้อัตราค่าไฟฟ้า demo/draft จาก Tariff Engine ของระบบ ยังไม่ใช่ข้อมูล production ที่ยืนยันจาก MEA/PEA/ERC และไม่ได้ระบุค่า Ft รอบปัจจุบัน",
+    "ใช้อัตราค่าไฟฟ้า official seed จาก Tariff Engine พร้อม snapshot ของ tariff, Ft และ VAT สำหรับการประเมินเบื้องต้น ก่อนใช้งานจริงควรตรวจรอบประกาศล่าสุดจาก MEA/PEA/ERC",
   yieldReference:
-    "ใช้ค่า specific yield รายเดือนแบบ demo/draft สำหรับ workflow ทดสอบ ควรแทนด้วยข้อมูล Global Solar Atlas, DEDE หรือแบบจำลอง site-specific ก่อนใช้งานจริง",
+    "ใช้ค่า specific yield รายเดือนแบบ screening profile ควรแทนด้วยข้อมูล Global Solar Atlas, DEDE หรือแบบจำลอง site-specific ก่อนใช้ตัดสินใจลงทุนจริง",
   exportReference:
     "ใช้อัตรารับซื้อไฟที่ผู้ใช้ระบุในแบบจำลอง หากต้องใช้ production ต้องตรวจประกาศ ERC ล่าสุดและ eligibility ของโครงการก่อน"
 } as const;

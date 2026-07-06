@@ -100,7 +100,7 @@ function normalizeBillDate(value: string | undefined, warnings: string[]) {
 
   if (value) {
     warnings.push(
-      `Official tariff seed in this demo covers ${officialSeedEffectiveFrom} to ${officialSeedEffectiveTo}; ${defaultBillDate} was used instead.`
+      `Official tariff seed currently covers ${officialSeedEffectiveFrom} to ${officialSeedEffectiveTo}; ${defaultBillDate} was used instead.`
     );
   }
   return defaultBillDate;

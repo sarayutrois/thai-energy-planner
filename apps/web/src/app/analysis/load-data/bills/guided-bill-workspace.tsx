@@ -445,7 +445,7 @@ export function GuidedBillWorkspace({
               <FileText aria-hidden="true" className="h-4 w-4" />
               สร้างรายงานจากบิลนี้
             </button>
-            <NextLink href={scenarioHref} label="เทียบ Normal / TOU" description="ใช้ demo scenario เพื่อดูแนวคิดการประหยัดจาก TOU และการย้ายโหลด" />
+            <NextLink href={scenarioHref} label="เทียบ Normal / TOU" description="ใช้ข้อมูลบิลที่บันทึกไว้เพื่อประเมินค่าไฟ TOU และการย้ายโหลดเบื้องต้น" />
             <NextLink href={solarHref} label="ลอง Solar" description="ใช้ profile ที่เหมาะกับประเภทผู้ใช้ที่เลือกไว้ แล้วประเมินคืนทุนเบื้องต้น" />
             <NextLink href={buildAnalysisStartHref("/analysis/load-data/import", audience, "interval")} label="มีไฟล์ละเอียดแล้ว" description="อัปโหลด load profile เพื่อเพิ่มความแม่นยำของ TOU, Solar, Battery และ EV" />
           </CardContent>

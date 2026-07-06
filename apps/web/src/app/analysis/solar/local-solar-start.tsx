@@ -53,7 +53,7 @@ export function LocalSolarStart() {
       baseline: snapshot?.audience === "home" ? "normal" : "tou",
       systemSizeKwp: String(suggested.systemSizeKwp),
       roofAreaSqm: String(suggested.roofAreaSqm),
-      province: "Bangkok demo",
+      province: "Bangkok",
       capexThb: String(suggested.capexThb),
       oAndMCostPerYear: String(Math.round(suggested.capexThb * 0.01)),
       projectLifeYears: "20",
@@ -100,7 +100,7 @@ export function LocalSolarStart() {
               ตั้งค่า Solar จากบิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนใน browser นี้ ยังเป็น demo/draft ก่อนใช้ตัดสินใจลงทุนจริง
+              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนใน browser นี้ เป็น screening estimate ก่อนตรวจหน้างานและใบเสนอราคาจริง
             </p>
           </div>
           <div className="flex flex-wrap gap-2">

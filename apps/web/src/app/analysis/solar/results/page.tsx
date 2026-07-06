@@ -52,7 +52,7 @@ function buildSolarReportDraft(
     title: `รายงานสรุป Solar simulation - ${settings.profile}`,
     summary: `แบบจำลองนี้ประเมินทางเลือกหลังติดตั้ง Solar ว่า ${analysis.billComparison.bestWithSolar.label} มีประมาณการลดค่าใช้จ่ายรายปีราว ${formatApproximateMoneyRange(
       analysis.billComparison.netAnnualBenefit
-    )} ต่อปี ภายใต้สมมติฐาน demo/draft และมีระดับความมั่นใจ ${analysis.modelQuality.label} (${analysis.modelQuality.score}/100)`,
+    )} ต่อปี ภายใต้สมมติฐาน screening estimate และมีระดับความมั่นใจ ${analysis.modelQuality.label} (${analysis.modelQuality.score}/100)`,
     metrics: [
       { label: "Best after solar", value: analysis.billComparison.bestWithSolar.label },
       { label: "ประมาณการลดค่าใช้จ่ายรายปี", value: `${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี` },
@@ -92,7 +92,7 @@ function buildSolarReportDraft(
           { label: "สถานที่ตั้ง / พื้นที่", value: settings.province },
           { label: "ลักษณะโหลด", value: settings.profile },
           { label: "ประเภทผู้ใช้จาก saved bills", value: getAudienceLabel(settings.profile) },
-          { label: "ค่าไฟและโหลดตั้งต้น", value: "อ้างอิงจาก demo load profile หรือ saved bills context ที่ผู้ใช้เลือก" }
+          { label: "ค่าไฟและโหลดตั้งต้น", value: "อ้างอิงจาก screening load profile หรือ saved bills context ที่ผู้ใช้เลือก" }
         ]
       },
       {
@@ -159,7 +159,7 @@ function buildSolarReportDraft(
       },
       {
         title: "สถานะข้อมูล",
-        description: "ข้อมูล tariff, export rate และ solar yield ใน workflow นี้ยังเป็น demo/draft เว้นแต่มีการแทนด้วยแหล่งทางการที่ตรวจสอบแล้ว",
+        description: "ข้อมูล tariff ใช้ official seed พร้อม snapshot ส่วน export rate และ solar yield ยังเป็นค่าประเมินเบื้องต้นที่ควรตรวจสอบกับแหล่งทางการก่อนลงทุนจริง",
         nextAction: "ตรวจสอบ MEA/PEA/ERC/Global Solar Atlas/DEDE ก่อนใช้รายงานประกอบการลงทุนจริง"
       }
     ],

@@ -224,7 +224,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         ) : null}
 
         <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
-          รายงานนี้เป็น local draft ที่สร้างจาก saved bills และ demo/draft analysis profile ใน browser นี้ ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจ tariff และข้อมูลจริงจากแหล่งทางการ
+          รายงานนี้เป็นรายงานที่บันทึกไว้ในเครื่องนี้ โดยสร้างจาก saved bills, tariff snapshot และ screening profile ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจข้อมูลหน้างานและแหล่งทางการ
         </p>
       </section>
     </article>
