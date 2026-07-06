@@ -4,7 +4,7 @@
 
 @layer base {
   :root {
-    --font-sans: "Inter", "Noto Sans Thai", Arial, sans-serif;
+    --font-sans: var(--font-inter), var(--font-prompt), Arial, sans-serif;
     /* Light Mode Defaults */
     --background: 0 0% 100%;
     --foreground: 240 10% 3.9%;

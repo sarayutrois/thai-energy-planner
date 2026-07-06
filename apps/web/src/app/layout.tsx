@@ -1,5 +1,13 @@
 import type { Metadata } from "next";
+import { Inter, Prompt } from "next/font/google";
 import "./globals.css";
+
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const prompt = Prompt({
+  weight: ["300", "400", "500", "600", "700"],
+  subsets: ["thai"],
+  variable: "--font-prompt",
+});
 
 export const metadata: Metadata = {
   title: "Thai Energy Planner",
@@ -12,7 +20,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="th">
+    <html lang="th" className={`${inter.variable} ${prompt.variable}`}>
       <body>{children}</body>
     </html>
   );
