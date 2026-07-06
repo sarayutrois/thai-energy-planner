@@ -12,6 +12,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
     "@thai-energy-planner/calculation-engine": "0.1.0",
     "@thai-energy-planner/report-engine": "0.1.0",

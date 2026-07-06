@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisStartHref, type AnalysisAudience } from "@/lib/analysis-start";
 import { billReportStorageKey, localBillReportId, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
 import { useBillWorkspace, toBillInput, type EditableBillRow } from "./use-bill-workspace";
+import { AiScannerButton } from "./ai-scanner-button";
 
 const audienceProfile: Record<AnalysisAudience, string> = {
   home: "evening_home",
@@ -43,7 +44,8 @@ export function GuidedBillWorkspace({
     resetWorkspace,
     exportWorkspace,
     exportWorkspaceCsv,
-    importWorkspace
+    importWorkspace,
+    upsertRow
   } = useBillWorkspace(initialBills, audience);
   const router = useRouter();
   
@@ -175,6 +177,16 @@ export function GuidedBillWorkspace({
                 <Upload aria-hidden="true" className="h-4 w-4" />
                 Import JSON/CSV
               </button>
+              <AiScannerButton 
+                onScanSuccess={(bill) => {
+                  upsertRow({
+                    month: bill.month,
+                    energyKwh: String(bill.energyKwh),
+                    totalCostThb: String(bill.totalCostThb),
+                    ...(bill.authority && { authority: bill.authority as "PEA" | "MEA" })
+                  });
+                }} 
+              />
               <input
                 accept="application/json,text/csv,.json,.csv"
                 className="hidden"

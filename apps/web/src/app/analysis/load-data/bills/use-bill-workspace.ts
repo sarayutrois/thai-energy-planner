@@ -78,6 +78,25 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
     setRows((current) => (current.length <= 1 ? current : current.filter((row) => row.id !== id)));
   }
 
+  function upsertRow(patch: Partial<EditableBillRow> & { month: string }) {
+    setRows((current) => {
+      const existingIdx = current.findIndex(r => r.month === patch.month);
+      if (existingIdx !== -1) {
+        const next = [...current];
+        next[existingIdx] = { ...next[existingIdx], ...patch } as EditableBillRow;
+        return next;
+      }
+      return [...current, {
+        id: crypto.randomUUID(),
+        month: patch.month,
+        energyKwh: patch.energyKwh || "",
+        totalCostThb: patch.totalCostThb || "",
+        authority: (patch.authority as "PEA" | "MEA") || current.at(-1)?.authority || "PEA",
+        meterMode: current.at(-1)?.meterMode ?? "normal"
+      }].sort((a, b) => a.month.localeCompare(b.month));
+    });
+  }
+
   function loadExample(kind: "home" | "shop") {
     const multiplier = kind === "shop" ? 2.4 : 1;
     setRows(
@@ -180,7 +199,8 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
     resetWorkspace,
     exportWorkspace,
     exportWorkspaceCsv,
-    importWorkspace
+    importWorkspace,
+    upsertRow
   };
 }
 
