@@ -334,11 +334,11 @@ function formatMonth(month: string) {
   const [year, monthNumber] = month.split("-");
   const date = new Date(Number(year), Number(monthNumber) - 1, 1);
   if (Number.isNaN(date.getTime())) return month;
-  return date.toLocaleDateString("th-TH", { month: "short", year: "numeric" });
+  return date.toLocaleDateString("th-TH-u-ca-gregory", { month: "short", year: "numeric" });
 }
 
 function formatDateTime(value: string) {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "ไม่ทราบเวลา";
-  return date.toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" });
+  return date.toLocaleString("th-TH-u-ca-gregory", { dateStyle: "medium", timeStyle: "short" });
 }

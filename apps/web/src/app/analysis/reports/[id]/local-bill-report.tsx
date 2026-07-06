@@ -70,7 +70,7 @@ export function LocalBillReport() {
             </div>
             <h2 className="text-3xl font-semibold tracking-normal">{snapshot.title}</h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              สร้างเมื่อ {new Date(snapshot.createdAt).toLocaleString("th-TH")} · {audienceLabels[snapshot.audience]}
+              สร้างเมื่อ {new Date(snapshot.createdAt).toLocaleString("th-TH-u-ca-gregory")} · {audienceLabels[snapshot.audience]}
             </p>
           </div>
           <ReportActions
