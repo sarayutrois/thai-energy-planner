@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, SunMedium, UploadCloud, Menu, X } from "lucide-react";
+import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, SunMedium, UploadCloud, Menu, X, Layers } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 const navItems = [
   { label: "วิเคราะห์", href: "/analysis/new", icon: Gauge },
@@ -12,6 +13,7 @@ const navItems = [
   { label: "Solar", href: "/analysis/solar", icon: SunMedium },
   { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
   { label: "EV", href: "/analysis/ev", icon: PlugZap },
+  { label: "Ecosystem", href: "/analysis/ecosystem", icon: Layers },
   { label: "รายงาน", href: "/analysis/reports", icon: FileText }
 ];
 
@@ -51,12 +53,15 @@ export function MainNav() {
           ))}
         </nav>
         
-        <a
-          className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
-          href="/analysis/new"
-        >
-          เริ่มวิเคราะห์
-        </a>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <a
+            className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
+            href="/analysis/new"
+          >
+            เริ่มวิเคราะห์
+          </a>
+        </div>
       </div>
 
       {/* Mobile Menu Dropdown */}

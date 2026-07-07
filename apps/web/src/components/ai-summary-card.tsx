@@ -7,9 +7,9 @@ import { Card, CardContent } from "@/components/ui/card";
 type ColorScheme = "purple" | "blue" | "teal";
 
 const colorMap: Record<ColorScheme, { border: string; bg: string; iconBg: string; iconText: string; title: string; text: string; skeleton: string }> = {
-  purple: { border: "border-purple-200", bg: "bg-gradient-to-r from-purple-50 to-indigo-50/50", iconBg: "bg-purple-100", iconText: "text-purple-600", title: "text-purple-900", text: "text-purple-800/90", skeleton: "bg-purple-200/50" },
-  blue:   { border: "border-blue-200",   bg: "bg-gradient-to-r from-blue-50 to-indigo-50/50",  iconBg: "bg-blue-100",   iconText: "text-blue-600",   title: "text-blue-900",   text: "text-blue-800/90",   skeleton: "bg-blue-200/50" },
-  teal:   { border: "border-teal-200",   bg: "bg-gradient-to-r from-teal-50 to-emerald-50/50", iconBg: "bg-teal-100",   iconText: "text-teal-600",   title: "text-teal-900",   text: "text-teal-800/90",   skeleton: "bg-teal-200/50" },
+  purple: { border: "border-purple-200 dark:border-purple-900", bg: "bg-gradient-to-r from-purple-50 to-indigo-50/50 dark:from-purple-950/30 dark:to-indigo-900/20", iconBg: "bg-purple-100 dark:bg-purple-900/50", iconText: "text-purple-600 dark:text-purple-300", title: "text-purple-900 dark:text-purple-100", text: "text-purple-800/90 dark:text-purple-200/90", skeleton: "bg-purple-200/50 dark:bg-purple-800/50" },
+  blue:   { border: "border-blue-200 dark:border-blue-900",   bg: "bg-gradient-to-r from-blue-50 to-indigo-50/50 dark:from-blue-950/30 dark:to-indigo-900/20",  iconBg: "bg-blue-100 dark:bg-blue-900/50",   iconText: "text-blue-600 dark:text-blue-300",   title: "text-blue-900 dark:text-blue-100",   text: "text-blue-800/90 dark:text-blue-200/90",   skeleton: "bg-blue-200/50 dark:bg-blue-800/50" },
+  teal:   { border: "border-teal-200 dark:border-teal-900",   bg: "bg-gradient-to-r from-teal-50 to-emerald-50/50 dark:from-teal-950/30 dark:to-emerald-900/20", iconBg: "bg-teal-100 dark:bg-teal-900/50",   iconText: "text-teal-600 dark:text-teal-300",   title: "text-teal-900 dark:text-teal-100",   text: "text-teal-800/90 dark:text-teal-200/90",   skeleton: "bg-teal-200/50 dark:bg-teal-800/50" },
 };
 
 interface AiSummaryCardProps {

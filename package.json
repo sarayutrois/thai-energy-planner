@@ -19,6 +19,7 @@
     "prisma:generate": "prisma generate --schema prisma/schema.prisma",
     "prisma:migrate": "prisma migrate dev --schema prisma/schema.prisma",
     "prisma:seed": "tsx prisma/seed.ts",
+    "export:user-data": "tsx scripts/export-user-data-to-excel.ts",
     "smoke": "node scripts/smoke-test.js"
   },
   "dependencies": {

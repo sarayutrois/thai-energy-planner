@@ -11,6 +11,7 @@ import {
   SolarPageShell,
   SolarSummary
 } from "../solar-page-parts";
+import { ExportReportButton } from "@/components/export-report-button";
 import { AiExecutiveSummary } from "../ai-executive-summary";
 import { SolarApiRuntimePanel } from "../solar-api-runtime-panel";
 
@@ -22,7 +23,12 @@ export default async function SolarResultsPage({ searchParams }: { searchParams?
   return (
     <SolarPageShell active="results" queryString={queryString}>
       <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
-      <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Solar" reportDraft={reportDraft} />
+      <div className="flex items-center justify-between mt-4">
+        <h2 className="text-xl font-semibold">สรุปผลการวิเคราะห์</h2>
+        <ExportReportButton targetId="solar-report" filename="solar-analysis-report.pdf" />
+      </div>
+      <div id="solar-report" className="space-y-6 pt-4">
+        <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Solar" reportDraft={reportDraft} />
       <SolarApiRuntimePanel settings={settings} />
       <SolarSummary analysis={analysis} />
       <AiExecutiveSummary analysis={analysis} />
@@ -30,6 +36,7 @@ export default async function SolarResultsPage({ searchParams }: { searchParams?
       <BillComparisonTable analysis={analysis} />
       <SolarChartsSection analysis={analysis} />
       <RecommendationCards analysis={analysis} />
+      </div>
     </SolarPageShell>
   );
 }

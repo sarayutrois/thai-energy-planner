@@ -10,6 +10,7 @@ import {
   BatterySourcePanel,
   BatterySummary
 } from "../battery-page-parts";
+import { ExportReportButton } from "@/components/export-report-button";
 import { AiBatterySummary } from "../ai-battery-summary";
 
 export default async function BatteryResultsPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
@@ -20,13 +21,19 @@ export default async function BatteryResultsPage({ searchParams }: { searchParam
   return (
     <BatteryPageShell active="results" queryString={queryString}>
       <BatteryControls settings={settings} action="/analysis/battery/results" savedBillContext={savedBillContext} />
-      <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Battery" reportDraft={reportDraft} />
-      <AiBatterySummary analysis={analysis} settings={settings} />
+      <div className="flex items-center justify-between mt-4">
+        <h2 className="text-xl font-semibold">สรุปผลการวิเคราะห์</h2>
+        <ExportReportButton targetId="battery-report" filename="battery-analysis-report.pdf" />
+      </div>
+      <div id="battery-report" className="space-y-6 pt-4">
+        <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Battery" reportDraft={reportDraft} />
+        <AiBatterySummary analysis={analysis} settings={settings} />
       <BatterySummary analysis={analysis} />
       <BatterySourcePanel analysis={analysis} />
       <BatteryFinancialTable analysis={analysis} />
       <BatteryChartsSection analysis={analysis} />
       <BatteryRecommendations analysis={analysis} />
+      </div>
     </BatteryPageShell>
   );
 }

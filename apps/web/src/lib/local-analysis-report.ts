@@ -4,7 +4,7 @@ import {
   localBillReportId,
   type LocalAnalysisReportDraft,
   type LocalAnalysisReportSnapshot,
-  type LocalBillReportSnapshot
+  type LocalBillReportSnapshot,
 } from "@/lib/local-analysis-snapshot";
 
 const maxStoredReports = 12;
@@ -13,29 +13,42 @@ export function readLocalAnalysisReports(): LocalAnalysisReportSnapshot[] {
   const raw = window.localStorage.getItem(localAnalysisReportsStorageKey);
   const parsed = raw ? (JSON.parse(raw) as unknown) : [];
   if (!Array.isArray(parsed)) return [];
-  return parsed.filter(isLocalAnalysisReportSnapshot).sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+  return parsed
+    .filter(isLocalAnalysisReportSnapshot)
+    .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
-export function readLocalAnalysisReport(id: string): LocalAnalysisReportSnapshot | null {
+export function readLocalAnalysisReport(
+  id: string,
+): LocalAnalysisReportSnapshot | null {
   return readLocalAnalysisReports().find((report) => report.id === id) ?? null;
 }
 
 export function deleteLocalAnalysisReport(id: string) {
   const report = readLocalAnalysisReport(id);
   if (report?.serverGeneratedReportId) {
-    void fetch(`/api/reports/${report.serverGeneratedReportId}`, { method: "DELETE" }).catch(() => undefined);
+    void fetch(`/api/reports/${report.serverGeneratedReportId}`, {
+      method: "DELETE",
+    }).catch(() => undefined);
   }
-  const nextReports = readLocalAnalysisReports().filter((item) => item.id !== id);
-  window.localStorage.setItem(localAnalysisReportsStorageKey, JSON.stringify(nextReports));
+  const nextReports = readLocalAnalysisReports().filter(
+    (item) => item.id !== id,
+  );
+  window.localStorage.setItem(
+    localAnalysisReportsStorageKey,
+    JSON.stringify(nextReports),
+  );
 }
 
-export async function persistLocalAnalysisReport(report: LocalAnalysisReportSnapshot) {
+export async function persistLocalAnalysisReport(
+  report: LocalAnalysisReportSnapshot,
+) {
   if (report.serverGeneratedReportId) return report;
 
   const response = await fetch("/api/reports", {
     body: JSON.stringify(report),
     headers: { "Content-Type": "application/json" },
-    method: "POST"
+    method: "POST",
   });
   if (!response.ok) return report;
 
@@ -48,17 +61,24 @@ export async function persistLocalAnalysisReport(report: LocalAnalysisReportSnap
   const updatedReport: LocalAnalysisReportSnapshot = {
     ...report,
     serverAnalysisRunId: payload.analysisRunId ?? undefined,
-    serverGeneratedReportId: payload.generatedReportId
+    serverGeneratedReportId: payload.generatedReportId,
   };
-  const nextReports = readLocalAnalysisReports().map((item) => (item.id === report.id ? updatedReport : item));
-  window.localStorage.setItem(localAnalysisReportsStorageKey, JSON.stringify(nextReports));
+  await persistUserSubmission(updatedReport).catch(() => undefined);
+
+  const nextReports = readLocalAnalysisReports().map((item) =>
+    item.id === report.id ? updatedReport : item,
+  );
+  window.localStorage.setItem(
+    localAnalysisReportsStorageKey,
+    JSON.stringify(nextReports),
+  );
   return updatedReport;
 }
 
 export function saveLocalAnalysisReport({
   billSnapshot,
   draft,
-  sourcePath
+  sourcePath,
 }: {
   billSnapshot: LocalBillReportSnapshot;
   draft: LocalAnalysisReportDraft;
@@ -76,18 +96,25 @@ export function saveLocalAnalysisReport({
       monthCount: billSnapshot.monthCount,
       totalKwh: billSnapshot.totalKwh,
       averageMonthlyCostThb: billSnapshot.averageMonthlyCostThb,
-      dataQualityLabel: billSnapshot.dataQualityLabel
-    }
+      dataQualityLabel: billSnapshot.dataQualityLabel,
+    },
   };
-  const nextReports = [report, ...readLocalAnalysisReports().filter((existing) => existing.id !== report.id)].slice(
-    0,
-    maxStoredReports
+  const nextReports = [
+    report,
+    ...readLocalAnalysisReports().filter(
+      (existing) => existing.id !== report.id,
+    ),
+  ].slice(0, maxStoredReports);
+  window.localStorage.setItem(
+    localAnalysisReportsStorageKey,
+    JSON.stringify(nextReports),
   );
-  window.localStorage.setItem(localAnalysisReportsStorageKey, JSON.stringify(nextReports));
   return report;
 }
 
-function isLocalAnalysisReportSnapshot(value: unknown): value is LocalAnalysisReportSnapshot {
+function isLocalAnalysisReportSnapshot(
+  value: unknown,
+): value is LocalAnalysisReportSnapshot {
   if (!value || typeof value !== "object") return false;
   const report = value as Partial<LocalAnalysisReportSnapshot>;
   return (
@@ -100,4 +127,23 @@ function isLocalAnalysisReportSnapshot(value: unknown): value is LocalAnalysisRe
     Array.isArray(report.resultRows) &&
     Array.isArray(report.recommendations)
   );
+}
+
+async function persistUserSubmission(report: LocalAnalysisReportSnapshot) {
+  await fetch("/api/submissions", {
+    body: JSON.stringify({
+      analysisRunId: report.serverAnalysisRunId,
+      inputType: `${report.module}_report_snapshot`,
+      metadata: {
+        localReportId: report.id,
+        serverGeneratedReportId: report.serverGeneratedReportId,
+        sourceBillReportId: report.sourceBillReportId,
+      },
+      module: "report",
+      payload: report,
+      sourcePage: report.sourcePath,
+    }),
+    headers: { "Content-Type": "application/json" },
+    method: "POST",
+  });
 }

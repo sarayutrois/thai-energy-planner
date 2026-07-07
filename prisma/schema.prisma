@@ -82,14 +82,15 @@ enum ReportFormat {
 }
 
 model User {
-  id            String         @id @default(cuid())
-  email         String?        @unique
+  id            String           @id @default(cuid())
+  email         String?          @unique
   name          String?
-  role          UserRole       @default(USER)
-  createdAt     DateTime       @default(now())
-  updatedAt     DateTime       @updatedAt
+  role          UserRole         @default(USER)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   organizations Organization[]
   analysisRuns  AnalysisRun[]
+  submissions   UserSubmission[]
   auditLogs     AuditLog[]
 }
 
@@ -941,12 +942,34 @@ model AnalysisRun {
   scenarioComparisons    ScenarioComparison[]
   generatedReports       GeneratedReport[]
   recommendations        Recommendation[]
+  userSubmissions        UserSubmission[]
   createdAt              DateTime                @default(now())
 
   @@index([userId, createdAt])
   @@index([siteId, createdAt])
   @@index([meterId, createdAt])
   @@index([loadProfileId, createdAt])
+}
+
+model UserSubmission {
+  id            String       @id @default(cuid())
+  userId        String?
+  user          User?        @relation(fields: [userId], references: [id], onDelete: SetNull)
+  analysisRunId String?
+  analysisRun   AnalysisRun? @relation(fields: [analysisRunId], references: [id], onDelete: SetNull)
+  sessionId     String?
+  module        String
+  inputType     String
+  sourcePage    String
+  payload       Json
+  metadata      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId, createdAt])
+  @@index([analysisRunId, createdAt])
+  @@index([sessionId, createdAt])
+  @@index([module, inputType, createdAt])
 }
 
 model TariffSnapshot {

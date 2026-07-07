@@ -10,6 +10,7 @@ import {
   EvSourcePanel,
   EvSummary
 } from "../ev-page-parts";
+import { ExportReportButton } from "@/components/export-report-button";
 import { AiEvSummary } from "../ai-ev-summary";
 
 export default async function EvResultsPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
@@ -20,13 +21,19 @@ export default async function EvResultsPage({ searchParams }: { searchParams?: P
   return (
     <EvPageShell active="results" queryString={queryString}>
       <EvControls settings={settings} action="/analysis/ev/results" savedBillContext={savedBillContext} />
-      <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="EV" reportDraft={reportDraft} />
+      <div className="flex items-center justify-between mt-4">
+        <h2 className="text-xl font-semibold">สรุปผลการวิเคราะห์</h2>
+        <ExportReportButton targetId="ev-report" filename="ev-analysis-report.pdf" />
+      </div>
+      <div id="ev-report" className="space-y-6 pt-4">
+        <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="EV" reportDraft={reportDraft} />
       <AiEvSummary selectedScenario={selectedScenario} comparison={comparison} />
       <EvSummary selectedScenario={selectedScenario} comparison={comparison} />
       <EvSourcePanel demo={demo} selectedScenario={selectedScenario} />
       <EvComparisonTable comparison={comparison} />
       <EvChartsSection demo={demo} selectedScenario={selectedScenario} comparison={comparison} />
       <EvRecommendations comparison={comparison} />
+      </div>
     </EvPageShell>
   );
 }
