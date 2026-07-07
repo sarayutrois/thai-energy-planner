@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import { getBatteryDemo, type Phase6SearchParams } from "@/lib/phase6-demo";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";

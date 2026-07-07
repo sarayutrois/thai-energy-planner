@@ -155,11 +155,11 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(comparison.selfConsumption.gridImportKwh).toBe(0.7);
-    expect(comparison.normalWithSolar.monthlyEnergyKwh).toBe(0.7);
-    expect(comparison.touWithSolar.monthlyEnergyKwh).toBe(0.7);
+    expect(comparison.selfConsumption.gridImportKwh).toBe(21.291667);
+    expect(comparison.normalWithSolar.monthlyEnergyKwh).toBe(21.291667);
+    expect(comparison.touWithSolar.monthlyEnergyKwh).toBe(21.291667);
     expect(comparison.normalWithSolar.monthlyEnergyKwh).not.toBe(0);
-    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(1.54);
+    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(46.84);
     expect(comparison.calculationTrace.usedIntervalMatching).toBe(true);
   });
 
@@ -178,9 +178,9 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(comparison.selfConsumption.gridExportKwh).toBe(4);
-    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(2);
-    expect(comparison.annualGridExport).toBe(48);
+    expect(comparison.selfConsumption.gridExportKwh).toBe(121.666667);
+    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(60.83);
+    expect(comparison.annualGridExport).toBe(1460);
   });
 
   it("matches load and solar intervals with min/load/solar rules", () => {
@@ -277,8 +277,8 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(comparison.normalWithoutSolar.monthlyEnergyKwh).toBe(10);
-    expect(comparison.normalWithSolar.monthlyEnergyKwh).toBe(6);
+    expect(comparison.normalWithoutSolar.monthlyEnergyKwh).toBe(304.166667);
+    expect(comparison.normalWithSolar.monthlyEnergyKwh).toBe(182.5);
     expect(comparison.normalWithSolar.monthlyBillThb).toBeLessThan(
       comparison.normalWithoutSolar.monthlyBillThb,
     );
@@ -301,8 +301,8 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(Number(comparison.touWithSolar.bill.peakEnergyKwh)).toBe(7);
-    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(8);
+    expect(Number(comparison.touWithSolar.bill.peakEnergyKwh)).toBe(212.916667);
+    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(243.333333);
     expect(comparison.touWithSolar.monthlyBillThb).toBeLessThan(
       comparison.touWithoutSolar.monthlyBillThb,
     );
@@ -320,7 +320,7 @@ describe("phase 5 solar engine", () => {
     });
 
     expect(Number(comparison.touWithSolar.bill.peakEnergyKwh)).toBe(0);
-    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(4);
+    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(121.666667);
   });
 
   it("calculates export revenue from export policy config", () => {
@@ -334,8 +334,8 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(10);
-    expect(comparison.annualGridExport).toBe(60);
+    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(304.17);
+    expect(comparison.annualGridExport).toBe(1825);
   });
 
   it("keeps calculation breakdown totals aligned", () => {

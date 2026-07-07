@@ -1565,10 +1565,13 @@ function toTariffInterval(interval: LoadIntervalInput) {
 function scaleIntervals(intervals: LoadIntervalInput[], factor: number) {
   return intervals.map((interval) => {
     const energy = new Decimal(interval.energyKwh).mul(factor);
+    const powerKw = interval.powerKw !== undefined
+      ? new Decimal(interval.powerKw).mul(factor).toDecimalPlaces(6).toNumber()
+      : undefined;
     return {
       ...interval,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
-      ...(interval.powerKw === undefined ? {} : { powerKw: interval.powerKw }),
+      ...(powerKw === undefined ? {} : { powerKw }),
     };
   });
 }

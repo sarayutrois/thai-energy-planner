@@ -1,0 +1,296 @@
+diff --git a/apps/web/src/lib/calculation-api.ts b/apps/web/src/lib/calculation-api.ts
+index ce3b53c..951f6b7 100644
+--- a/apps/web/src/lib/calculation-api.ts
++++ b/apps/web/src/lib/calculation-api.ts
+@@ -18,16 +18,48 @@ const voltageLevelSchema = z.enum(["low_voltage", "medium_voltage"]);
+ const solarProfileSchema = z.enum(["evening_home", "daytime_home", "daytime_shop"]);
+ const modelModeSchema = z.enum(["easy", "advanced", "xhigh"]);
+ 
+-export const estimateRequestSchema = z.object({
+-  monthlyBillThb: z.number().positive().max(1_000_000),
+-  province: z.string().min(1).default("bangkok"),
+-  propertyType: propertyTypeSchema.default("home"),
+-  usageShape: usageShapeSchema.default("both"),
+-  billDate: z.string().date().default("2026-07-01"),
+-  systemSizeKwp: z.number().positive().max(100).optional(),
+-  capexPerKwpThb: z.number().positive().max(1_000_000).optional(),
+-  voltageLevel: voltageLevelSchema.default("low_voltage")
+-});
++export const estimateRequestSchema = z
++  .object({
++    monthlyBillThb: z.number().positive().max(1_000_000).optional(),
++    monthlyBills: z
++      .array(
++        z.object({
++          month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Invalid month format. Expected YYYY-MM"),
++          billThb: z.number().positive().max(1_000_000)
++        })
++      )
++      .min(1)
++      .max(12)
++      .optional(),
++    province: z.string().min(1).default("bangkok"),
++    propertyType: propertyTypeSchema.default("home"),
++    usageShape: usageShapeSchema.default("both"),
++    billDate: z.string().date().default("2026-07-01"),
++    systemSizeKwp: z.number().positive().max(100).optional(),
++    capexPerKwpThb: z.number().positive().max(1_000_000).optional(),
++    voltageLevel: voltageLevelSchema.default("low_voltage")
++  })
++  .refine(
++    (data) => data.monthlyBillThb !== undefined || (data.monthlyBills !== undefined && data.monthlyBills.length > 0),
++    {
++      message: "Either monthlyBillThb or monthlyBills must be provided and non-empty",
++      path: ["monthlyBillThb"]
++    }
++  )
++  .refine(
++    (data) => {
++      if (data.monthlyBills) {
++        const months = data.monthlyBills.map((b) => b.month);
++        const uniqueMonths = new Set(months);
++        return uniqueMonths.size === months.length;
++      }
++      return true;
++    },
++    {
++      message: "monthlyBills cannot contain duplicate months",
++      path: ["monthlyBills"]
++    }
++  );
+ 
+ export type EstimateApiRequest = z.infer<typeof estimateRequestSchema>;
+ 
+@@ -62,56 +94,83 @@ export type EstimateApiPayload = {
+     billDate: string;
+     supportedTariffScope: "residential_small_business";
+     tariffVersionIds: string[];
++    processedMonths: string[];
++    filledBills: Array<{ month: string; billThb: number }>;
+   };
+   warnings: string[];
+ };
+ 
+-export const solarAnalyzeRequestSchema = z.object({
+-  province: z.string().min(1).default("Bangkok"),
+-  customerSegment: z.enum(["residential", "small_business"]).optional(),
+-  profile: solarProfileSchema.default("evening_home"),
+-  modelMode: modelModeSchema.default("xhigh"),
+-  billDate: z.string().date().default("2026-07-01"),
+-  voltageLevel: voltageLevelSchema.default("low_voltage"),
+-  systemSizeKwp: z.number().positive().max(100).optional(),
+-  roofAreaSqm: z.number().nonnegative().max(20_000).optional(),
+-  roofAzimuth: z.number().min(0).max(360).optional(),
+-  roofTilt: z.number().min(0).max(60).optional(),
+-  systemLossPercent: z.number().min(0).max(100).optional(),
+-  shadingLossPercent: z.number().min(0).max(100).optional(),
+-  degradationPercentPerYear: z.number().min(0).max(100).optional(),
+-  capexThb: z.number().nonnegative().max(100_000_000).optional(),
+-  oAndMCostPerYear: z.number().nonnegative().max(10_000_000).optional(),
+-  projectLifeYears: z.number().int().positive().max(40).optional(),
+-  discountRatePercent: z.number().min(0).max(30).optional(),
+-  electricityEscalationRatePercent: z.number().min(0).max(30).optional(),
+-  inverterReplacementCostThb: z.number().nonnegative().max(20_000_000).optional(),
+-  inverterReplacementYear: z.number().int().min(0).max(40).optional(),
+-  exportEnabled: z.boolean().optional(),
+-  exportRateThbPerKwh: z.number().nonnegative().max(20).optional(),
+-  exportLimitKw: z.number().nonnegative().max(10_000).optional(),
+-  loadIntervals: z
+-    .array(
+-      z.object({
+-        timestamp: z.string().datetime({ offset: true }),
+-        energyKwh: z.number().nonnegative(),
+-        powerKw: z.number().nonnegative().optional()
+-      })
+-    )
+-    .min(1)
+-    .max(50_000)
+-    .optional(),
+-  solarProfile: z
+-    .array(
+-      z.object({
+-        timestamp: z.string().datetime({ offset: true }),
+-        generationKwh: z.number().nonnegative(),
+-        powerKw: z.number().nonnegative().optional()
+-      })
+-    )
+-    .max(50_000)
+-    .optional()
+-});
++export const solarAnalyzeRequestSchema = z
++  .object({
++    province: z.string().min(1).default("Bangkok"),
++    customerSegment: z.enum(["residential", "small_business"]).optional(),
++    profile: solarProfileSchema.default("evening_home"),
++    modelMode: modelModeSchema.default("xhigh"),
++    billDate: z.string().date().default("2026-07-01"),
++    voltageLevel: voltageLevelSchema.default("low_voltage"),
++    systemSizeKwp: z.number().positive().max(100).optional(),
++    roofAreaSqm: z.number().nonnegative().max(20_000).optional(),
++    roofAzimuth: z.number().min(0).max(360).optional(),
++    roofTilt: z.number().min(0).max(60).optional(),
++    systemLossPercent: z.number().min(0).max(100).optional(),
++    shadingLossPercent: z.number().min(0).max(100).optional(),
++    degradationPercentPerYear: z.number().min(0).max(100).optional(),
++    capexThb: z.number().nonnegative().max(100_000_000).optional(),
++    oAndMCostPerYear: z.number().nonnegative().max(10_000_000).optional(),
++    projectLifeYears: z.number().int().positive().max(40).optional(),
++    discountRatePercent: z.number().min(0).max(30).optional(),
++    electricityEscalationRatePercent: z.number().min(0).max(30).optional(),
++    inverterReplacementCostThb: z.number().nonnegative().max(20_000_000).optional(),
++    inverterReplacementYear: z.number().int().min(0).max(40).optional(),
++    exportEnabled: z.boolean().optional(),
++    exportRateThbPerKwh: z.number().nonnegative().max(20).optional(),
++    exportLimitKw: z.number().nonnegative().max(10_000).optional(),
++    loadIntervals: z
++      .array(
++        z.object({
++          timestamp: z.string().datetime({ offset: true }),
++          energyKwh: z.number().nonnegative(),
++          powerKw: z.number().nonnegative().optional()
++        })
++      )
++      .min(1)
++      .max(50_000)
++      .optional(),
++    solarProfile: z
++      .array(
++        z.object({
++          timestamp: z.string().datetime({ offset: true }),
++          generationKwh: z.number().nonnegative(),
++          powerKw: z.number().nonnegative().optional()
++        })
++      )
++      .max(50_000)
++      .optional(),
++    monthlyBills: z
++      .array(
++        z.object({
++          month: z.string().regex(/^\d{4}-(0[1-9]|1[0-2])$/, "Invalid month format. Expected YYYY-MM"),
++          billThb: z.number().positive().max(1_000_000)
++        })
++      )
++      .min(1)
++      .max(12)
++      .optional()
++  })
++  .refine(
++    (data) => {
++      if (data.monthlyBills) {
++        const months = data.monthlyBills.map((b) => b.month);
++        const uniqueMonths = new Set(months);
++        return uniqueMonths.size === months.length;
++      }
++      return true;
++    },
++    {
++      message: "monthlyBills cannot contain duplicate months",
++      path: ["monthlyBills"]
++    }
++  );
+ 
+ export type SolarAnalyzeApiRequest = z.infer<typeof solarAnalyzeRequestSchema>;
+ 
+@@ -128,15 +187,63 @@ export type SolarAnalyzeApiPayload = {
+   warnings: string[];
+ };
+ 
++function processMonthlyBills(monthlyBills: { month: string; billThb: number }[]) {
++  const sorted = [...monthlyBills].sort((a, b) => a.month.localeCompare(b.month));
++  const total = sorted.reduce((sum, b) => sum + b.billThb, 0);
++  const average = total / sorted.length;
++
++  const [startYear, startMonth] = sorted[0]!.month.split("-").map(Number);
++  const filledBills: { month: string; billThb: number }[] = [];
++  const processedMonths: string[] = [];
++
++  for (let i = 0; i < 12; i++) {
++    let year = startYear!;
++    let month = startMonth! + i;
++    while (month > 12) {
++      month -= 12;
++      year += 1;
++    }
++    const monthStr = `${year}-${String(month).padStart(2, "0")}`;
++    const existing = sorted.find((b) => b.month === monthStr);
++    if (existing) {
++      filledBills.push({ month: monthStr, billThb: existing.billThb });
++    } else {
++      filledBills.push({ month: monthStr, billThb: average });
++    }
++    processedMonths.push(monthStr);
++  }
++
++  return { filledBills, processedMonths, average };
++}
++
+ export function runEstimateApiCalculation(request: EstimateApiRequest): EstimateApiPayload {
+   const { authority, customerSegment, warnings } = resolveTariffScope(request.province, request.propertyType);
++
++  const inputBills = request.monthlyBills && request.monthlyBills.length > 0
++    ? request.monthlyBills
++    : [{ month: request.billDate.slice(0, 7), billThb: request.monthlyBillThb! }];
++
++  const { filledBills, processedMonths, average } = processMonthlyBills(inputBills);
++
++  const finalWarnings = [...warnings];
++  if (request.monthlyBills && request.monthlyBills.length < 12) {
++    finalWarnings.push("Missing months in monthlyBills were averaged and padded to complete a 12-month period.");
++  }
++
++  const scaleFactors = Array(12).fill(1.0);
++  for (const bill of filledBills) {
++    const monthNum = Number(bill.month.split("-")[1]);
++    scaleFactors[monthNum - 1] = bill.billThb / (average || 1);
++  }
++
+   const calculation = estimateSolarFromMonthlyBill({
+-    monthlyBillThb: request.monthlyBillThb,
++    monthlyBillThb: average,
+     authority,
+     customerSegment,
+     usageShape: request.usageShape,
+     billDate: request.billDate,
+     voltageLevel: request.voltageLevel,
++    monthlyScaleFactors: scaleFactors,
+     ...(request.systemSizeKwp === undefined ? {} : { systemSizeKwp: request.systemSizeKwp }),
+     ...(request.capexPerKwpThb === undefined ? {} : { capexPerKwpThb: request.capexPerKwpThb })
+   });
+@@ -164,9 +271,11 @@ export function runEstimateApiCalculation(request: EstimateApiRequest): Estimate
+         calculation.beforeSolar.touBill.tariffVersionId,
+         calculation.afterSolar.normalBill.tariffVersionId,
+         calculation.afterSolar.touBill.tariffVersionId
+-      ]
++      ],
++      processedMonths,
++      filledBills
+     },
+-    warnings
++    warnings: finalWarnings
+   };
+ }
+ 
+@@ -193,6 +302,23 @@ export function runSolarAnalyzeApiCalculation(request: SolarAnalyzeApiRequest):
+     ...(request.roofTilt === undefined ? {} : { roofTilt: request.roofTilt })
+   };
+ 
++  const scaleFactors: number[] | undefined = (() => {
++    if (request.monthlyBills && request.monthlyBills.length > 0) {
++      const { filledBills, average } = processMonthlyBills(request.monthlyBills);
++      const sf = Array(12).fill(1.0);
++      for (const bill of filledBills) {
++        const monthNum = Number(bill.month.split("-")[1]);
++        sf[monthNum - 1] = bill.billThb / (average || 1);
++      }
++      return sf;
++    }
++    return undefined;
++  })();
++
++  if (scaleFactors) {
++    demoInput.monthlyScaleFactors = scaleFactors;
++  }
++
+   if (request.loadIntervals) {
+     demoInput.loadIntervals = request.loadIntervals.map((interval) => ({ ...interval })) as LoadIntervalInput[];
+   } else {

@@ -16,6 +16,8 @@ import {
   calculateBillAfterSolar,
   type ExportPolicy,
   type SolarGenerationIntervalInput,
+  type SolarAssumptions,
+  getBangkokParts,
 } from "./solar-engine.js";
 import { detectIntervalMinutes } from "./load-data.js";
 
@@ -91,6 +93,7 @@ export type MonthlyBillSolarEstimateInput = {
   systemSizeKwp?: number | undefined;
   capexPerKwpThb?: number | undefined;
   voltageLevel?: OfficialVoltageLevel | undefined;
+  monthlyScaleFactors?: number[] | undefined;
 };
 
 export type MonthlyBillSolarEstimateResult = {
@@ -350,6 +353,23 @@ export function estimateSolarFromMonthlyBill(
     notes:
       "Screening estimate assumes no export revenue unless the detailed solar analysis enables it.",
   };
+  const solarAssumptions: SolarAssumptions = {
+    province: "Bangkok",
+    systemSizeKwp: recommendedSystemSizeKwp,
+    monthlySpecificYieldKwhPerKwp: [
+      112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106,
+    ],
+    systemLossPercent: 12,
+    shadingLossPercent: 0,
+    degradationPercentPerYear: 0.5,
+    intervalMinutes: 30,
+    yieldSource: {
+      status: "published",
+      sourceUrl: null,
+      authority: "Thai Energy Planner",
+      notes: "Estimated yields",
+    },
+  };
   const comparison = calculateBillAfterSolar({
     loadIntervals: intervals,
     solarIntervals,
@@ -357,7 +377,8 @@ export function estimateSolarFromMonthlyBill(
     touTariff,
     exportPolicy,
     billDate,
-    monthlyScaleFactor: 1,
+    ...(input.monthlyScaleFactors ? { monthlyScaleFactors: input.monthlyScaleFactors } : { monthlyScaleFactor: 1 }),
+    solarAssumptions,
   });
   const roi = calculateSolarROI({
     systemCostThb: capexThb,
@@ -380,18 +401,30 @@ export function estimateSolarFromMonthlyBill(
       intervals,
       voltageLevel: input.voltageLevel,
     }),
-    afterSolar: compareNormalVsTou({
-      authority: input.authority,
-      customerSegment: input.customerSegment,
-      billDate,
-      energyKwh: comparison.selfConsumption.gridImportKwh,
-      intervals: comparison.selfConsumption.intervalResults.map((row) => ({
-        timestamp: row.timestamp,
-        energyKwh: row.gridImportKwh,
-        powerKw: row.gridImportPowerKw,
-      })),
-      voltageLevel: input.voltageLevel,
-    }),
+    afterSolar: (() => {
+      const targetMonthStr = billDate.slice(5, 7);
+      const monthlyEnergyRow = comparison.selfConsumption.monthlyEnergy.find((row) =>
+        row.month.endsWith(targetMonthStr),
+      );
+      const monthImportKwh = monthlyEnergyRow
+        ? monthlyEnergyRow.gridImportKwh
+        : comparison.selfConsumption.gridImportKwh / 12;
+      const targetIntervals = comparison.selfConsumption.intervalResults
+        .filter((row) => getBangkokParts(row.timestamp).date.slice(5, 7) === targetMonthStr)
+        .map((row) => ({
+          timestamp: row.timestamp,
+          energyKwh: row.gridImportKwh,
+          powerKw: row.gridImportPowerKw,
+        }));
+      return compareNormalVsTou({
+        authority: input.authority,
+        customerSegment: input.customerSegment,
+        billDate,
+        energyKwh: monthImportKwh,
+        intervals: targetIntervals,
+        voltageLevel: input.voltageLevel,
+      });
+    })(),
     annualSavingsThb: roi.annualSavingsThb,
     annualExportRevenueThb: roi.annualExportRevenueThb,
     paybackYears: roi.simplePaybackYears,

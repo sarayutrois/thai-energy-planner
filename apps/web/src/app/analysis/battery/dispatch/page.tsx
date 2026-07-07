@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic';
+
 import { getBatteryDemo, type Phase6SearchParams } from "@/lib/phase6-demo";
 import {
   BatteryChartsSection,

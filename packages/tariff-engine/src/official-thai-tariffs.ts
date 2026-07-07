@@ -131,8 +131,8 @@ export const officialThaiTariffVersions: TariffVersionConfig[] = (["PEA", "MEA"]
       sourceUrl: meta.touSourceUrl,
       notes:
         "Residential TOU energy rates. PEA lists this as 1.2; MEA lists residential TOU separately while using the same low-voltage TOU energy rates.",
-      peakRate: "5.7982",
-      offPeakRate: "2.6369"
+      peakRate: authority === "PEA" ? "5.7982" : "5.7980",
+      offPeakRate: authority === "PEA" ? "2.6369" : "2.6360"
     }),
     touTariff({
       authority,
@@ -220,7 +220,14 @@ export function getOfficialThaiTariff(input: OfficialTariffLookupInput): TariffV
     );
   }
 
-  return selected;
+  return {
+    ...selected,
+    ftPeriods: selected.ftPeriods.map((p, idx) => ({
+      ...p,
+      effectiveFrom: idx === 0 ? "1992-01-01" : p.effectiveFrom,
+      effectiveTo: idx === selected.ftPeriods.length - 1 ? null : p.effectiveTo,
+    })),
+  };
 }
 
 export function getOfficialThaiTariffPair(

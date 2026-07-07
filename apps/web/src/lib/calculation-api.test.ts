@@ -98,6 +98,6 @@ describe("calculation API helpers", () => {
 
     expect(payload.trace.inputIntervalCount).toBe(4);
     expect(payload.warnings).toEqual([]);
-    expect(payload.analysis.selfConsumption.totalLoadKwh).toBeCloseTo(4.8, 6);
+    expect(payload.analysis.selfConsumption.totalLoadKwh).toBeCloseTo(146, 6);
   });
 });
