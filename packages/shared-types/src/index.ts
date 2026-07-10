@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+export * from "./load-profile.js";
+
 export const AuthoritySchema = z.enum(["PEA", "MEA"]);
 export type Authority = z.infer<typeof AuthoritySchema>;
 
