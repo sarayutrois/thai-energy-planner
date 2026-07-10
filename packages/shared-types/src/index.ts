@@ -162,14 +162,19 @@ export const UploadedFileMetadataSchema = z.object({
 });
 export type UploadedFileMetadata = z.infer<typeof UploadedFileMetadataSchema>;
 
-export const ApplianceScheduleInputSchema = z.object({
-  startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
-  daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1),
-  workingDayOnly: z.boolean().default(false),
-  holidayOnly: z.boolean().default(false),
-  seasonalMonths: z.array(z.number().int().min(1).max(12)).default([]),
-});
+export const ApplianceScheduleInputSchema = z
+  .object({
+    startTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    endTime: z.string().regex(/^([01]\d|2[0-3]):[0-5]\d$/),
+    daysOfWeek: z.array(z.number().int().min(0).max(6)).min(1),
+    workingDayOnly: z.boolean().default(false),
+    holidayOnly: z.boolean().default(false),
+    seasonalMonths: z.array(z.number().int().min(1).max(12)).default([]),
+  })
+  .refine((schedule) => !(schedule.workingDayOnly && schedule.holidayOnly), {
+    message: "workingDayOnly and holidayOnly cannot both be true",
+    path: ["holidayOnly"],
+  });
 export type ApplianceScheduleInput = z.infer<
   typeof ApplianceScheduleInputSchema
 >;

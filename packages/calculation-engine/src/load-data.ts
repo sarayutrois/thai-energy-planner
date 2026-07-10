@@ -68,7 +68,8 @@ export type LoadProfilePreview = {
 export type ApplianceSimulationInput = {
   appliances: ApplianceInput[];
   date: string;
-  intervalMinutes?: 15;
+  intervalMinutes?: 15 | 30 | 60;
+  holidays?: string[];
 };
 
 export type ApplianceSimulationResult = {
@@ -384,6 +385,7 @@ export function detectIntervalMinutes(intervals: LoadIntervalInput[]): number | 
 
 export function simulateApplianceLoadProfile(input: ApplianceSimulationInput): ApplianceSimulationResult {
   const intervalMinutes = input.intervalMinutes ?? 15;
+  const holidays = new Set(input.holidays ?? []);
   const intervalHours = intervalMinutes / 60;
   const intervalsByTimestamp = new Map<string, Decimal>();
   const applianceEnergy = new Map<string, Decimal>();
@@ -399,7 +401,7 @@ export function simulateApplianceLoadProfile(input: ApplianceSimulationInput): A
     let totalApplianceEnergy = new Decimal(0);
 
     for (let minute = 0; minute < 24 * 60; minute += intervalMinutes) {
-      if (!isApplianceActive(parsed, input.date, minute)) continue;
+      if (!isApplianceActive(parsed, input.date, minute, holidays)) continue;
 
       const timestamp = localDateMinuteToBangkokIso(input.date, minute);
       intervalsByTimestamp.set(timestamp, (intervalsByTimestamp.get(timestamp) ?? new Decimal(0)).plus(intervalEnergy));
@@ -755,21 +757,39 @@ function localDateMinuteToBangkokIso(date: string, minuteOfDay: number) {
   return parseTimestampToBangkokIso(`${date} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`) ?? "";
 }
 
-function isApplianceActive(appliance: ApplianceInput, date: string, minuteOfDay: number): boolean {
-  const local = getBangkokParts(localDateMinuteToBangkokIso(date, minuteOfDay));
+function isApplianceActive(
+  appliance: ApplianceInput,
+  date: string,
+  minuteOfDay: number,
+  holidays: ReadonlySet<string>,
+): boolean {
+  const start = timeToMinute(appliance.schedule.startTime);
+  const end = timeToMinute(appliance.schedule.endTime);
+  const crossesMidnight = start > end;
+  const scheduleDate = crossesMidnight && minuteOfDay < end ? previousDate(date) : date;
+  const local = getBangkokParts(localDateMinuteToBangkokIso(scheduleDate, 0));
+  const isHoliday = holidays.has(scheduleDate);
+  const isWorkingDay = local.dayOfWeek >= 1 && local.dayOfWeek <= 5 && !isHoliday;
+
   if (!appliance.schedule.daysOfWeek.includes(local.dayOfWeek)) return false;
+  if (appliance.schedule.workingDayOnly && !isWorkingDay) return false;
+  if (appliance.schedule.holidayOnly && !isHoliday) return false;
 
   if (appliance.schedule.seasonalMonths.length > 0) {
-    const month = Number(date.slice(5, 7));
+    const month = Number(scheduleDate.slice(5, 7));
     if (!appliance.schedule.seasonalMonths.includes(month)) return false;
   }
 
-  const start = timeToMinute(appliance.schedule.startTime);
-  const end = timeToMinute(appliance.schedule.endTime);
   if (start === end) return true;
   if (start < end) return minuteOfDay >= start && minuteOfDay < end;
 
   return minuteOfDay >= start || minuteOfDay < end;
+}
+
+function previousDate(date: string): string {
+  const parsed = new Date(`${date}T00:00:00.000Z`);
+  parsed.setUTCDate(parsed.getUTCDate() - 1);
+  return parsed.toISOString().slice(0, 10);
 }
 
 function timeToMinute(time: string): number {
