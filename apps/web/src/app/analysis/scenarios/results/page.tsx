@@ -5,6 +5,7 @@ import { getScenarioDemo, normalizeScenarioProfile } from "@/lib/scenario-demo";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 import { z } from "zod";
 import { ScenarioView } from "../scenario-view";
+import { CanonicalScenarioPanel } from "../canonical-scenario-panel";
 
 type SearchParams = Record<string, string | string[] | undefined>;
 
@@ -92,6 +93,7 @@ export default async function ScenarioResultsPage({
           moduleName="Scenario"
           reportDraft={reportDraft}
         />
+        <CanonicalScenarioPanel />
         <div className="mt-6">
           <ScenarioView comparison={comparison} />
         </div>
