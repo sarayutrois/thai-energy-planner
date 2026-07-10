@@ -8,6 +8,7 @@ import {
   type LoadIntervalInput,
   type LoadProfileSourceKind,
 } from "@thai-energy-planner/shared-types";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 
 export const localLoadProfileStorageKey = "thai-energy-planner.load-profile.v1";
 
@@ -23,7 +24,6 @@ export type LocalLoadProfileSnapshot = {
   rows: LoadIntervalInput[];
   canonicalProfile?: CanonicalLoadProfile;
   serverLoadProfileId?: string;
-  profileAccessToken?: string;
 };
 
 export function saveLocalLoadProfileSnapshot(input: {
@@ -68,11 +68,10 @@ export function saveLocalLoadProfileSnapshot(input: {
 
 async function persistLocalLoadProfile(snapshot: LocalLoadProfileSnapshot) {
   if (!snapshot.canonicalProfile) return;
-  const accessToken = snapshot.profileAccessToken ?? crypto.randomUUID();
-  const response = await fetch("/api/load-profiles", {
+  const response = await authenticatedFetch("/api/load-profiles", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile: snapshot.canonicalProfile, accessToken }),
+    body: JSON.stringify({ profile: snapshot.canonicalProfile }),
   }).catch(() => null);
   if (!response?.ok) return;
   const payload = (await response.json()) as { loadProfileId?: string };
@@ -86,7 +85,6 @@ async function persistLocalLoadProfile(snapshot: LocalLoadProfileSnapshot) {
     JSON.stringify({
       ...current,
       serverLoadProfileId: payload.loadProfileId,
-      profileAccessToken: accessToken,
     }),
   );
 }

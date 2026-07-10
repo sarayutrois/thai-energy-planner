@@ -91,6 +91,7 @@ model User {
   organizations Organization[]
   analysisRuns  AnalysisRun[]
   submissions   UserSubmission[]
+  loadProfiles  LoadProfile[]
   auditLogs     AuditLog[]
 }
 
@@ -158,6 +159,8 @@ model ElectricityBill {
 
 model LoadProfile {
   id                String          @id @default(cuid())
+  userId            String?
+  user              User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
   meterId           String?
   meter             Meter?          @relation(fields: [meterId], references: [id], onDelete: Cascade)
   name              String
@@ -174,6 +177,7 @@ model LoadProfile {
   updatedAt         DateTime        @updatedAt
 
   @@index([meterId, source, createdAt])
+  @@index([userId, createdAt])
   @@index([source, createdAt])
 }
 

@@ -2,8 +2,21 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { BarChart3, BatteryCharging, Calculator, FileText, Gauge, PlugZap, SunMedium, UploadCloud, Menu, X, Layers } from "lucide-react";
+import {
+  BarChart3,
+  BatteryCharging,
+  Calculator,
+  FileText,
+  Gauge,
+  PlugZap,
+  SunMedium,
+  UploadCloud,
+  Menu,
+  X,
+  Layers,
+} from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AuthMenu } from "@/components/auth-menu";
 
 const navItems = [
   { label: "วิเคราะห์", href: "/analysis/new", icon: Gauge },
@@ -14,7 +27,7 @@ const navItems = [
   { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
   { label: "EV", href: "/analysis/ev", icon: PlugZap },
   { label: "Ecosystem", href: "/analysis/ecosystem", icon: Layers },
-  { label: "รายงาน", href: "/analysis/reports", icon: FileText }
+  { label: "รายงาน", href: "/analysis/reports", icon: FileText },
 ];
 
 export function MainNav() {
@@ -31,8 +44,12 @@ export function MainNav() {
           >
             {isOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
           </button>
-          
-          <Link href="/" className="flex items-center gap-3 font-semibold" aria-label="Thai Energy Planner">
+
+          <Link
+            href="/"
+            className="flex items-center gap-3 font-semibold"
+            aria-label="Thai Energy Planner"
+          >
             <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <Gauge aria-hidden="true" className="h-5 w-5" />
             </span>
@@ -40,7 +57,10 @@ export function MainNav() {
           </Link>
         </div>
 
-        <nav className="hidden items-center gap-1 lg:flex" aria-label="Main navigation">
+        <nav
+          className="hidden items-center gap-1 lg:flex"
+          aria-label="Main navigation"
+        >
           {navItems.map((item) => (
             <a
               key={item.href}
@@ -52,9 +72,10 @@ export function MainNav() {
             </a>
           ))}
         </nav>
-        
+
         <div className="flex items-center gap-2">
           <ThemeToggle />
+          <AuthMenu />
           <a
             className="inline-flex h-9 items-center justify-center gap-2 rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
             href="/analysis/new"

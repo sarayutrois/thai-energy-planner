@@ -4,10 +4,10 @@ import { CanonicalLoadProfileSchema } from "@thai-energy-planner/shared-types";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
 import { guardApiRequest } from "@/lib/api-security";
+import { requireAuthenticatedUser } from "@/lib/supabase-server";
 
 const requestSchema = z.object({
   profile: CanonicalLoadProfileSchema,
-  accessToken: z.string().uuid(),
 });
 
 const sourceByKind = {
@@ -26,6 +26,8 @@ export async function POST(request: Request) {
     windowMs: 60_000,
   });
   if (blocked) return blocked;
+  const auth = await requireAuthenticatedUser(request);
+  if (auth.response) return auth.response;
   if (!isTrustedOrigin(request)) {
     return NextResponse.json(
       { ok: false, error: "Untrusted request origin." },
@@ -41,7 +43,7 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-  const { profile, accessToken } = parsed.data;
+  const { profile } = parsed.data;
   if (profile.intervals.length > 50_000) {
     return NextResponse.json(
       { ok: false, error: "Load profile is too large to persist." },
@@ -51,7 +53,6 @@ export async function POST(request: Request) {
   try {
     const validationSummary = JSON.parse(
       JSON.stringify({
-        accessToken,
         schemaVersion: profile.schemaVersion,
         source: profile.source,
         quality: profile.quality,
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
     ) as Prisma.InputJsonObject;
     const saved = await prisma.loadProfile.create({
       data: {
+        userId: auth.user.id,
         name: profile.name,
         source: sourceByKind[profile.source.kind],
         intervalMinutes: profile.intervalMinutes,

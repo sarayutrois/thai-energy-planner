@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { logAudit } from "@/lib/audit-log";
+import { requireAuthenticatedUser } from "@/lib/supabase-server";
 
 const reportIdPattern = /^[a-z0-9_-]{8,160}$/i;
 
@@ -14,6 +15,8 @@ export async function GET(
       { status: 403 },
     );
   }
+  const auth = await requireAuthenticatedUser(request);
+  if (auth.response) return auth.response;
 
   const { id } = await params;
   if (!reportIdPattern.test(id)) {
@@ -36,6 +39,7 @@ export async function GET(
         analysisRun: {
           select: {
             id: true,
+            userId: true,
             name: true,
             engineVersion: true,
             createdAt: true,
@@ -51,7 +55,7 @@ export async function GET(
       );
     }
 
-    if (!hasReportAccess(request, report.metadata)) {
+    if (report.analysisRun.userId !== auth.user.id) {
       return NextResponse.json(
         { ok: false, error: "Report not found." },
         { status: 404 },
@@ -77,6 +81,8 @@ export async function DELETE(
       { status: 403 },
     );
   }
+  const auth = await requireAuthenticatedUser(request);
+  if (auth.response) return auth.response;
 
   const { id } = await params;
   if (!reportIdPattern.test(id)) {
@@ -94,6 +100,7 @@ export async function DELETE(
         analysisRunId: true,
         fileName: true,
         metadata: true,
+        analysisRun: { select: { userId: true } },
       },
     });
 
@@ -104,7 +111,7 @@ export async function DELETE(
       );
     }
 
-    if (!hasReportAccess(request, existing.metadata)) {
+    if (existing.analysisRun.userId !== auth.user.id) {
       return NextResponse.json(
         { ok: false, error: "Report not found." },
         { status: 404 },
@@ -129,13 +136,6 @@ export async function DELETE(
       { status: 503 },
     );
   }
-}
-
-function hasReportAccess(request: Request, metadata: unknown) {
-  const token = request.headers.get("x-report-access-token");
-  if (!token || !metadata || typeof metadata !== "object") return false;
-  const savedToken = (metadata as Record<string, unknown>).reportAccessToken;
-  return typeof savedToken === "string" && savedToken === token;
 }
 
 function isTrustedOrigin(request: Request) {

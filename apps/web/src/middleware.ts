@@ -2,40 +2,31 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   const token = process.env.ADMIN_ACCESS_TOKEN?.trim();
-  if (!request.nextUrl.pathname.startsWith("/admin")) return NextResponse.next();
+  if (!request.nextUrl.pathname.startsWith("/admin"))
+    return NextResponse.next();
 
   if (!token) {
     return new NextResponse("Admin route is not configured.", {
-      status: 404
+      status: 404,
     });
   }
 
   const providedToken =
     request.headers.get("x-admin-token") ??
-    request.cookies.get("admin_access_token")?.value ??
-    request.nextUrl.searchParams.get("admin_token");
+    request.cookies.get("admin_access_token")?.value;
 
   if (providedToken !== token) {
     return new NextResponse("Admin authentication required.", {
       status: 401,
       headers: {
-        "WWW-Authenticate": "Bearer"
-      }
+        "WWW-Authenticate": "Bearer",
+      },
     });
   }
 
-  const response = NextResponse.next();
-  if (request.nextUrl.searchParams.has("admin_token")) {
-    response.cookies.set("admin_access_token", token, {
-      httpOnly: true,
-      maxAge: 60 * 60 * 8,
-      sameSite: "strict",
-      secure: true
-    });
-  }
-  return response;
+  return NextResponse.next();
 }
 
 export const config = {
-  matcher: ["/admin/:path*"]
+  matcher: ["/admin/:path*"],
 };

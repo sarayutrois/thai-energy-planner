@@ -4,6 +4,7 @@ import { z } from "zod";
 import { logAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/prisma";
 import { guardApiRequest } from "@/lib/api-security";
+import { requireAuthenticatedUser } from "@/lib/supabase-server";
 
 type JsonValue =
   string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -47,6 +48,8 @@ export async function POST(request: Request) {
     windowMs: 60_000,
   });
   if (blocked) return blocked;
+  const auth = await requireAuthenticatedUser(request);
+  if (auth.response) return auth.response;
   if (!isTrustedOrigin(request)) {
     return NextResponse.json(
       { ok: false, error: "Untrusted request origin." },
@@ -82,7 +85,20 @@ export async function POST(request: Request) {
   const submission = parsed.data;
 
   try {
+    if (submission.analysisRunId) {
+      const analysisRun = await prisma.analysisRun.findFirst({
+        where: { id: submission.analysisRunId, userId: auth.user.id },
+        select: { id: true },
+      });
+      if (!analysisRun) {
+        return NextResponse.json(
+          { ok: false, error: "Analysis run not found." },
+          { status: 404 },
+        );
+      }
+    }
     const data: Prisma.UserSubmissionUncheckedCreateInput = {
+      userId: auth.user.id,
       inputType: submission.inputType,
       module: submission.module,
       payload: toPrismaJson(submission.payload),

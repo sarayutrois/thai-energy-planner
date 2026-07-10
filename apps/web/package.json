@@ -14,6 +14,7 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@hookform/resolvers": "^3.10.0",
+    "@supabase/supabase-js": "^2.57.4",
     "@thai-energy-planner/calculation-engine": "0.1.0",
     "@thai-energy-planner/report-engine": "0.1.0",
     "@thai-energy-planner/shared-types": "0.1.0",

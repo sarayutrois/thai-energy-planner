@@ -8,6 +8,7 @@ import {
 } from "@/lib/local-analysis-snapshot";
 import { calibrateLoadProfileAgainstBills } from "@thai-energy-planner/calculation-engine";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 
 const maxStoredReports = 12;
 
@@ -29,9 +30,8 @@ export function readLocalAnalysisReport(
 export function deleteLocalAnalysisReport(id: string) {
   const report = readLocalAnalysisReport(id);
   if (report?.serverGeneratedReportId && report.reportAccessToken) {
-    void fetch(`/api/reports/${report.serverGeneratedReportId}`, {
+    void authenticatedFetch(`/api/reports/${report.serverGeneratedReportId}`, {
       method: "DELETE",
-      headers: { "x-report-access-token": report.reportAccessToken },
     }).catch(() => undefined);
   }
   const nextReports = readLocalAnalysisReports().filter(
@@ -48,7 +48,7 @@ export async function persistLocalAnalysisReport(
 ) {
   if (report.serverGeneratedReportId) return report;
 
-  const response = await fetch("/api/reports", {
+  const response = await authenticatedFetch("/api/reports", {
     body: JSON.stringify(report),
     headers: { "Content-Type": "application/json" },
     method: "POST",
@@ -166,7 +166,7 @@ function isLocalAnalysisReportSnapshot(
 }
 
 async function persistUserSubmission(report: LocalAnalysisReportSnapshot) {
-  await fetch("/api/submissions", {
+  await authenticatedFetch("/api/submissions", {
     body: JSON.stringify({
       analysisRunId: report.serverAnalysisRunId,
       inputType: `${report.module}_report_snapshot`,
