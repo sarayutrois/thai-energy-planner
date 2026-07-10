@@ -5,8 +5,12 @@ export function exportToPdf(data: unknown): Uint8Array {
     "/F1 11 Tf",
     "50 790 Td",
     "14 TL",
-    ...lines.flatMap((line, index) => (index === 0 ? [`(${escapePdfText(line)}) Tj`] : ["T*", `(${escapePdfText(line)}) Tj`])),
-    "ET"
+    ...lines.flatMap((line, index) =>
+      index === 0
+        ? [`(${escapePdfText(line)}) Tj`]
+        : ["T*", `(${escapePdfText(line)}) Tj`],
+    ),
+    "ET",
   ].join("\n");
 
   return createPdfDocument(content);
@@ -20,6 +24,28 @@ function buildReportLines(data: unknown) {
     "",
     `Title: ${payload.title}`,
     `Module: ${payload.moduleLabel}`,
+    ...(payload.sourceProfile
+      ? [
+          "",
+          "Canonical load profile:",
+          `- Profile: ${payload.sourceProfile.name}`,
+          `- Source: ${payload.sourceProfile.sourceKind}`,
+          `- Quality: ${payload.sourceProfile.qualityLevel}`,
+          `- Intervals: ${payload.sourceProfile.intervalCount}`,
+        ]
+      : []),
+    ...(payload.billCalibration
+      ? [
+          "",
+          "Bill calibration:",
+          `- Compared months: ${payload.billCalibration.comparedMonthCount}`,
+          `- Variance kWh: ${payload.billCalibration.varianceKwh}`,
+          `- Variance percent: ${payload.billCalibration.variancePercent ?? "N/A"}`,
+          ...payload.billCalibration.warnings.map(
+            (warning) => `- Warning: ${warning}`,
+          ),
+        ]
+      : []),
     ...(payload.disclaimer ? ["", "Disclaimer:", payload.disclaimer] : []),
     "",
     "Executive summary:",
@@ -31,7 +57,7 @@ function buildReportLines(data: unknown) {
       "",
       section.title,
       ...section.paragraphs.map((paragraph) => `- ${paragraph}`),
-      ...section.items.map((item) => `- ${item.label}: ${item.value}`)
+      ...section.items.map((item) => `- ${item.label}: ${item.value}`),
     ]),
     "",
     "Assumptions:",
@@ -41,12 +67,18 @@ function buildReportLines(data: unknown) {
     ...payload.references.map((item) => `- ${item.label}: ${item.value}`),
     "",
     "Recommendations:",
-    ...payload.recommendations.map((recommendation) => `- ${recommendation.title}: ${recommendation.description}`),
+    ...payload.recommendations.map(
+      (recommendation) =>
+        `- ${recommendation.title}: ${recommendation.description}`,
+    ),
     "",
     "Limitations & Next Steps:",
-    ...payload.limitations.map((item) => `- ${item.title}: ${item.description}${item.nextAction ? ` Next: ${item.nextAction}` : ""}`),
+    ...payload.limitations.map(
+      (item) =>
+        `- ${item.title}: ${item.description}${item.nextAction ? ` Next: ${item.nextAction}` : ""}`,
+    ),
     "",
-    "Note: This PDF is generated from the same report snapshot used for JSON/CSV export."
+    "Note: This PDF is generated from the same report snapshot used for JSON/CSV export.",
   ].flatMap(wrapLine);
 }
 
@@ -57,17 +89,27 @@ function normalizePayload(data: unknown) {
       moduleLabel: "Analysis",
       summary: JSON.stringify(data),
       metrics: [] as Array<{ label: string; value: string }>,
-      recommendations: [] as Array<{ title: string; description: string; nextAction?: string | undefined }>,
+      recommendations: [] as Array<{
+        title: string;
+        description: string;
+        nextAction?: string | undefined;
+      }>,
+      sourceProfile: undefined,
+      billCalibration: undefined,
       assumptions: [] as Array<{ label: string; value: string }>,
       disclaimer: "",
-      limitations: [] as Array<{ title: string; description: string; nextAction?: string | undefined }>,
+      limitations: [] as Array<{
+        title: string;
+        description: string;
+        nextAction?: string | undefined;
+      }>,
       references: [] as Array<{ label: string; value: string }>,
       reportTitle: "Thai Energy Planner Report",
       sections: [] as Array<{
         title: string;
         items: Array<{ label: string; value: string }>;
         paragraphs: string[];
-      }>
+      }>,
     };
   }
 
@@ -83,27 +125,53 @@ function normalizePayload(data: unknown) {
     summary?: unknown;
     metrics?: unknown;
     recommendations?: unknown;
+    sourceProfile?: unknown;
+    billCalibration?: unknown;
   };
 
   return {
-    title: typeof source.title === "string" ? source.title : "Thai Energy Planner Report",
-    reportTitle: typeof source.reportTitle === "string" ? source.reportTitle : "Thai Energy Planner Report",
-    moduleLabel: typeof source.moduleLabel === "string" ? source.moduleLabel : "Analysis",
+    title:
+      typeof source.title === "string"
+        ? source.title
+        : "Thai Energy Planner Report",
+    reportTitle:
+      typeof source.reportTitle === "string"
+        ? source.reportTitle
+        : "Thai Energy Planner Report",
+    moduleLabel:
+      typeof source.moduleLabel === "string" ? source.moduleLabel : "Analysis",
     disclaimer: typeof source.disclaimer === "string" ? source.disclaimer : "",
-    summary: typeof source.summary === "string" ? source.summary : "No summary provided.",
+    summary:
+      typeof source.summary === "string"
+        ? source.summary
+        : "No summary provided.",
     metrics: Array.isArray(source.metrics)
       ? normalizeMetricList(source.metrics, 12)
       : [],
-    assumptions: Array.isArray(source.assumptions) ? normalizeMetricList(source.assumptions, 20) : [],
-    references: Array.isArray(source.references) ? normalizeMetricList(source.references, 12) : [],
+    assumptions: Array.isArray(source.assumptions)
+      ? normalizeMetricList(source.assumptions, 20)
+      : [],
+    references: Array.isArray(source.references)
+      ? normalizeMetricList(source.references, 12)
+      : [],
     sections: Array.isArray(source.sections)
       ? source.sections
           .map((section) => {
-            const item = section as { title?: unknown; items?: unknown; paragraphs?: unknown };
+            const item = section as {
+              title?: unknown;
+              items?: unknown;
+              paragraphs?: unknown;
+            };
             return {
               title: String(item.title ?? "Section"),
-              items: Array.isArray(item.items) ? normalizeMetricList(item.items, 12) : [],
-              paragraphs: Array.isArray(item.paragraphs) ? item.paragraphs.map((paragraph) => String(paragraph)).slice(0, 8) : []
+              items: Array.isArray(item.items)
+                ? normalizeMetricList(item.items, 12)
+                : [],
+              paragraphs: Array.isArray(item.paragraphs)
+                ? item.paragraphs
+                    .map((paragraph) => String(paragraph))
+                    .slice(0, 8)
+                : [],
             };
           })
           .slice(0, 8)
@@ -111,7 +179,39 @@ function normalizePayload(data: unknown) {
     recommendations: Array.isArray(source.recommendations)
       ? normalizeRecommendationList(source.recommendations, 10)
       : [],
-    limitations: Array.isArray(source.limitations) ? normalizeRecommendationList(source.limitations, 8) : []
+    limitations: Array.isArray(source.limitations)
+      ? normalizeRecommendationList(source.limitations, 8)
+      : [],
+    sourceProfile: normalizeSourceProfile(source.sourceProfile),
+    billCalibration: normalizeBillCalibration(source.billCalibration),
+  };
+}
+
+function normalizeSourceProfile(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+  const source = value as Record<string, unknown>;
+  return {
+    name: String(source.name ?? "Profile"),
+    sourceKind: String(source.sourceKind ?? "unknown"),
+    qualityLevel: String(source.qualityLevel ?? "unknown"),
+    intervalCount: Number(source.intervalCount ?? 0),
+  };
+}
+
+function normalizeBillCalibration(value: unknown) {
+  if (!value || typeof value !== "object") return undefined;
+  const calibration = value as Record<string, unknown>;
+  return {
+    comparedMonthCount: Number(calibration.comparedMonthCount ?? 0),
+    varianceKwh: Number(calibration.varianceKwh ?? 0),
+    variancePercent:
+      calibration.variancePercent === null ||
+      calibration.variancePercent === undefined
+        ? null
+        : Number(calibration.variancePercent),
+    warnings: Array.isArray(calibration.warnings)
+      ? calibration.warnings.map((warning) => String(warning))
+      : [],
   };
 }
 
@@ -121,7 +221,7 @@ function normalizeMetricList(source: unknown[], limit: number) {
       const item = metric as { label?: unknown; value?: unknown };
       return {
         label: String(item.label ?? "Metric"),
-        value: String(item.value ?? "-")
+        value: String(item.value ?? "-"),
       };
     })
     .slice(0, limit);
@@ -130,11 +230,16 @@ function normalizeMetricList(source: unknown[], limit: number) {
 function normalizeRecommendationList(source: unknown[], limit: number) {
   return source
     .map((recommendation) => {
-      const item = recommendation as { title?: unknown; description?: unknown; nextAction?: unknown };
+      const item = recommendation as {
+        title?: unknown;
+        description?: unknown;
+        nextAction?: unknown;
+      };
       return {
         title: String(item.title ?? "Recommendation"),
         description: String(item.description ?? ""),
-        nextAction: item.nextAction === undefined ? undefined : String(item.nextAction)
+        nextAction:
+          item.nextAction === undefined ? undefined : String(item.nextAction),
       };
     })
     .slice(0, limit);
@@ -146,7 +251,7 @@ function createPdfDocument(streamContent: string) {
     "<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
     "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595 842] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>",
     "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
-    `<< /Length ${byteLength(streamContent)} >>\nstream\n${streamContent}\nendstream`
+    `<< /Length ${byteLength(streamContent)} >>\nstream\n${streamContent}\nendstream`,
   ];
   const chunks = ["%PDF-1.4\n"];
   const offsets = [0];
@@ -162,7 +267,9 @@ function createPdfDocument(streamContent: string) {
   for (const offset of offsets.slice(1)) {
     chunks.push(`${String(offset).padStart(10, "0")} 00000 n \n`);
   }
-  chunks.push(`trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`);
+  chunks.push(
+    `trailer\n<< /Size ${objects.length + 1} /Root 1 0 R >>\nstartxref\n${xrefOffset}\n%%EOF`,
+  );
 
   return new TextEncoder().encode(chunks.join(""));
 }
@@ -177,7 +284,10 @@ function wrapLine(line: string) {
 }
 
 function escapePdfText(value: string) {
-  return value.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\(/g, "\\(")
+    .replace(/\)/g, "\\)");
 }
 
 function byteLength(value: string) {
