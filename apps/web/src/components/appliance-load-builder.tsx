@@ -1,25 +1,34 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { simulateApplianceLoadProfile } from "@thai-energy-planner/calculation-engine";
+import { simulateApplianceLoadProfileRange } from "@thai-energy-planner/calculation-engine";
 import type { ApplianceInput } from "@thai-energy-planner/shared-types";
 import { Button } from "@/components/ui/button";
 import { saveLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 
 export function ApplianceLoadBuilder({
   initialAppliances,
-  date,
+  startDate: initialStartDate,
+  endDate: initialEndDate,
 }: {
   initialAppliances: ApplianceInput[];
-  date: string;
+  startDate: string;
+  endDate: string;
 }) {
   const [appliances, setAppliances] = useState(initialAppliances);
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(15);
+  const [startDate, setStartDate] = useState(initialStartDate);
+  const [endDate, setEndDate] = useState(initialEndDate);
   const [saved, setSaved] = useState(false);
-  const simulation = useMemo(
-    () => simulateApplianceLoadProfile({ appliances, date, intervalMinutes }),
-    [appliances, date, intervalMinutes],
-  );
+  const simulation = useMemo(() => {
+    if (endDate < startDate) return null;
+    return simulateApplianceLoadProfileRange({
+      appliances,
+      startDate,
+      endDate,
+      intervalMinutes,
+    });
+  }, [appliances, endDate, intervalMinutes, startDate]);
 
   function update(index: number, patch: Partial<ApplianceInput>) {
     setAppliances((current) =>
@@ -72,10 +81,10 @@ export function ApplianceLoadBuilder({
     saveLocalLoadProfileSnapshot({
       sourceName: "Appliance load profile",
       sourceKind: "appliance",
-      totalKwh: simulation.kwhPerDay,
-      peakKw: simulation.peakKw,
+      totalKwh: simulation?.totalKwh ?? 0,
+      peakKw: simulation?.peakKw ?? 0,
       detectedIntervalMinutes: intervalMinutes,
-      rows: simulation.intervals,
+      rows: simulation?.intervals ?? [],
     });
     setSaved(true);
   }
@@ -97,21 +106,39 @@ export function ApplianceLoadBuilder({
             <option value={60}>60 min</option>
           </select>
         </label>
+        <label className="text-sm font-medium">
+          Start{" "}
+          <input
+            className="ml-2 h-10 rounded-md border border-input bg-background px-3"
+            type="date"
+            value={startDate}
+            onChange={(event) => {
+              setStartDate(event.target.value);
+              setSaved(false);
+            }}
+          />
+        </label>
+        <label className="text-sm font-medium">
+          End{" "}
+          <input
+            className="ml-2 h-10 rounded-md border border-input bg-background px-3"
+            type="date"
+            value={endDate}
+            onChange={(event) => {
+              setEndDate(event.target.value);
+              setSaved(false);
+            }}
+          />
+        </label>
         <Button variant="outline" onClick={addAppliance}>
           Add appliance
         </Button>
       </div>
       <div className="grid gap-3 md:grid-cols-4">
-        <Metric label="kWh/day" value={simulation.kwhPerDay} />
-        <Metric
-          label="Monthly estimate"
-          value={simulation.estimatedKwhPerMonth}
-        />
-        <Metric label="Peak kW" value={simulation.peakKw} />
-        <Metric
-          label="Top appliance"
-          value={simulation.topAppliance?.name ?? "-"}
-        />
+        <Metric label="kWh/day" value={simulation?.averageDailyKwh ?? 0} />
+        <Metric label="Range total" value={simulation?.totalKwh ?? 0} />
+        <Metric label="Peak kW" value={simulation?.peakKw ?? 0} />
+        <Metric label="Days" value={simulation?.dayCount ?? 0} />
       </div>
       {appliances.map((item, index) => (
         <div
@@ -174,7 +201,10 @@ export function ApplianceLoadBuilder({
         </div>
       ))}
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-success bg-success/10 p-4 text-sm">
-        <Button disabled={appliances.length === 0} onClick={saveForSolar}>
+        <Button
+          disabled={appliances.length === 0 || !simulation}
+          onClick={saveForSolar}
+        >
           Save for Solar Analysis
         </Button>
         <a

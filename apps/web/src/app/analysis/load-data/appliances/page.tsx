@@ -43,7 +43,7 @@ export default async function AppliancesPage({ searchParams }: { searchParams?: 
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <ApplianceLoadBuilder date="2026-01-05" initialAppliances={demoAppliances} />
+            <ApplianceLoadBuilder startDate="2026-01-05" endDate="2026-01-05" initialAppliances={demoAppliances} />
             <div className="my-5 border-t border-border" />
             <div className="grid gap-3 md:grid-cols-3">
               {demoAppliances.map((item) => (
