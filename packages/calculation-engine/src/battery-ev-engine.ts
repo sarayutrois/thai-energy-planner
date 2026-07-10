@@ -991,7 +991,7 @@ export function runEvScenario(input: {
   };
 }
 
-export function runEvScenarioComparison(input: {
+export type EvScenarioComparisonInput = {
   baseLoadIntervals: LoadIntervalInput[];
   solarIntervals?: SolarGenerationIntervalInput[] | undefined;
   normalTariff: TariffVersionConfig;
@@ -1000,7 +1000,9 @@ export function runEvScenarioComparison(input: {
   billDate?: string | undefined;
   meterMode?: "normal" | "tou" | undefined;
   monthlyScaleFactor?: number | undefined;
-}): EvScenarioComparisonResult {
+};
+
+export function runEvScenarioComparison(input: EvScenarioComparisonInput): EvScenarioComparisonResult {
   const strategies: EvChargingStrategy[] = [
     "CHARGE_IMMEDIATELY",
     "OFF_PEAK",
@@ -1029,6 +1031,22 @@ export function runEvScenarioComparison(input: {
       scenarios,
       best: bestChargingStrategy,
     }),
+  };
+}
+
+export function createEvScenarioComparisonInputFromCanonicalLoadProfile(
+  input: Omit<EvScenarioComparisonInput, "baseLoadIntervals" | "billDate"> & {
+    profile: CanonicalLoadProfile;
+    billDate?: string | undefined;
+  },
+): EvScenarioComparisonInput {
+  const { profile, billDate, ...evInput } = input;
+  return {
+    ...evInput,
+    baseLoadIntervals: canonicalLoadProfileToLoadIntervals(profile),
+    ...(billDate === undefined
+      ? { billDate: profile.period.startInclusive.slice(0, 10) }
+      : { billDate }),
   };
 }
 
