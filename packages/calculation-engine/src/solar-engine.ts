@@ -881,25 +881,7 @@ export function calculateBillAfterSolar(input: {
   if (exportPolicyErrors.length > 0)
     throw new Error(`Invalid export policy: ${exportPolicyErrors.join(", ")}`);
 
-  // Extend Ft periods to cover all dates to avoid "No Ft matched" errors
-  const normalTariff = {
-    ...input.normalTariff,
-    ftPeriods: input.normalTariff.ftPeriods.map((p, idx) => ({
-      ...p,
-      effectiveFrom: idx === 0 ? "1992-01-01" : p.effectiveFrom,
-      effectiveTo:
-        idx === input.normalTariff.ftPeriods.length - 1 ? null : p.effectiveTo,
-    })),
-  };
-  const touTariff = {
-    ...input.touTariff,
-    ftPeriods: input.touTariff.ftPeriods.map((p, idx) => ({
-      ...p,
-      effectiveFrom: idx === 0 ? "1992-01-01" : p.effectiveFrom,
-      effectiveTo:
-        idx === input.touTariff.ftPeriods.length - 1 ? null : p.effectiveTo,
-    })),
-  };
+  const { normalTariff, touTariff } = input;
 
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
   const billDate =

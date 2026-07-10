@@ -1,5 +1,8 @@
 import Decimal from "decimal.js";
-import type { CanonicalLoadProfile, LoadIntervalInput } from "@thai-energy-planner/shared-types";
+import type {
+  CanonicalLoadProfile,
+  LoadIntervalInput,
+} from "@thai-energy-planner/shared-types";
 import { LoadIntervalSchema } from "@thai-energy-planner/shared-types";
 import {
   calculateNormalBill,
@@ -232,7 +235,6 @@ const dayOfWeekByName: Record<string, number> = {
   Sat: 6,
 };
 const defaultScenarioKinds: ScenarioKind[] = [
-  "CURRENT_NORMAL",
   "CURRENT_TOU",
   "SWITCH_TO_TOU_NO_BEHAVIOR_CHANGE",
   "LOAD_SHIFT_TO_OFF_PEAK",

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { calculateTouBill, demoNormalTariff, demoTouTariff } from "@thai-energy-planner/tariff-engine";
+import {
+  calculateTouBill,
+  demoNormalTariff,
+  demoTouTariff,
+} from "@thai-energy-planner/tariff-engine";
 import {
   analyzeTouBreakEven,
   applyLoadShiftRules,
@@ -7,47 +11,68 @@ import {
   runScenarioComparison,
   scoreScenarioDataQuality,
   validateLoadShiftRule,
-  type ScenarioKind
+  type ScenarioKind,
 } from "./scenario-engine";
 import type { LoadIntervalInput } from "@thai-energy-planner/shared-types";
 
 function bangkokIso(dayOffset: number, hour: number) {
-  return new Date(Date.UTC(2026, 0, 5 + dayOffset, hour - 7, 0, 0)).toISOString();
+  return new Date(
+    Date.UTC(2026, 0, 5 + dayOffset, hour - 7, 0, 0),
+  ).toISOString();
 }
 
 function profile(
   kind: "balanced" | "off_peak_heavy" | "peak_heavy" | "daytime_heavy",
-  days = 3
+  days = 3,
 ): LoadIntervalInput[] {
   const intervals: LoadIntervalInput[] = [];
   for (let day = 0; day < days; day += 1) {
     for (let hour = 0; hour < 24; hour += 1) {
       const energyKwh = hourlyEnergy(kind, hour);
-      intervals.push({ timestamp: bangkokIso(day, hour), energyKwh, powerKw: energyKwh });
+      intervals.push({
+        timestamp: bangkokIso(day, hour),
+        energyKwh,
+        powerKw: energyKwh,
+      });
     }
   }
   return intervals;
 }
 
-function hourlyEnergy(kind: "balanced" | "off_peak_heavy" | "peak_heavy" | "daytime_heavy", hour: number) {
+function hourlyEnergy(
+  kind: "balanced" | "off_peak_heavy" | "peak_heavy" | "daytime_heavy",
+  hour: number,
+) {
   if (kind === "off_peak_heavy") return hour >= 22 || hour < 6 ? 3 : 0.05;
   if (kind === "peak_heavy") return hour >= 9 && hour < 22 ? 3 : 0.05;
   if (kind === "daytime_heavy") return hour >= 9 && hour < 18 ? 2.5 : 0.4;
   return hour >= 18 && hour < 22 ? 1.6 : 0.5;
 }
 
-function run(kind: "balanced" | "off_peak_heavy" | "peak_heavy" | "daytime_heavy", scenarios?: ScenarioKind[]) {
+function run(
+  kind: "balanced" | "off_peak_heavy" | "peak_heavy" | "daytime_heavy",
+  scenarios?: ScenarioKind[],
+) {
   return runScenarioComparison({
     intervals: profile(kind),
     normalTariff: demoNormalTariff,
     touTariff: demoTouTariff,
     billDate: "2026-02-01",
     meterSwitchingCostThb: 1200,
-    scenarioKinds: scenarios
+    scenarioKinds: scenarios,
   });
 }
 
 describe("phase 4 scenario engine", () => {
+  it("keeps Current Normal only as the comparison baseline", () => {
+    const result = run("balanced");
+
+    expect(result.baseline.kind).toBe("CURRENT_NORMAL");
+    expect(result.scenarios.map((scenario) => scenario.kind)).not.toContain(
+      "CURRENT_NORMAL",
+    );
+  });
+
   it("calculates a Current Normal scenario through the tariff engine", () => {
     const result = run("balanced", ["CURRENT_NORMAL"]);
 
@@ -72,9 +97,14 @@ describe("phase 4 scenario engine", () => {
     const scenario = result.scenarios[0]!;
 
     expect(scenario.kind).toBe("SWITCH_TO_TOU_NO_BEHAVIOR_CHANGE");
-    expect(scenario.savingsMonthly).toBeCloseTo(result.baseline.grandTotal - scenario.grandTotal, 2);
+    expect(scenario.savingsMonthly).toBeCloseTo(
+      result.baseline.grandTotal - scenario.grandTotal,
+      2,
+    );
     expect(scenario.effectiveRatePerKwh).toBeGreaterThan(0);
-    expect(result.financialComparison.scenarios[0]?.annualSavingThb).toBeCloseTo(scenario.savingsAnnual, 2);
+    expect(
+      result.financialComparison.scenarios[0]?.annualSavingThb,
+    ).toBeCloseTo(scenario.savingsAnnual, 2);
   });
 
   it("detects a TOU cheaper case for off-peak-heavy load", () => {
@@ -97,7 +127,14 @@ describe("phase 4 scenario engine", () => {
     const source = profile("peak_heavy");
     const shifted = applyLoadShiftRules(source, {
       tariffVersion: demoTouTariff,
-      rules: [{ name: "test shift", shiftPercentOfPeak: 20, targetStartTime: "22:00", targetEndTime: "06:00" }]
+      rules: [
+        {
+          name: "test shift",
+          shiftPercentOfPeak: 20,
+          targetStartTime: "22:00",
+          targetEndTime: "06:00",
+        },
+      ],
     });
 
     expect(shifted.totalKwhAfter).toBeCloseTo(shifted.totalKwhBefore, 5);
@@ -106,28 +143,55 @@ describe("phase 4 scenario engine", () => {
   it("reduces peak kWh after load shifting", () => {
     const shifted = applyLoadShiftRules(profile("peak_heavy"), {
       tariffVersion: demoTouTariff,
-      rules: [{ name: "test shift", shiftPercentOfPeak: 20, targetStartTime: "22:00", targetEndTime: "06:00" }]
+      rules: [
+        {
+          name: "test shift",
+          shiftPercentOfPeak: 20,
+          targetStartTime: "22:00",
+          targetEndTime: "06:00",
+        },
+      ],
     });
 
-    expect(shifted.sourcePeakKwhAfter).toBeLessThan(shifted.sourcePeakKwhBefore);
+    expect(shifted.sourcePeakKwhAfter).toBeLessThan(
+      shifted.sourcePeakKwhBefore,
+    );
   });
 
   it("increases off-peak kWh after load shifting", () => {
     const shifted = applyLoadShiftRules(profile("peak_heavy"), {
       tariffVersion: demoTouTariff,
-      rules: [{ name: "test shift", shiftPercentOfPeak: 20, targetStartTime: "22:00", targetEndTime: "06:00" }]
+      rules: [
+        {
+          name: "test shift",
+          shiftPercentOfPeak: 20,
+          targetStartTime: "22:00",
+          targetEndTime: "06:00",
+        },
+      ],
     });
 
-    expect(shifted.targetOffPeakKwhAfter).toBeGreaterThan(shifted.targetOffPeakKwhBefore);
+    expect(shifted.targetOffPeakKwhAfter).toBeGreaterThan(
+      shifted.targetOffPeakKwhBefore,
+    );
   });
 
   it("does not create negative intervals during shifting", () => {
     const shifted = applyLoadShiftRules(profile("peak_heavy"), {
       tariffVersion: demoTouTariff,
-      rules: [{ name: "large capped shift", shiftPercentOfPeak: 100, targetStartTime: "22:00", targetEndTime: "06:00" }]
+      rules: [
+        {
+          name: "large capped shift",
+          shiftPercentOfPeak: 100,
+          targetStartTime: "22:00",
+          targetEndTime: "06:00",
+        },
+      ],
     });
 
-    expect(shifted.intervals.every((interval) => interval.energyKwh >= 0)).toBe(true);
+    expect(shifted.intervals.every((interval) => interval.energyKwh >= 0)).toBe(
+      true,
+    );
   });
 
   it("calculates break-even off-peak ratio", () => {
@@ -135,10 +199,12 @@ describe("phase 4 scenario engine", () => {
       intervals: profile("peak_heavy"),
       normalTariff: demoNormalTariff,
       touTariff: demoTouTariff,
-      billDate: "2026-02-01"
+      billDate: "2026-02-01",
     });
 
-    expect(breakEven.requiredOffPeakRatio).toBeGreaterThanOrEqual(breakEven.currentOffPeakRatio);
+    expect(breakEven.requiredOffPeakRatio).toBeGreaterThanOrEqual(
+      breakEven.currentOffPeakRatio,
+    );
   });
 
   it("estimates required kWh to shift", () => {
@@ -146,7 +212,7 @@ describe("phase 4 scenario engine", () => {
       intervals: profile("peak_heavy"),
       normalTariff: demoNormalTariff,
       touTariff: demoTouTariff,
-      billDate: "2026-02-01"
+      billDate: "2026-02-01",
     });
 
     expect(breakEven.requiredShiftKwhPerMonth).toBeGreaterThan(0);
@@ -159,7 +225,7 @@ describe("phase 4 scenario engine", () => {
       touTariff: demoTouTariff,
       billDate: "2026-02-01",
       meterSwitchingCostThb: 1200,
-      scenarioKinds: ["CURRENT_TOU"]
+      scenarioKinds: ["CURRENT_TOU"],
     });
 
     expect(result.scenarios[0]?.paybackMonths).toBeGreaterThan(0);
@@ -168,13 +234,21 @@ describe("phase 4 scenario engine", () => {
   it("recommends staying Normal when TOU is worse", () => {
     const result = run("peak_heavy", ["CURRENT_TOU"]);
 
-    expect(result.recommendations.some((recommendation) => recommendation.type === "stay_normal")).toBe(true);
+    expect(
+      result.recommendations.some(
+        (recommendation) => recommendation.type === "stay_normal",
+      ),
+    ).toBe(true);
   });
 
   it("recommends switching TOU when TOU is cheaper", () => {
     const result = run("off_peak_heavy", ["CURRENT_TOU"]);
 
-    expect(result.recommendations.some((recommendation) => recommendation.type === "switch_tou")).toBe(true);
+    expect(
+      result.recommendations.some(
+        (recommendation) => recommendation.type === "switch_tou",
+      ),
+    ).toBe(true);
   });
 
   it("recommends more data for insufficient data quality", () => {
@@ -184,15 +258,22 @@ describe("phase 4 scenario engine", () => {
       touTariff: demoTouTariff,
       billDate: "2026-02-01",
       dataSource: "appliance",
-      scenarioKinds: ["CURRENT_TOU"]
+      scenarioKinds: ["CURRENT_TOU"],
     });
 
     expect(result.dataQuality.level).toBe("LOW");
-    expect(result.recommendations.some((recommendation) => recommendation.type === "insufficient_data")).toBe(true);
+    expect(
+      result.recommendations.some(
+        (recommendation) => recommendation.type === "insufficient_data",
+      ),
+    ).toBe(true);
   });
 
   it("scores high quality interval data", () => {
-    const quality = scoreScenarioDataQuality({ intervals: profile("balanced", 30), source: "interval" });
+    const quality = scoreScenarioDataQuality({
+      intervals: profile("balanced", 30),
+      source: "interval",
+    });
 
     expect(quality.level).toBe("HIGH");
     expect(quality.metrics.hasWeekday).toBe(true);
@@ -200,13 +281,19 @@ describe("phase 4 scenario engine", () => {
   });
 
   it("scores medium quality bill-backed data", () => {
-    const quality = scoreScenarioDataQuality({ billMonthCount: 6, source: "bill" });
+    const quality = scoreScenarioDataQuality({
+      billMonthCount: 6,
+      source: "bill",
+    });
 
     expect(quality.level).toBe("MEDIUM");
   });
 
   it("scores low quality appliance estimates", () => {
-    const quality = scoreScenarioDataQuality({ intervals: profile("balanced", 1), source: "appliance" });
+    const quality = scoreScenarioDataQuality({
+      intervals: profile("balanced", 1),
+      source: "appliance",
+    });
 
     expect(quality.level).toBe("LOW");
   });
@@ -236,20 +323,23 @@ describe("phase 4 scenario engine", () => {
       billDate: "2026-02-01",
       monthlyScaleFactor: 1,
       meterSwitchingCostThb: 0,
-      baselineGrandTotal: null
+      baselineGrandTotal: null,
     });
     const direct = calculateTouBill({
       tariffVersion: demoTouTariff,
-      intervals: intervals.map((interval) => ({ timestamp: interval.timestamp, energyKwh: interval.energyKwh }))
+      intervals: intervals.map((interval) => ({
+        timestamp: interval.timestamp,
+        energyKwh: interval.energyKwh,
+      })),
     });
 
     expect(result.grandTotal).toBe(Number(direct.grandTotal));
   });
 
   it("validates invalid load shift percentages", () => {
-    expect(validateLoadShiftRule({ name: "bad", shiftPercentOfPeak: 120 })).toContain(
-      "shiftPercentOfPeak must be between 0 and 100"
-    );
+    expect(
+      validateLoadShiftRule({ name: "bad", shiftPercentOfPeak: 120 }),
+    ).toContain("shiftPercentOfPeak must be between 0 and 100");
   });
 
   it("rejects negative meter switching cost", () => {
@@ -258,8 +348,8 @@ describe("phase 4 scenario engine", () => {
         intervals: profile("balanced"),
         normalTariff: demoNormalTariff,
         touTariff: demoTouTariff,
-        meterSwitchingCostThb: -1
-      })
+        meterSwitchingCostThb: -1,
+      }),
     ).toThrow("Meter switching cost must be non-negative.");
   });
 });
