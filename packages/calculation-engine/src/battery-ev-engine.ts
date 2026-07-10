@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import type { LoadIntervalInput } from "@thai-energy-planner/shared-types";
+import type { CanonicalLoadProfile, LoadIntervalInput } from "@thai-energy-planner/shared-types";
 import { LoadIntervalSchema } from "@thai-energy-planner/shared-types";
 import {
   calculateNormalBill,
@@ -11,6 +11,7 @@ import {
   type TariffVersionConfig,
 } from "@thai-energy-planner/tariff-engine";
 import { detectIntervalMinutes } from "./load-data.js";
+import { canonicalLoadProfileToLoadIntervals } from "./load-profile-adapters.js";
 import {
   calculateFinancials,
   createDemoSolarInput,
@@ -601,7 +602,7 @@ export function simulateBatteryDispatch(input: {
   };
 }
 
-export function runBatteryAnalysis(input: {
+export type BatteryAnalysisInput = {
   loadIntervals: LoadIntervalInput[];
   solarIntervals?: SolarGenerationIntervalInput[] | undefined;
   normalTariff: TariffVersionConfig;
@@ -611,7 +612,9 @@ export function runBatteryAnalysis(input: {
   billDate?: string | undefined;
   meterMode?: "normal" | "tou" | undefined;
   monthlyScaleFactor?: number | undefined;
-}): BatteryAnalysisResult {
+};
+
+export function runBatteryAnalysis(input: BatteryAnalysisInput): BatteryAnalysisResult {
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
   const dispatch = simulateBatteryDispatch({
     loadIntervals,
@@ -726,6 +729,23 @@ export function runBatteryAnalysis(input: {
       financial,
       config: input.config,
     }),
+  };
+}
+
+export function createBatteryAnalysisInputFromCanonicalLoadProfile(
+  input: Omit<BatteryAnalysisInput, "loadIntervals" | "billDate"> & {
+    profile: CanonicalLoadProfile;
+    billDate?: string | undefined;
+  },
+): BatteryAnalysisInput {
+  const { profile, billDate, ...batteryInput } = input;
+  const loadIntervals = canonicalLoadProfileToLoadIntervals(profile);
+  return {
+    ...batteryInput,
+    loadIntervals,
+    ...(billDate === undefined
+      ? { billDate: profile.period.startInclusive.slice(0, 10) }
+      : { billDate }),
   };
 }
 
