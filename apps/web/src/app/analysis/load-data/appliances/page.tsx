@@ -1,6 +1,7 @@
 import { PlugZap } from "lucide-react";
 import { applianceCatalog, demoAppliances, simulateApplianceLoadProfile } from "@thai-energy-planner/calculation-engine";
 import { AnalysisStartContextCard } from "@/components/analysis-start-context-card";
+import { ApplianceLoadBuilder } from "@/components/appliance-load-builder";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { MainNav } from "@/components/main-nav";
@@ -12,7 +13,6 @@ export default async function AppliancesPage({ searchParams }: { searchParams?: 
     appliances: demoAppliances,
     date: "2026-01-05"
   });
-
   return (
     <main className="min-h-screen">
       <MainNav />
@@ -43,6 +43,8 @@ export default async function AppliancesPage({ searchParams }: { searchParams?: 
             </CardTitle>
           </CardHeader>
           <CardContent>
+            <ApplianceLoadBuilder date="2026-01-05" initialAppliances={demoAppliances} />
+            <div className="my-5 border-t border-border" />
             <div className="grid gap-3 md:grid-cols-3">
               {demoAppliances.map((item) => (
                 <div key={item.name} className="rounded-md border border-border p-4">
