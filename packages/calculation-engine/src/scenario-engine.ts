@@ -1,5 +1,5 @@
 import Decimal from "decimal.js";
-import type { LoadIntervalInput } from "@thai-energy-planner/shared-types";
+import type { CanonicalLoadProfile, LoadIntervalInput } from "@thai-energy-planner/shared-types";
 import { LoadIntervalSchema } from "@thai-energy-planner/shared-types";
 import {
   calculateNormalBill,
@@ -12,6 +12,7 @@ import {
   type TariffVersionConfig,
 } from "@thai-energy-planner/tariff-engine";
 import { detectIntervalMinutes, summarizeLoadProfile } from "./load-data.js";
+import { canonicalLoadProfileToLoadIntervals } from "./load-profile-adapters.js";
 import {
   compareScenarios,
   type EnergyScenarioComparisonResult,
@@ -160,6 +161,55 @@ export type ScenarioEngineInput = {
   billMonthCount?: number | undefined;
   dataSource?: "interval" | "bill" | "appliance" | "demo" | undefined;
 };
+
+export type CanonicalScenarioEngineInput = Omit<
+  ScenarioEngineInput,
+  "intervals" | "billDate" | "dataSource"
+> & {
+  profile: CanonicalLoadProfile;
+  billDate?: string | undefined;
+};
+
+/** Converts the versioned profile contract into ScenarioEngineInput without demo data. */
+export function createScenarioInputFromCanonicalLoadProfile(
+  input: CanonicalScenarioEngineInput,
+): ScenarioEngineInput {
+  const intervals = canonicalLoadProfileToLoadIntervals(input.profile);
+  const source = input.profile.source.kind;
+  const dataSource =
+    source === "appliance"
+      ? "appliance"
+      : source === "bill_estimate"
+        ? "bill"
+        : source === "demo"
+          ? "demo"
+          : "interval";
+
+  return {
+    intervals,
+    normalTariff: input.normalTariff,
+    touTariff: input.touTariff,
+    ...(input.billDate === undefined
+      ? { billDate: getBangkokDate(intervals[0]!.timestamp) }
+      : { billDate: input.billDate }),
+    ...(input.scenarioKinds === undefined
+      ? {}
+      : { scenarioKinds: input.scenarioKinds }),
+    ...(input.loadShiftRules === undefined
+      ? {}
+      : { loadShiftRules: input.loadShiftRules }),
+    ...(input.meterSwitchingCostThb === undefined
+      ? {}
+      : { meterSwitchingCostThb: input.meterSwitchingCostThb }),
+    ...(input.monthlyScaleFactor === undefined
+      ? {}
+      : { monthlyScaleFactor: input.monthlyScaleFactor }),
+    ...(input.billMonthCount === undefined
+      ? {}
+      : { billMonthCount: input.billMonthCount }),
+    dataSource,
+  };
+}
 
 const zero = new Decimal(0);
 const bangkokFormatter = new Intl.DateTimeFormat("en-CA", {
