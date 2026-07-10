@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FileUp, RefreshCw, ServerCog } from "lucide-react";
-import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
+import { canonicalLoadProfileToLoadIntervals, type SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -73,7 +73,9 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
           exportEnabled: settings.exportEnabled,
           exportRateThbPerKwh: settings.exportRateThbPerKwh,
           exportLimitKw: settings.exportLimitKw,
-          loadIntervals: profileSnapshot.rows
+          loadIntervals: profileSnapshot.canonicalProfile
+            ? canonicalLoadProfileToLoadIntervals(profileSnapshot.canonicalProfile)
+            : profileSnapshot.rows
         })
       });
       const result = (await response.json()) as SolarAnalyzeResponse;

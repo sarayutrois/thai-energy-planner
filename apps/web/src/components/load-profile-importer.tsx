@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import type { LoadProfilePreview } from "@thai-energy-planner/calculation-engine/load-data";
+import type { LoadProfileSourceKind } from "@thai-energy-planner/shared-types";
 import { Button } from "@/components/ui/button";
 import { saveLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 
@@ -20,6 +21,7 @@ export function LoadProfileImporter() {
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [sourceName, setSourceName] = useState("Uploaded load profile");
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(60);
   const [mapping, setMapping] = useState({
     timestamp: "timestamp",
@@ -83,6 +85,7 @@ export function LoadProfileImporter() {
     file: File,
     overrideIntervalMinutes = intervalMinutes,
   ) {
+    setSourceName(file.name);
     setIsLoading(true);
     try {
       const formData = new FormData();
@@ -117,18 +120,24 @@ export function LoadProfileImporter() {
 
   function saveForAnalysis(sourceName = "Uploaded load profile") {
     if (!preview?.canImport || preview.rowCount === 0) return;
+    const resolvedIntervalMinutes =
+      preview.detectedIntervalMinutes ?? intervalMinutes;
 
     const snapshot = saveLocalLoadProfileSnapshot({
       sourceName,
       totalKwh: preview.totalKwh,
       peakKw: preview.peakKw,
-      detectedIntervalMinutes: preview.detectedIntervalMinutes,
+      detectedIntervalMinutes: resolvedIntervalMinutes,
       rows: preview.rows.map((row) => ({
         timestamp: row.timestamp,
         energyKwh: row.energyKwh,
         ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw }),
         ...(row.meterId === undefined ? {} : { meterId: row.meterId }),
       })),
+      sourceKind: sourceKindFromFileName(sourceName),
+      warnings: preview.issues
+        .filter((issue) => issue.severity === "warning")
+        .map((issue) => `${issue.code}: ${issue.messageTh}`),
     });
 
     setSavedMessage(
@@ -247,7 +256,7 @@ export function LoadProfileImporter() {
 
           {preview.canImport && preview.rowCount > 0 ? (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-success bg-success/10 p-4 text-sm">
-              <Button onClick={() => saveForAnalysis()} type="button">
+              <Button onClick={() => saveForAnalysis(sourceName)} type="button">
                 บันทึก profile นี้เพื่อใช้วิเคราะห์ Solar
               </Button>
               <a
@@ -341,4 +350,11 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
     value,
   );
+}
+
+function sourceKindFromFileName(fileName: string): LoadProfileSourceKind {
+  const normalized = fileName.toLowerCase();
+  if (normalized.endsWith(".xlsx")) return "xlsx";
+  if (normalized.endsWith(".csv")) return "csv";
+  return "demo";
 }

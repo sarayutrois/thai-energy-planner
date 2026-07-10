@@ -1,4 +1,13 @@
-import type { LoadIntervalInput } from "@thai-energy-planner/shared-types";
+import {
+  calculationEngineVersion,
+  createCanonicalLoadProfileFromLoadIntervals,
+} from "@thai-energy-planner/calculation-engine";
+import {
+  CanonicalLoadProfileSchema,
+  type CanonicalLoadProfile,
+  type LoadIntervalInput,
+  type LoadProfileSourceKind,
+} from "@thai-energy-planner/shared-types";
 
 export const localLoadProfileStorageKey = "thai-energy-planner.load-profile.v1";
 
@@ -12,6 +21,7 @@ export type LocalLoadProfileSnapshot = {
   peakKw: number;
   detectedIntervalMinutes: number | null;
   rows: LoadIntervalInput[];
+  canonicalProfile?: CanonicalLoadProfile;
 };
 
 export function saveLocalLoadProfileSnapshot(input: {
@@ -20,6 +30,8 @@ export function saveLocalLoadProfileSnapshot(input: {
   peakKw: number;
   detectedIntervalMinutes: number | null;
   rows: LoadIntervalInput[];
+  sourceKind?: LoadProfileSourceKind;
+  warnings?: string[];
 }): LocalLoadProfileSnapshot {
   const existing = readLocalLoadProfileSnapshot();
   const now = new Date().toISOString();
@@ -36,12 +48,55 @@ export function saveLocalLoadProfileSnapshot(input: {
       timestamp: row.timestamp,
       energyKwh: row.energyKwh,
       ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw }),
-      ...(row.meterId === undefined ? {} : { meterId: row.meterId })
-    }))
+      ...(row.meterId === undefined ? {} : { meterId: row.meterId }),
+    })),
+    canonicalProfile: createCanonicalProfileForSnapshot({
+      ...input,
+      generatedAt: now,
+    }),
   };
 
   window.localStorage.setItem(localLoadProfileStorageKey, JSON.stringify(snapshot));
   return snapshot;
+}
+
+export function createCanonicalProfileForSnapshot(input: {
+  sourceName: string;
+  detectedIntervalMinutes: number | null;
+  rows: LoadIntervalInput[];
+  sourceKind?: LoadProfileSourceKind;
+  warnings?: string[];
+  generatedAt?: string;
+}): CanonicalLoadProfile {
+  const intervalMinutes = isSupportedIntervalMinutes(
+    input.detectedIntervalMinutes,
+  )
+    ? input.detectedIntervalMinutes
+    : 60;
+
+  return createCanonicalLoadProfileFromLoadIntervals(input.rows, {
+    id: "local-load-profile",
+    name: input.sourceName,
+    sourceKind: input.sourceKind ?? "csv",
+    intervalMinutes,
+    calculationVersion: calculationEngineVersion,
+    ...(input.generatedAt === undefined
+      ? {}
+      : { generatedAt: input.generatedAt }),
+    sourceReference: input.sourceName,
+    assumptions: {
+      storage: "browser_local_snapshot",
+    },
+    quality: {
+      warnings: input.warnings ?? [],
+    },
+  });
+}
+
+function isSupportedIntervalMinutes(
+  value: number | null,
+): value is 15 | 30 | 60 {
+  return value === 15 || value === 30 || value === 60;
 }
 
 export function readLocalLoadProfileSnapshot(): LocalLoadProfileSnapshot | null {
@@ -72,7 +127,9 @@ function isLocalLoadProfileSnapshot(value: unknown): value is LocalLoadProfileSn
     typeof candidate.rowCount === "number" &&
     typeof candidate.totalKwh === "number" &&
     Array.isArray(candidate.rows) &&
-    candidate.rows.every(isLoadInterval)
+    candidate.rows.every(isLoadInterval) &&
+    (candidate.canonicalProfile === undefined ||
+      CanonicalLoadProfileSchema.safeParse(candidate.canonicalProfile).success)
   );
 }
 
