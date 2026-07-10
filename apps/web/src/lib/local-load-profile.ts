@@ -22,6 +22,8 @@ export type LocalLoadProfileSnapshot = {
   detectedIntervalMinutes: number | null;
   rows: LoadIntervalInput[];
   canonicalProfile?: CanonicalLoadProfile;
+  serverLoadProfileId?: string;
+  profileAccessToken?: string;
 };
 
 export function saveLocalLoadProfileSnapshot(input: {
@@ -56,8 +58,37 @@ export function saveLocalLoadProfileSnapshot(input: {
     }),
   };
 
-  window.localStorage.setItem(localLoadProfileStorageKey, JSON.stringify(snapshot));
+  window.localStorage.setItem(
+    localLoadProfileStorageKey,
+    JSON.stringify(snapshot),
+  );
+  void persistLocalLoadProfile(snapshot);
   return snapshot;
+}
+
+async function persistLocalLoadProfile(snapshot: LocalLoadProfileSnapshot) {
+  if (!snapshot.canonicalProfile) return;
+  const accessToken = snapshot.profileAccessToken ?? crypto.randomUUID();
+  const response = await fetch("/api/load-profiles", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ profile: snapshot.canonicalProfile, accessToken }),
+  }).catch(() => null);
+  if (!response?.ok) return;
+  const payload = (await response.json()) as { loadProfileId?: string };
+  if (!payload.loadProfileId) return;
+  const raw = window.localStorage.getItem(localLoadProfileStorageKey);
+  if (!raw) return;
+  const current = JSON.parse(raw) as LocalLoadProfileSnapshot;
+  if (current.updatedAt !== snapshot.updatedAt) return;
+  window.localStorage.setItem(
+    localLoadProfileStorageKey,
+    JSON.stringify({
+      ...current,
+      serverLoadProfileId: payload.loadProfileId,
+      profileAccessToken: accessToken,
+    }),
+  );
 }
 
 export function createCanonicalProfileForSnapshot(input: {
@@ -117,7 +148,9 @@ export function deleteLocalLoadProfileSnapshot() {
   window.localStorage.removeItem(localLoadProfileStorageKey);
 }
 
-function isLocalLoadProfileSnapshot(value: unknown): value is LocalLoadProfileSnapshot {
+function isLocalLoadProfileSnapshot(
+  value: unknown,
+): value is LocalLoadProfileSnapshot {
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<LocalLoadProfileSnapshot>;
   return (
@@ -136,5 +169,9 @@ function isLocalLoadProfileSnapshot(value: unknown): value is LocalLoadProfileSn
 function isLoadInterval(value: unknown): value is LoadIntervalInput {
   if (!value || typeof value !== "object") return false;
   const row = value as Partial<LoadIntervalInput>;
-  return typeof row.timestamp === "string" && typeof row.energyKwh === "number" && row.energyKwh >= 0;
+  return (
+    typeof row.timestamp === "string" &&
+    typeof row.energyKwh === "number" &&
+    row.energyKwh >= 0
+  );
 }
