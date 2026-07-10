@@ -12,6 +12,7 @@ import {
 } from "../ev-page-parts";
 import { ExportReportButton } from "@/components/export-report-button";
 import { AiEvSummary } from "../ai-ev-summary";
+import { CanonicalEvPanel } from "../canonical-ev-panel";
 
 export default async function EvResultsPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -26,6 +27,7 @@ export default async function EvResultsPage({ searchParams }: { searchParams?: P
         <ExportReportButton targetId="ev-report" filename="ev-analysis-report.pdf" />
       </div>
       <div id="ev-report" className="space-y-6 pt-4">
+        <CanonicalEvPanel />
         <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="EV" reportDraft={reportDraft} />
       <AiEvSummary selectedScenario={selectedScenario} comparison={comparison} />
       <EvSummary selectedScenario={selectedScenario} comparison={comparison} />
