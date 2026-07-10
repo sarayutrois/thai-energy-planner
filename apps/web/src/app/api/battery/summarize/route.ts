@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiWithFallback } from "@/lib/ai/gemini-client";
+import { guardApiRequest } from "@/lib/api-security";
 
-function generateRuleBasedSummary(data: { capexThb: number; annualSavingsThb: number; paybackYears: number | null; isViable: boolean }): string {
+function generateRuleBasedSummary(data: {
+  capexThb: number;
+  annualSavingsThb: number;
+  paybackYears: number | null;
+  isViable: boolean;
+}): string {
   const { capexThb, annualSavingsThb, paybackYears, isViable } = data;
 
   if (isViable) {
@@ -12,13 +18,29 @@ function generateRuleBasedSummary(data: { capexThb: number; annualSavingsThb: nu
 }
 
 export async function POST(req: NextRequest) {
+  const blocked = guardApiRequest(req, {
+    bucket: "gemini-battery-summary",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   try {
     const body = await req.json();
 
     // Input validation
     const { capexThb, annualSavingsThb, paybackYears, isViable } = body;
-    if (capexThb === undefined || annualSavingsThb === undefined || isViable === undefined) {
-      return NextResponse.json({ error: "Missing required fields: capexThb, annualSavingsThb, isViable" }, { status: 400 });
+    if (
+      capexThb === undefined ||
+      annualSavingsThb === undefined ||
+      isViable === undefined
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: capexThb, annualSavingsThb, isViable",
+        },
+        { status: 400 },
+      );
     }
 
     const prompt = `คุณเป็นผู้เชี่ยวชาญด้านระบบกักเก็บพลังงาน (Battery Storage)
@@ -31,11 +53,15 @@ export async function POST(req: NextRequest) {
 
 อย่าใช้ markdown ไม่ต้องมีหัวข้อ ขอแค่เนื้อความ 1 ย่อหน้าสั้นๆ แนะนำด้วยว่าถ้าไม่คุ้มควรใช้แบตเตอรี่เพื่อเป็นระบบสำรองไฟ (Backup)`;
 
-    const summary = await callGeminiWithFallback(prompt, () => generateRuleBasedSummary(body));
+    const summary = await callGeminiWithFallback(prompt, () =>
+      generateRuleBasedSummary(body),
+    );
     return NextResponse.json({ summary });
   } catch (error: unknown) {
     console.error("Error generating battery summary:", error);
-    const msg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: "Failed to generate summary", details: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to generate summary" },
+      { status: 500 },
+    );
   }
 }

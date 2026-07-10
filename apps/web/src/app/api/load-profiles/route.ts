@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { CanonicalLoadProfileSchema } from "@thai-energy-planner/shared-types";
 import { z } from "zod";
 import { prisma } from "@/lib/prisma";
+import { guardApiRequest } from "@/lib/api-security";
 
 const requestSchema = z.object({
   profile: CanonicalLoadProfileSchema,
@@ -19,6 +20,12 @@ const sourceByKind = {
 } as const;
 
 export async function POST(request: Request) {
+  const blocked = guardApiRequest(request, {
+    bucket: "load-profile-write",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   if (!isTrustedOrigin(request)) {
     return NextResponse.json(
       { ok: false, error: "Untrusted request origin." },

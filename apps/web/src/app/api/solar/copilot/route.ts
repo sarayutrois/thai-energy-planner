@@ -1,13 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { SchemaType, type ResponseSchema } from "@google/generative-ai";
 import { genAI } from "@/lib/ai/gemini-client";
+import { guardApiRequest } from "@/lib/api-security";
 
 export async function POST(req: NextRequest) {
+  const blocked = guardApiRequest(req, {
+    bucket: "gemini-solar-copilot",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   try {
     if (!genAI) {
       return NextResponse.json(
         { error: "GEMINI_API_KEY is not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -16,7 +23,10 @@ export async function POST(req: NextRequest) {
 
     // Input validation
     if (!prompt || typeof prompt !== "string" || !prompt.trim()) {
-      return NextResponse.json({ error: "Prompt is required" }, { status: 400 });
+      return NextResponse.json(
+        { error: "Prompt is required" },
+        { status: 400 },
+      );
     }
 
     // Limit prompt length to prevent abuse
@@ -38,17 +48,28 @@ export async function POST(req: NextRequest) {
         properties: {
           thoughtProcess: {
             type: SchemaType.STRING,
-            description: "ภาษาไทย: อธิบายสั้นๆ เป็นกันเอง ว่าทำไมถึงปรับค่าเหล่านั้นให้ผู้ใช้ เพื่อให้ตรงกับเป้าหมาย",
+            description:
+              "ภาษาไทย: อธิบายสั้นๆ เป็นกันเอง ว่าทำไมถึงปรับค่าเหล่านั้นให้ผู้ใช้ เพื่อให้ตรงกับเป้าหมาย",
           },
           suggestedParameters: {
             type: SchemaType.OBJECT,
-            description: "พารามิเตอร์ที่ควรปรับเปลี่ยนเพื่อให้สอดคล้องกับความต้องการของผู้ใช้",
+            description:
+              "พารามิเตอร์ที่ควรปรับเปลี่ยนเพื่อให้สอดคล้องกับความต้องการของผู้ใช้",
             properties: {
-              systemSizeKwp: { type: SchemaType.NUMBER, description: "ขนาดแผงโซลาร์ (kWp) - ปกติบ้านทั่วไป 3-5 kWp, ถ้ามีงบเยอะหรือร้านค้าอาจจะ 5-10 kWp" },
-              capexThb: { type: SchemaType.NUMBER, description: "งบประมาณหรือต้นทุน (บาท) - หากระบุงบ ให้ยึดตามที่ระบุ, โดยปกติ 1 kWp = ประมาณ 40,000 บาท" },
+              systemSizeKwp: {
+                type: SchemaType.NUMBER,
+                description:
+                  "ขนาดแผงโซลาร์ (kWp) - ปกติบ้านทั่วไป 3-5 kWp, ถ้ามีงบเยอะหรือร้านค้าอาจจะ 5-10 kWp",
+              },
+              capexThb: {
+                type: SchemaType.NUMBER,
+                description:
+                  "งบประมาณหรือต้นทุน (บาท) - หากระบุงบ ให้ยึดตามที่ระบุ, โดยปกติ 1 kWp = ประมาณ 40,000 บาท",
+              },
               profile: {
                 type: SchemaType.STRING,
-                description: "พฤติกรรมการใช้ไฟ: 'evening_home' (เน้นใช้ไฟกลางคืน/ชาร์จ EV), 'daytime_home' (ใช้ไฟกลางวันพอสมควร), 'daytime_shop' (ร้านค้าใช้ไฟกลางวันเยอะมาก)"
+                description:
+                  "พฤติกรรมการใช้ไฟ: 'evening_home' (เน้นใช้ไฟกลางคืน/ชาร์จ EV), 'daytime_home' (ใช้ไฟกลางวันพอสมควร), 'daytime_shop' (ร้านค้าใช้ไฟกลางวันเยอะมาก)",
               },
             },
           },
@@ -70,7 +91,10 @@ export async function POST(req: NextRequest) {
       try {
         return NextResponse.json(JSON.parse(text));
       } catch {
-        console.error("[Copilot] Tier 1 returned invalid JSON:", text.slice(0, 200));
+        console.error(
+          "[Copilot] Tier 1 returned invalid JSON:",
+          text.slice(0, 200),
+        );
         // Fall through to Tier 2
       }
     } catch (err) {
@@ -90,24 +114,30 @@ export async function POST(req: NextRequest) {
       try {
         return NextResponse.json(JSON.parse(liteText));
       } catch {
-        console.error("[Copilot] Tier 2 returned invalid JSON:", liteText.slice(0, 200));
+        console.error(
+          "[Copilot] Tier 2 returned invalid JSON:",
+          liteText.slice(0, 200),
+        );
         // Fall through to Tier 3
       }
     } catch (err) {
-      console.warn("[Copilot] Flash-Lite also failed, falling back to rule-based:", err);
+      console.warn(
+        "[Copilot] Flash-Lite also failed, falling back to rule-based:",
+        err,
+      );
     }
 
     // Tier 3: Rule-based fallback
     return NextResponse.json({
-      thoughtProcess: "ขออภัยครับ ระบบ AI ไม่สามารถประมวลผลได้ในขณะนี้ ลองปรับค่าด้วยตัวเองก่อนนะครับ หรือรอสักครู่แล้วพิมพ์ใหม่",
+      thoughtProcess:
+        "ขออภัยครับ ระบบ AI ไม่สามารถประมวลผลได้ในขณะนี้ ลองปรับค่าด้วยตัวเองก่อนนะครับ หรือรอสักครู่แล้วพิมพ์ใหม่",
       suggestedParameters: {},
     });
   } catch (error: unknown) {
     console.error("Copilot API Error:", error);
-    const msg = error instanceof Error ? error.message : String(error);
     return NextResponse.json(
-      { error: "Failed to generate copilot response", details: msg },
-      { status: 500 }
+      { error: "Failed to generate copilot response" },
+      { status: 500 },
     );
   }
 }

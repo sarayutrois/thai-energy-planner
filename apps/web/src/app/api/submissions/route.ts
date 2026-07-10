@@ -3,6 +3,7 @@ import type { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { logAudit } from "@/lib/audit-log";
 import { prisma } from "@/lib/prisma";
+import { guardApiRequest } from "@/lib/api-security";
 
 type JsonValue =
   string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
@@ -40,6 +41,12 @@ const submissionSchema = z
   .strict();
 
 export async function POST(request: Request) {
+  const blocked = guardApiRequest(request, {
+    bucket: "submission-write",
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   if (!isTrustedOrigin(request)) {
     return NextResponse.json(
       { ok: false, error: "Untrusted request origin." },

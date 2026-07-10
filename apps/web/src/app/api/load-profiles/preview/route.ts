@@ -4,11 +4,18 @@ import {
   parseCsvLoadProfile,
   parseXlsxLoadProfile,
 } from "@thai-energy-planner/calculation-engine/load-data";
+import { guardApiRequest } from "@/lib/api-security";
 
 const maxUploadBytes = 10 * 1024 * 1024;
 const allowedIntervals = new Set([15, 30, 60]);
 
 export async function POST(request: Request) {
+  const blocked = guardApiRequest(request, {
+    bucket: "load-profile-preview",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   let formData: FormData;
   try {
     formData = await request.formData();
@@ -61,7 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, preview });
     }
 
-    if (fileName.endsWith(".xlsx")) {
+    if (fileName.endsWith(".xlsx") && process.env.NODE_ENV !== "production") {
       const preview = parseXlsxLoadProfile(await file.arrayBuffer(), {
         mapping,
         intervalMinutes: intervalMinutes as 15 | 30 | 60,
@@ -71,7 +78,13 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(
-      { ok: false, error: "Only CSV and XLSX files are supported." },
+      {
+        ok: false,
+        error:
+          process.env.NODE_ENV === "production"
+            ? "Only CSV files are supported in production."
+            : "Only CSV and XLSX files are supported.",
+      },
       { status: 400 },
     );
   } catch (caught) {

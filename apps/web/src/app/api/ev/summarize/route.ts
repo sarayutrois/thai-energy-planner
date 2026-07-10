@@ -1,7 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { callGeminiWithFallback } from "@/lib/ai/gemini-client";
+import { guardApiRequest } from "@/lib/api-security";
 
-function generateRuleBasedSummary(data: { selectedStrategy: string; bestStrategy: string; addedKwh: number; monthlyIncreaseThb: number }): string {
+function generateRuleBasedSummary(data: {
+  selectedStrategy: string;
+  bestStrategy: string;
+  addedKwh: number;
+  monthlyIncreaseThb: number;
+}): string {
   const { selectedStrategy, bestStrategy, addedKwh, monthlyIncreaseThb } = data;
 
   if (selectedStrategy === bestStrategy) {
@@ -12,13 +18,31 @@ function generateRuleBasedSummary(data: { selectedStrategy: string; bestStrategy
 }
 
 export async function POST(req: NextRequest) {
+  const blocked = guardApiRequest(req, {
+    bucket: "gemini-ev-summary",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   try {
     const body = await req.json();
 
     // Input validation
-    const { selectedStrategy, bestStrategy, addedKwh, monthlyIncreaseThb } = body;
-    if (!selectedStrategy || !bestStrategy || addedKwh === undefined || monthlyIncreaseThb === undefined) {
-      return NextResponse.json({ error: "Missing required fields: selectedStrategy, bestStrategy, addedKwh, monthlyIncreaseThb" }, { status: 400 });
+    const { selectedStrategy, bestStrategy, addedKwh, monthlyIncreaseThb } =
+      body;
+    if (
+      !selectedStrategy ||
+      !bestStrategy ||
+      addedKwh === undefined ||
+      monthlyIncreaseThb === undefined
+    ) {
+      return NextResponse.json(
+        {
+          error:
+            "Missing required fields: selectedStrategy, bestStrategy, addedKwh, monthlyIncreaseThb",
+        },
+        { status: 400 },
+      );
     }
 
     const prompt = `คุณเป็นผู้เชี่ยวชาญด้านรถยนต์ไฟฟ้า (EV) และระบบจัดการพลังงาน
@@ -31,11 +55,15 @@ export async function POST(req: NextRequest) {
 
 อย่าใช้ markdown ไม่ต้องมีหัวข้อ ขอแค่เนื้อความ 1 ย่อหน้าสั้นๆ หากลูกค้าไม่ได้เลือก Best Strategy ให้แนะนำเบาๆ ว่าเปลี่ยนไปใช้ Best Strategy จะคุ้มค่ากว่า`;
 
-    const summary = await callGeminiWithFallback(prompt, () => generateRuleBasedSummary(body));
+    const summary = await callGeminiWithFallback(prompt, () =>
+      generateRuleBasedSummary(body),
+    );
     return NextResponse.json({ summary });
   } catch (error: unknown) {
     console.error("Error generating EV summary:", error);
-    const msg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json({ error: "Failed to generate summary", details: msg }, { status: 500 });
+    return NextResponse.json(
+      { error: "Failed to generate summary" },
+      { status: 500 },
+    );
   }
 }

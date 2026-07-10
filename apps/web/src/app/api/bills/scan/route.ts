@@ -1,9 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
 import { genAI, isGeminiConfigured } from "@/lib/ai/gemini-client";
+import { guardApiRequest } from "@/lib/api-security";
 
 export async function POST(req: NextRequest) {
+  const blocked = guardApiRequest(req, {
+    bucket: "gemini-bill-scan",
+    limit: 5,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   if (!isGeminiConfigured() || !genAI) {
-    return NextResponse.json({ error: "Gemini API key not configured" }, { status: 500 });
+    return NextResponse.json(
+      { error: "Gemini API key not configured" },
+      { status: 500 },
+    );
   }
 
   try {
@@ -15,11 +25,19 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate file type
-    const allowedTypes = ["application/pdf", "image/png", "image/jpeg", "image/webp"];
+    const allowedTypes = [
+      "application/pdf",
+      "image/png",
+      "image/jpeg",
+      "image/webp",
+    ];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Unsupported file type. Please upload a PDF or image (PNG/JPG/WebP)." },
-        { status: 400 }
+        {
+          error:
+            "Unsupported file type. Please upload a PDF or image (PNG/JPG/WebP).",
+        },
+        { status: 400 },
       );
     }
 
@@ -28,7 +46,7 @@ export async function POST(req: NextRequest) {
     if (file.size > maxSize) {
       return NextResponse.json(
         { error: "File too large. Maximum size is 10 MB." },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -72,12 +90,17 @@ Ensure the output is ONLY a valid JSON object with these 4 keys. No markdown blo
       const data = JSON.parse(text);
       return NextResponse.json(data);
     } catch (tier1Error) {
-      console.warn("[BillScan] Gemini 2.5 Flash failed, trying Tier 2:", tier1Error);
+      console.warn(
+        "[BillScan] Gemini 2.5 Flash failed, trying Tier 2:",
+        tier1Error,
+      );
     }
 
     // Tier 2: Gemini 2.0 Flash-Lite
     try {
-      const liteModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+      const liteModel = genAI.getGenerativeModel({
+        model: "gemini-2.0-flash-lite",
+      });
       const liteResult = await liteModel.generateContent({
         contents: [
           {
@@ -107,15 +130,14 @@ Ensure the output is ONLY a valid JSON object with these 4 keys. No markdown blo
 
     // No rule-based fallback possible for OCR – return clear error
     return NextResponse.json(
-      { error: "ระบบ AI ไม่สามารถอ่านบิลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง หรือกรอกข้อมูลด้วยตนเอง" },
-      { status: 503 }
+      {
+        error:
+          "ระบบ AI ไม่สามารถอ่านบิลได้ในขณะนี้ กรุณาลองใหม่อีกครั้ง หรือกรอกข้อมูลด้วยตนเอง",
+      },
+      { status: 503 },
     );
   } catch (error: unknown) {
     console.error("Error scanning bill:", error);
-    const msg = error instanceof Error ? error.message : String(error);
-    return NextResponse.json(
-      { error: "Failed to scan bill", details: msg },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to scan bill" }, { status: 500 });
   }
 }
