@@ -69,6 +69,10 @@ export function LocalBillSummary() {
       : null,
     [profile, validation.bills],
   );
+  const lowestCalibrationCoverage = calibration?.comparedMonths.reduce(
+    (lowest, month) => Math.min(lowest, month.coverageRatio),
+    1,
+  );
   const latestRows = summary.monthlyTrend.slice(-4).reverse();
   const averageMonthlyCost = summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
   const billHref = `/analysis/load-data/bills${workspace ? `?audience=${workspace.audience}&source=bills` : ""}`;
@@ -157,6 +161,7 @@ export function LocalBillSummary() {
                 <Metric icon={Zap} label="Profile" value={`${formatNumber(calibration.profileKwh)} kWh`} />
                 <Metric icon={ReceiptText} label="Bill" value={`${formatNumber(calibration.billKwh)} kWh`} />
                 <Metric icon={BarChart3} label="Difference" value={`${formatNumber(calibration.varianceKwh)} kWh`} />
+                <Metric icon={Database} label="Lowest coverage" value={`${formatNumber((lowestCalibrationCoverage ?? 0) * 100)}%`} />
               </div>
             ) : null}
             {calibration.warnings.map((warning) => <p className="mt-2 text-sm text-warning" key={warning}>{warning}</p>)}

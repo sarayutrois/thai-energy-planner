@@ -54,9 +54,13 @@ describe("bill calibration", () => {
         billKwh: 125,
         varianceKwh: -25,
         variancePercent: -20,
+        profileDayCount: 2,
+        calendarDayCount: 31,
       }),
     ]);
-    expect(result.warnings).toEqual([]);
+    expect(result.warnings).toContain(
+      "Load-profile coverage is incomplete for at least one compared bill month.",
+    );
   });
 
   it("warns instead of comparing non-overlapping bill months", () => {

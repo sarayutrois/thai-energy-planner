@@ -18,6 +18,9 @@ export type BillCalibrationResult = {
     billKwh: number;
     varianceKwh: number;
     variancePercent: number | null;
+    profileDayCount: number;
+    calendarDayCount: number;
+    coverageRatio: number;
   }>;
   profileKwh: number;
   billKwh: number;
@@ -40,21 +43,30 @@ export function calibrateLoadProfileAgainstBills(
     billByMonth.set(bill.month, bill);
   }
 
-  const profileByMonth = new Map<string, Decimal>();
+  const profileByMonth = new Map<
+    string,
+    { energy: Decimal; dates: Set<string> }
+  >();
   for (const interval of profile.intervals) {
     const month = bangkokMonth(interval.timestamp);
-    profileByMonth.set(
-      month,
-      (profileByMonth.get(month) ?? new Decimal(0)).plus(interval.energyKwh),
-    );
+    const day = bangkokDate(interval.timestamp);
+    const existing = profileByMonth.get(month) ?? {
+      energy: new Decimal(0),
+      dates: new Set<string>(),
+    };
+    existing.energy = existing.energy.plus(interval.energyKwh);
+    existing.dates.add(day);
+    profileByMonth.set(month, existing);
   }
 
   const comparedMonths = [...profileByMonth.entries()]
     .filter(([month]) => billByMonth.has(month))
     .sort(([left], [right]) => left.localeCompare(right))
-    .map(([month, profileEnergy]) => {
+    .map(([month, profileMonth]) => {
+      const profileEnergy = profileMonth.energy;
       const billEnergy = new Decimal(billByMonth.get(month)!.energyKwh);
       const variance = profileEnergy.minus(billEnergy);
+      const calendarDayCount = daysInMonth(month);
       return {
         month,
         profileKwh: profileEnergy.toDecimalPlaces(6).toNumber(),
@@ -63,6 +75,11 @@ export function calibrateLoadProfileAgainstBills(
         variancePercent: billEnergy.gt(0)
           ? variance.div(billEnergy).mul(100).toDecimalPlaces(2).toNumber()
           : null,
+        profileDayCount: profileMonth.dates.size,
+        calendarDayCount,
+        coverageRatio: Number(
+          (profileMonth.dates.size / calendarDayCount).toFixed(4),
+        ),
       };
     });
 
@@ -90,6 +107,11 @@ export function calibrateLoadProfileAgainstBills(
       "Some bill months have no matching load profile and were excluded.",
     );
   }
+  if (comparedMonths.some((month) => month.coverageRatio < 0.9)) {
+    warnings.push(
+      "Load-profile coverage is incomplete for at least one compared bill month.",
+    );
+  }
 
   return {
     comparedMonths,
@@ -114,4 +136,25 @@ function bangkokMonth(timestamp: string): string {
   if (!year || !month)
     throw new Error(`Invalid interval timestamp: ${timestamp}`);
   return `${year}-${month}`;
+}
+
+function bangkokDate(timestamp: string): string {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(timestamp));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  if (!year || !month || !day)
+    throw new Error(`Invalid interval timestamp: ${timestamp}`);
+  return `${year}-${month}-${day}`;
+}
+
+function daysInMonth(month: string): number {
+  const [year, monthNumber] = month.split("-").map(Number);
+  if (!year || !monthNumber) throw new Error(`Invalid month: ${month}`);
+  return new Date(Date.UTC(year, monthNumber, 0)).getUTCDate();
 }
