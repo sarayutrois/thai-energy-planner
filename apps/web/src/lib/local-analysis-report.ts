@@ -6,6 +6,8 @@ import {
   type LocalAnalysisReportSnapshot,
   type LocalBillReportSnapshot,
 } from "@/lib/local-analysis-snapshot";
+import { calibrateLoadProfileAgainstBills } from "@thai-energy-planner/calculation-engine";
+import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 
 const maxStoredReports = 12;
 
@@ -85,6 +87,19 @@ export function saveLocalAnalysisReport({
   sourcePath: string;
 }) {
   const now = new Date().toISOString();
+  const profile = readLocalLoadProfileSnapshot()?.canonicalProfile;
+  const calibration = profile
+    ? calibrateLoadProfileAgainstBills({
+        profile,
+        bills: billSnapshot.rows.map((row) => ({
+          month: row.month,
+          energyKwh: row.energyKwh,
+          totalCostThb: row.totalCostThb,
+          authority: row.authority,
+          meterMode: row.meterMode,
+        })),
+      })
+    : null;
   const report: LocalAnalysisReportSnapshot = {
     ...draft,
     id: `${localAnalysisReportIdPrefix}${draft.module}-${Date.now()}`,
@@ -98,6 +113,25 @@ export function saveLocalAnalysisReport({
       averageMonthlyCostThb: billSnapshot.averageMonthlyCostThb,
       dataQualityLabel: billSnapshot.dataQualityLabel,
     },
+    ...(profile === undefined
+      ? {}
+      : {
+          sourceProfile: {
+            id: profile.id,
+            name: profile.name,
+            sourceKind: profile.source.kind,
+            intervalCount: profile.intervals.length,
+            qualityLevel: profile.quality.level,
+          },
+          billCalibration: calibration
+            ? {
+                comparedMonthCount: calibration.comparedMonths.length,
+                varianceKwh: calibration.varianceKwh,
+                variancePercent: calibration.variancePercent,
+                warnings: calibration.warnings,
+              }
+            : undefined,
+        }),
   };
   const nextReports = [
     report,

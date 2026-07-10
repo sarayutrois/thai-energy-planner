@@ -106,4 +106,17 @@ export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
     averageMonthlyCostThb: number;
     dataQualityLabel: string;
   };
+  sourceProfile?: {
+    id: string;
+    name: string;
+    sourceKind: string;
+    intervalCount: number;
+    qualityLevel: string;
+  } | undefined;
+  billCalibration?: {
+    comparedMonthCount: number;
+    varianceKwh: number;
+    variancePercent: number | null;
+    warnings: string[];
+  } | undefined;
 };

@@ -2,16 +2,27 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, BarChart3, FileText, ReceiptText, Trash2 } from "lucide-react";
+import {
+  AlertTriangle,
+  BarChart3,
+  FileText,
+  ReceiptText,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { deleteLocalAnalysisReport, readLocalAnalysisReport } from "@/lib/local-analysis-report";
+import {
+  deleteLocalAnalysisReport,
+  readLocalAnalysisReport,
+} from "@/lib/local-analysis-report";
 import { solarReadinessCopy } from "@/lib/solar-readiness-copy";
 import type { LocalAnalysisReportSnapshot } from "@/lib/local-analysis-snapshot";
 import { ReportActions } from "./report-actions";
 
 export function LocalAnalysisReport({ id }: { id: string }) {
-  const [report, setReport] = useState<LocalAnalysisReportSnapshot | null>(null);
+  const [report, setReport] = useState<LocalAnalysisReportSnapshot | null>(
+    null,
+  );
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -27,7 +38,9 @@ export function LocalAnalysisReport({ id }: { id: string }) {
   if (!loaded) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">กำลังโหลดรายงานจากเซสชัน...</CardContent>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          กำลังโหลดรายงานจากเซสชัน...
+        </CardContent>
       </Card>
     );
   }
@@ -43,7 +56,8 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            รายงาน local อาจถูกลบจากเซสชันแล้ว ให้กลับไปหน้า result ที่เริ่มจาก saved bills แล้วกดบันทึกเป็นรายงานใหม่
+            รายงาน local อาจถูกลบจากเซสชันแล้ว ให้กลับไปหน้า result ที่เริ่มจาก
+            saved bills แล้วกดบันทึกเป็นรายงานใหม่
           </p>
           <Link
             className="inline-flex h-10 w-fit items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -67,14 +81,24 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <FileText aria-hidden="true" className="h-5 w-5" />
             </div>
-            <p className="text-sm font-medium text-muted-foreground">{report.reportTitle ?? report.moduleLabel}</p>
-            <h2 className="mt-1 text-3xl font-semibold tracking-normal">{report.title}</h2>
+            <p className="text-sm font-medium text-muted-foreground">
+              {report.reportTitle ?? report.moduleLabel}
+            </p>
+            <h2 className="mt-1 text-3xl font-semibold tracking-normal">
+              {report.title}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              สร้างเมื่อ {new Date(report.createdAt).toLocaleString("th-TH")} · {report.moduleLabel}
+              สร้างเมื่อ {new Date(report.createdAt).toLocaleString("th-TH")} ·{" "}
+              {report.moduleLabel}
             </p>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
-            <ReportActions csvRows={report.resultRows} fileBaseName={report.id} jsonData={report} pdfLabel={pdfLabel} />
+            <ReportActions
+              csvRows={report.resultRows}
+              fileBaseName={report.id}
+              jsonData={report}
+              pdfLabel={pdfLabel}
+            />
             <button
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
               onClick={() => {
@@ -95,12 +119,17 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           <Card className="border-warning bg-warning/10">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <AlertTriangle aria-hidden="true" className="h-5 w-5 text-warning" />
+                <AlertTriangle
+                  aria-hidden="true"
+                  className="h-5 w-5 text-warning"
+                />
                 คำเตือนก่อนใช้รายงาน
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-sm leading-7 text-warning-foreground">{report.disclaimer}</p>
+              <p className="text-sm leading-7 text-warning-foreground">
+                {report.disclaimer}
+              </p>
             </CardContent>
           </Card>
         ) : null}
@@ -116,7 +145,11 @@ export function LocalAnalysisReport({ id }: { id: string }) {
 
         <div className="grid gap-3 md:grid-cols-4">
           {report.metrics.map((metric) => (
-            <Metric key={metric.label} label={metric.label} value={metric.value} />
+            <Metric
+              key={metric.label}
+              label={metric.label}
+              value={metric.value}
+            />
           ))}
         </div>
 
@@ -124,16 +157,34 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <ReceiptText aria-hidden="true" className="h-5 w-5 text-primary" />
+                <ReceiptText
+                  aria-hidden="true"
+                  className="h-5 w-5 text-primary"
+                />
                 Saved bill source
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
-              <InfoRow label="ประเภทผู้ใช้" value={report.sourceBill.audience} />
-              <InfoRow label="จำนวนเดือน" value={`${report.sourceBill.monthCount}`} />
-              <InfoRow label="ใช้ไฟรวม" value={`${formatNumber(report.sourceBill.totalKwh)} kWh`} />
-              <InfoRow label="ค่าไฟเฉลี่ย" value={`${formatNumber(report.sourceBill.averageMonthlyCostThb)} บาท/เดือน`} />
-              <InfoRow label="คุณภาพข้อมูล" value={report.sourceBill.dataQualityLabel} />
+              <InfoRow
+                label="ประเภทผู้ใช้"
+                value={report.sourceBill.audience}
+              />
+              <InfoRow
+                label="จำนวนเดือน"
+                value={`${report.sourceBill.monthCount}`}
+              />
+              <InfoRow
+                label="ใช้ไฟรวม"
+                value={`${formatNumber(report.sourceBill.totalKwh)} kWh`}
+              />
+              <InfoRow
+                label="ค่าไฟเฉลี่ย"
+                value={`${formatNumber(report.sourceBill.averageMonthlyCostThb)} บาท/เดือน`}
+              />
+              <InfoRow
+                label="คุณภาพข้อมูล"
+                value={report.sourceBill.dataQualityLabel}
+              />
             </CardContent>
           </Card>
 
@@ -143,11 +194,42 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="grid gap-3">
               {report.assumptions.map((item) => (
-                <InfoRow key={item.label} label={item.label} value={item.value} />
+                <InfoRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                />
               ))}
             </CardContent>
           </Card>
         </div>
+
+        {report.sourceProfile ? (
+          <Card className="border-primary/40 bg-primary/5">
+            <CardHeader>
+              <CardTitle>Canonical load profile source</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 md:grid-cols-3">
+              <InfoRow label="Profile" value={report.sourceProfile.name} />
+              <InfoRow
+                label="Source / quality"
+                value={`${report.sourceProfile.sourceKind} / ${report.sourceProfile.qualityLevel}`}
+              />
+              <InfoRow
+                label="Intervals"
+                value={report.sourceProfile.intervalCount.toLocaleString(
+                  "th-TH",
+                )}
+              />
+              {report.billCalibration ? (
+                <InfoRow
+                  label="Bill calibration"
+                  value={`${report.billCalibration.comparedMonthCount} months · ${formatNumber(report.billCalibration.varianceKwh)} kWh`}
+                />
+              ) : null}
+            </CardContent>
+          </Card>
+        ) : null}
 
         {report.sections?.map((section) => (
           <Card key={section.title}>
@@ -156,11 +238,20 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="grid gap-3">
               {section.paragraphs?.map((paragraph) => (
-                <p key={paragraph} className="text-sm leading-7 text-muted-foreground">
+                <p
+                  key={paragraph}
+                  className="text-sm leading-7 text-muted-foreground"
+                >
                   {paragraph}
                 </p>
               ))}
-              {section.items?.map((item) => <InfoRow key={item.label} label={item.label} value={item.value} />)}
+              {section.items?.map((item) => (
+                <InfoRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                />
+              ))}
             </CardContent>
           </Card>
         ))}
@@ -184,7 +275,11 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="grid gap-3">
               {report.references.map((item) => (
-                <InfoRow key={item.label} label={item.label} value={item.value} />
+                <InfoRow
+                  key={item.label}
+                  label={item.label}
+                  value={item.value}
+                />
               ))}
             </CardContent>
           </Card>
@@ -196,11 +291,20 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           </CardHeader>
           <CardContent className="grid gap-3">
             {report.recommendations.map((recommendation) => (
-              <div key={`${recommendation.title}-${recommendation.nextAction ?? ""}`} className="rounded-md border border-border p-4">
+              <div
+                key={`${recommendation.title}-${recommendation.nextAction ?? ""}`}
+                className="rounded-md border border-border p-4"
+              >
                 <Badge variant="outline">Recommendation</Badge>
                 <p className="mt-3 font-semibold">{recommendation.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">{recommendation.description}</p>
-                {recommendation.nextAction ? <p className="mt-2 text-sm font-medium">{recommendation.nextAction}</p> : null}
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                  {recommendation.description}
+                </p>
+                {recommendation.nextAction ? (
+                  <p className="mt-2 text-sm font-medium">
+                    {recommendation.nextAction}
+                  </p>
+                ) : null}
               </div>
             ))}
           </CardContent>
@@ -213,10 +317,19 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             </CardHeader>
             <CardContent className="grid gap-3">
               {report.limitations.map((item) => (
-                <div key={`${item.title}-${item.nextAction ?? ""}`} className="rounded-md border border-border p-4">
+                <div
+                  key={`${item.title}-${item.nextAction ?? ""}`}
+                  className="rounded-md border border-border p-4"
+                >
                   <p className="font-semibold">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                  {item.nextAction ? <p className="mt-2 text-sm font-medium">{item.nextAction}</p> : null}
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {item.description}
+                  </p>
+                  {item.nextAction ? (
+                    <p className="mt-2 text-sm font-medium">
+                      {item.nextAction}
+                    </p>
+                  ) : null}
                 </div>
               ))}
             </CardContent>
@@ -224,18 +337,28 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         ) : null}
 
         <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
-          รายงานนี้เป็นรายงานที่บันทึกไว้ในเซสชันนี้ โดยสร้างจาก saved bills, tariff snapshot และข้อมูลสำหรับประเมินเบื้องต้น ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจข้อมูลหน้างานและรับใบเสนอราคาทางการ
+          รายงานนี้เป็นรายงานที่บันทึกไว้ในเซสชันนี้ โดยสร้างจาก saved bills,
+          tariff snapshot และข้อมูลสำหรับประเมินเบื้องต้น
+          ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจข้อมูลหน้างานและรับใบเสนอราคาทางการ
         </p>
       </section>
     </article>
   );
 }
 
-function ResultTable({ rows }: { rows: LocalAnalysisReportSnapshot["resultRows"] }) {
+function ResultTable({
+  rows,
+}: {
+  rows: LocalAnalysisReportSnapshot["resultRows"];
+}) {
   const headers = Object.keys(rows[0] ?? {});
 
   if (headers.length === 0) {
-    return <p className="text-sm text-muted-foreground">ยังไม่มี result rows สำหรับรายงานนี้</p>;
+    return (
+      <p className="text-sm text-muted-foreground">
+        ยังไม่มี result rows สำหรับรายงานนี้
+      </p>
+    );
   }
 
   return (
@@ -285,5 +408,7 @@ function InfoRow({ label, value }: { label: string; value: string }) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
