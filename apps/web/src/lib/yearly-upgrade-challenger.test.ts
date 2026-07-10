@@ -15,9 +15,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
       propertyType: "home",
       usageShape: "day" as const,
       billDate: "2026-01-01",
-      monthlyBills: [
-        { month: "2026-01", billThb: 3000 },
-      ]
+      monthlyBills: [{ month: "2026-01", billThb: 3000 }],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -47,7 +45,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
         { month: "2026-01", billThb: 3000 },
         { month: "2026-02", billThb: 3200 },
         { month: "2026-03", billThb: 3400 }, // Average = 3200
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -83,7 +81,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
         { month: "2026-04", billThb: 3300 },
         { month: "2026-05", billThb: 3400 },
         { month: "2026-06", billThb: 3500 }, // Average = 3250
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -124,7 +122,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
         { month: "2026-10", billThb: 3900 },
         { month: "2026-11", billThb: 4000 },
         { month: "2026-12", billThb: 4100 },
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -153,7 +151,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
       province: "bangkok",
       propertyType: "home",
       usageShape: "day" as const,
-      billDate: "2026-01-01"
+      billDate: "2026-01-01",
     };
 
     const parsed = estimateRequestSchema.safeParse(request);
@@ -166,7 +164,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
       propertyType: "home",
       usageShape: "day" as const,
       billDate: "2026-01-01",
-      monthlyBills: []
+      monthlyBills: [],
     };
 
     const parsed = estimateRequestSchema.safeParse(request);
@@ -181,8 +179,8 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
       billDate: "2026-01-01",
       monthlyBills: [
         { month: "2026-01", billThb: 3000 },
-        { month: "2026-01", billThb: 4000 }
-      ]
+        { month: "2026-01", billThb: 4000 },
+      ],
     };
 
     const parsed = estimateRequestSchema.safeParse(request);
@@ -197,9 +195,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
         propertyType: "home",
         usageShape: "day" as const,
         billDate: "2026-01-01",
-        monthlyBills: [
-          { month: f, billThb: 3000 }
-        ]
+        monthlyBills: [{ month: f, billThb: 3000 }],
       };
       const parsed = estimateRequestSchema.safeParse(request);
       expect(parsed.success).toBe(false);
@@ -214,9 +210,7 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
         propertyType: "home",
         usageShape: "day" as const,
         billDate: "2026-01-01",
-        monthlyBills: [
-          { month: "2026-01", billThb: amt }
-        ]
+        monthlyBills: [{ month: "2026-01", billThb: amt }],
       };
       const parsed = estimateRequestSchema.safeParse(request);
       expect(parsed.success).toBe(false);
@@ -231,21 +225,10 @@ describe("Yearly Profile Upgrade Challenger - Empirical Verification", () => {
         propertyType: "home",
         usageShape: "day" as const,
         billDate: "2026-01-01",
-        monthlyBills: [
-          { month, billThb: 3000 }
-        ]
+        monthlyBills: [{ month, billThb: 3000 }],
       };
       const parsed = estimateRequestSchema.safeParse(request);
-      
-      // Let's log the actual behavior so we can report it
-      console.log(`CHALLENGE-ZOD: Month "${month}" parsing success =`, parsed.success);
-      
-      // If it passes, we verify how the engine handles it (it shouldn't crash, but shifts the month)
-      if (parsed.success) {
-        const payload = runEstimateApiCalculation(parsed.data);
-        expect(payload).toBeDefined();
-        console.log(`CHALLENGE-ZOD: processedMonths for "${month}":`, payload.trace.processedMonths);
-      }
+      expect(parsed.success, `Expected ${month} to be rejected`).toBe(false);
     }
   });
 });

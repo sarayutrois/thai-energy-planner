@@ -130,6 +130,21 @@ export type SolarSelfConsumptionResult = {
   monthlyEnergy: SolarMonthlyEnergy[];
 };
 
+export type MonthlyBreakdownResult = {
+  monthIndex: number;
+  monthName: string;
+  loadKwh: number;
+  solarGenerationKwh: number;
+  selfConsumedKwh: number;
+  gridImportKwh: number;
+  gridExportKwh: number;
+  exportRevenueThb: number;
+  billBeforeSolarNormalThb: number;
+  billBeforeSolarTouThb: number;
+  billAfterSolarNormalThb: number;
+  billAfterSolarTouThb: number;
+};
+
 export type SolarBillScenario = {
   id:
     | "normal_without_solar"
@@ -175,7 +190,7 @@ export type SolarBillComparison = {
   annualGridImportBefore: number;
   annualGridImportAfter: number;
   annualGridExport: number;
-  monthlyBreakdown?: any[] | undefined;
+  monthlyBreakdown: MonthlyBreakdownResult[];
   calculationTrace: {
     engineVersion: string;
     usedIntervalMatching: boolean;
@@ -598,14 +613,17 @@ export function simulateSolarSelfConsumption(input: {
   const timestamps = [
     ...new Set([...loadByTimestamp.keys(), ...solarByTimestamp.keys()]),
   ].sort();
-  const monthly = new Map<string, {
-    month: string;
-    totalLoad: Decimal;
-    totalSolar: Decimal;
-    selfConsumed: Decimal;
-    gridImport: Decimal;
-    gridExport: Decimal;
-  }>();
+  const monthly = new Map<
+    string,
+    {
+      month: string;
+      totalLoad: Decimal;
+      totalSolar: Decimal;
+      selfConsumed: Decimal;
+      gridImport: Decimal;
+      gridExport: Decimal;
+    }
+  >();
 
   let totalLoad = zero;
   let totalSolar = zero;
@@ -702,7 +720,11 @@ export function simulateSolarSelfConsumption(input: {
   };
 }
 
-function getShiftMs(firstTimestamp: string, targetMonth: number, baseYear: number): number {
+function getShiftMs(
+  firstTimestamp: string,
+  targetMonth: number,
+  baseYear: number,
+): number {
   const firstParts = getBangkokParts(firstTimestamp);
   const targetDayOfWeek = firstParts.dayOfWeek;
 
@@ -716,7 +738,9 @@ function getShiftMs(firstTimestamp: string, targetMonth: number, baseYear: numbe
     }
   }
 
-  const origMs = new Date(localDateMinuteToBangkokIso(firstParts.date, 0)).getTime();
+  const origMs = new Date(
+    localDateMinuteToBangkokIso(firstParts.date, 0),
+  ).getTime();
   const targetMs = new Date(
     localDateMinuteToBangkokIso(
       `${baseYear}-${String(targetMonth).padStart(2, "0")}-${String(targetDay).padStart(2, "0")}`,
@@ -733,17 +757,22 @@ function shiftProfileToMonth<T extends { timestamp: string }>(
   overrideShiftMs?: number,
 ): T[] {
   if (intervals.length === 0) return [];
-  const timeShiftMs = overrideShiftMs !== undefined
-    ? overrideShiftMs
-    : getShiftMs(intervals[0]!.timestamp, targetMonth, baseYear);
+  const timeShiftMs =
+    overrideShiftMs !== undefined
+      ? overrideShiftMs
+      : getShiftMs(intervals[0]!.timestamp, targetMonth, baseYear);
 
   return intervals.map((interval) => ({
     ...interval,
-    timestamp: new Date(new Date(interval.timestamp).getTime() + timeShiftMs).toISOString(),
+    timestamp: new Date(
+      new Date(interval.timestamp).getTime() + timeShiftMs,
+    ).toISOString(),
   }));
 }
 
-function aggregateTariffResults(results: TariffCalculationResult[]): TariffCalculationResult {
+function aggregateTariffResults(
+  results: TariffCalculationResult[],
+): TariffCalculationResult {
   if (results.length === 0) {
     throw new Error("Cannot aggregate empty results list");
   }
@@ -761,8 +790,8 @@ function aggregateTariffResults(results: TariffCalculationResult[]): TariffCalcu
   let totalSubtotalBeforeVat = zero;
   let totalVat = zero;
   let totalGrandTotal = zero;
-  const allLineItems: any[] = [];
-  const allIntervalTraces: any[] = [];
+  const allLineItems: TariffCalculationResult["lineItems"] = [];
+  const allIntervalTraces: TariffCalculationResult["intervalTraces"] = [];
 
   for (const r of results) {
     totalEnergyKwh = totalEnergyKwh.plus(r.energyKwh || 0);
@@ -770,12 +799,16 @@ function aggregateTariffResults(results: TariffCalculationResult[]): TariffCalcu
     totalOffPeakEnergyKwh = totalOffPeakEnergyKwh.plus(r.offPeakEnergyKwh || 0);
     totalBaseEnergyCharge = totalBaseEnergyCharge.plus(r.baseEnergyCharge || 0);
     totalPeakEnergyCharge = totalPeakEnergyCharge.plus(r.peakEnergyCharge || 0);
-    totalOffPeakEnergyCharge = totalOffPeakEnergyCharge.plus(r.offPeakEnergyCharge || 0);
+    totalOffPeakEnergyCharge = totalOffPeakEnergyCharge.plus(
+      r.offPeakEnergyCharge || 0,
+    );
     totalDemandCharge = totalDemandCharge.plus(r.demandCharge || 0);
     totalFtCharge = totalFtCharge.plus(r.ftCharge || 0);
     totalServiceCharge = totalServiceCharge.plus(r.serviceCharge || 0);
     totalDiscount = totalDiscount.plus(r.discount || 0);
-    totalSubtotalBeforeVat = totalSubtotalBeforeVat.plus(r.subtotalBeforeVat || 0);
+    totalSubtotalBeforeVat = totalSubtotalBeforeVat.plus(
+      r.subtotalBeforeVat || 0,
+    );
     totalVat = totalVat.plus(r.vat || 0);
     totalGrandTotal = totalGrandTotal.plus(r.grandTotal || 0);
     if (r.lineItems) allLineItems.push(...r.lineItems);
@@ -854,7 +887,8 @@ export function calculateBillAfterSolar(input: {
     ftPeriods: input.normalTariff.ftPeriods.map((p, idx) => ({
       ...p,
       effectiveFrom: idx === 0 ? "1992-01-01" : p.effectiveFrom,
-      effectiveTo: idx === input.normalTariff.ftPeriods.length - 1 ? null : p.effectiveTo,
+      effectiveTo:
+        idx === input.normalTariff.ftPeriods.length - 1 ? null : p.effectiveTo,
     })),
   };
   const touTariff = {
@@ -862,16 +896,15 @@ export function calculateBillAfterSolar(input: {
     ftPeriods: input.touTariff.ftPeriods.map((p, idx) => ({
       ...p,
       effectiveFrom: idx === 0 ? "1992-01-01" : p.effectiveFrom,
-      effectiveTo: idx === input.touTariff.ftPeriods.length - 1 ? null : p.effectiveTo,
+      effectiveTo:
+        idx === input.touTariff.ftPeriods.length - 1 ? null : p.effectiveTo,
     })),
   };
 
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
   const billDate =
     input.billDate ??
-    getBangkokDate(
-      loadIntervals[0]?.timestamp ?? normalTariff.effectiveFrom,
-    );
+    getBangkokDate(loadIntervals[0]?.timestamp ?? normalTariff.effectiveFrom);
 
   const uniqueMonths = new Set(
     loadIntervals.map((i) => getBangkokParts(i.timestamp).date.slice(0, 7)),
@@ -883,7 +916,6 @@ export function calculateBillAfterSolar(input: {
   const repMonth = Number(firstParts.date.slice(5, 7));
   const totalUniqueDays = countUniqueBangkokDates(loadIntervals);
 
-  const monthlyScaleFactors: number[] = [];
   const baseScaleFactors: number[] = [];
   for (let m = 1; m <= 12; m++) {
     const targetDays = new Date(baseYear, m, 0).getDate();
@@ -895,7 +927,7 @@ export function calculateBillAfterSolar(input: {
       const uniqueDaysInMonth = new Set(
         loadIntervals
           .filter((i) => getBangkokParts(i.timestamp).date.slice(5, 7) === mStr)
-          .map((i) => getBangkokParts(i.timestamp).date)
+          .map((i) => getBangkokParts(i.timestamp).date),
       ).size;
       baseSf = uniqueDaysInMonth > 0 ? targetDays / uniqueDaysInMonth : 1;
     }
@@ -910,26 +942,32 @@ export function calculateBillAfterSolar(input: {
     if (input.monthlyScaleFactors.some((v) => v === null || v === undefined)) {
       throw new Error("Scale factors cannot contain undefined or null");
     }
-    if (input.monthlyScaleFactors.some((v) => v < 0)) {
-      throw new Error("Scale factors cannot be negative");
+    for (let i = 0; i < 12; i++) {
+      const v = input.monthlyScaleFactors[i];
+      if (typeof v !== "number" || !Number.isFinite(v) || v < 0) {
+        throw new Error(
+          "Scale factors must be finite non-negative numbers without holes",
+        );
+      }
     }
     growthFactors.push(...input.monthlyScaleFactors);
-    for (let i = 0; i < 12; i++) {
-      monthlyScaleFactors.push(growthFactors[i]! * baseScaleFactors[i]!);
-    }
   } else if (input.monthlyScaleFactor !== undefined) {
-    if (input.monthlyScaleFactor < 0) {
-      throw new Error("Scale factors cannot be negative");
+    if (
+      typeof input.monthlyScaleFactor !== "number" ||
+      !Number.isFinite(input.monthlyScaleFactor) ||
+      input.monthlyScaleFactor < 0
+    ) {
+      throw new Error(
+        "monthlyScaleFactor must be a finite non-negative number",
+      );
     }
     for (let i = 0; i < 12; i++) {
       growthFactors.push(input.monthlyScaleFactor);
-      monthlyScaleFactors.push(input.monthlyScaleFactor * baseScaleFactors[i]!);
     }
   } else {
     for (let i = 0; i < 12; i++) {
       growthFactors.push(1.0);
     }
-    monthlyScaleFactors.push(...baseScaleFactors);
   }
 
   const monthlyBillsNormalWithoutSolar: TariffCalculationResult[] = [];
@@ -946,50 +984,86 @@ export function calculateBillAfterSolar(input: {
     let monthlySolar = input.solarIntervals;
 
     if (isRepresentative) {
-      const timeShiftMs = loadIntervals.length > 0 ? getShiftMs(loadIntervals[0]!.timestamp, m, baseYear) : 0;
-      monthlyLoad = shiftProfileToMonth(loadIntervals, m, baseYear, timeShiftMs);
+      const timeShiftMs =
+        loadIntervals.length > 0
+          ? getShiftMs(loadIntervals[0]!.timestamp, m, baseYear)
+          : 0;
+      monthlyLoad = shiftProfileToMonth(
+        loadIntervals,
+        m,
+        baseYear,
+        timeShiftMs,
+      );
       if (input.solarAssumptions) {
-        const repYield = input.solarAssumptions.monthlySpecificYieldKwhPerKwp[repMonth - 1] ?? 110;
-        const targetYield = input.solarAssumptions.monthlySpecificYieldKwhPerKwp[m - 1] ?? 110;
+        const repYield =
+          input.solarAssumptions.monthlySpecificYieldKwhPerKwp[repMonth - 1] ??
+          110;
+        const targetYield =
+          input.solarAssumptions.monthlySpecificYieldKwhPerKwp[m - 1] ?? 110;
         const repDays = daysInMonth(firstParts.date);
         const targetDays = new Date(baseYear, m, 0).getDate();
 
-        const solarScaleRatio = repYield > 0
-          ? (targetYield / repYield) * (repDays / targetDays)
-          : 1;
+        const solarScaleRatio =
+          repYield > 0 ? (targetYield / repYield) * (repDays / targetDays) : 1;
 
         monthlySolar = input.solarIntervals.map((interval) => ({
           ...interval,
-          generationKwh: new Decimal(interval.generationKwh).mul(solarScaleRatio).toNumber(),
-          powerKw: interval.powerKw !== undefined ? new Decimal(interval.powerKw).mul(solarScaleRatio).toNumber() : undefined,
+          generationKwh: new Decimal(interval.generationKwh)
+            .mul(solarScaleRatio)
+            .toNumber(),
+          powerKw:
+            interval.powerKw !== undefined
+              ? new Decimal(interval.powerKw).mul(solarScaleRatio).toNumber()
+              : undefined,
         }));
       }
-      monthlySolar = shiftProfileToMonth(monthlySolar, m, baseYear, timeShiftMs);
+      monthlySolar = shiftProfileToMonth(
+        monthlySolar,
+        m,
+        baseYear,
+        timeShiftMs,
+      );
     } else {
       const mStr = String(m).padStart(2, "0");
-      monthlyLoad = loadIntervals.filter((i) => getBangkokParts(i.timestamp).date.slice(5, 7) === mStr);
-      monthlySolar = input.solarIntervals.filter((i) => getBangkokParts(i.timestamp).date.slice(5, 7) === mStr);
+      monthlyLoad = loadIntervals.filter(
+        (i) => getBangkokParts(i.timestamp).date.slice(5, 7) === mStr,
+      );
+      monthlySolar = input.solarIntervals.filter(
+        (i) => getBangkokParts(i.timestamp).date.slice(5, 7) === mStr,
+      );
 
       if (monthlyLoad.length === 0) continue;
     }
 
     simulatedMonths.push(m);
-    const sf = monthlyScaleFactors[m - 1] ?? 1;
+    const growthFactor = growthFactors[m - 1] ?? 1;
+    const baseSf = baseScaleFactors[m - 1] ?? 1;
+
+    const simulatedLoad = scaleLoadIntervals(
+      monthlyLoad,
+      growthFactor,
+      growthFactor,
+    );
 
     const selfConsumption = simulateSolarSelfConsumption({
-      loadIntervals: monthlyLoad,
+      loadIntervals: simulatedLoad,
       solarIntervals: monthlySolar,
     });
     monthlySelfConsumptions.push(selfConsumption);
 
-    const billingLoad = scaleLoadIntervals(monthlyLoad, sf);
-    const billingImport = scaleGridImportIntervals(selfConsumption, sf);
+    const billingLoad = scaleLoadIntervals(simulatedLoad, baseSf, 1);
+    const billingImport = scaleGridImportIntervals(selfConsumption, baseSf, 1);
 
     const monthlyLoadKwh = sumLoadEnergy(billingLoad);
     const monthlyImportKwh = sumLoadEnergy(billingImport);
 
-    const monthlyPhysicalExport = new Decimal(selfConsumption.gridExportKwh).mul(sf);
-    const monthlyBillableExport = sumBillableGridExport(selfConsumption, input.exportPolicy).mul(sf);
+    const monthlyPhysicalExport = new Decimal(
+      selfConsumption.gridExportKwh,
+    ).mul(baseSf);
+    const monthlyBillableExport = sumBillableGridExport(
+      selfConsumption,
+      input.exportPolicy,
+    ).mul(baseSf);
     const monthlyExportRevenue = input.exportPolicy.enabled
       ? monthlyBillableExport.mul(input.exportPolicy.exportRateThbPerKwh)
       : zero;
@@ -997,8 +1071,14 @@ export function calculateBillAfterSolar(input: {
     monthlyExportRevenues.push(monthlyExportRevenue);
     monthlyPhysicalExports.push(monthlyPhysicalExport);
 
-    const peakLoadKw = billingLoad.reduce((max, i) => Math.max(max, i.powerKw ?? 0), 0);
-    const peakImportKw = billingImport.reduce((max, i) => Math.max(max, i.powerKw ?? 0), 0);
+    const peakLoadKw = billingLoad.reduce(
+      (max, i) => Math.max(max, i.powerKw ?? 0),
+      0,
+    );
+    const peakImportKw = billingImport.reduce(
+      (max, i) => Math.max(max, i.powerKw ?? 0),
+      0,
+    );
 
     monthlyBillsNormalWithoutSolar.push(
       calculateNormalBill({
@@ -1032,9 +1112,10 @@ export function calculateBillAfterSolar(input: {
     );
   }
 
-  const annualizationFactor = (!isRepresentative && simulatedMonths.length < 12)
-    ? new Decimal(12).div(simulatedMonths.length)
-    : new Decimal(1);
+  const annualizationFactor =
+    !isRepresentative && simulatedMonths.length < 12
+      ? new Decimal(12).div(simulatedMonths.length)
+      : new Decimal(1);
 
   const normalWithoutSolar = buildBillScenario({
     id: "normal_without_solar",
@@ -1103,93 +1184,164 @@ export function calculateBillAfterSolar(input: {
 
   for (let idx = 0; idx < simulatedMonths.length; idx++) {
     const m = simulatedMonths[idx]!;
-    const sf = monthlyScaleFactors[m - 1] ?? 1;
+    const baseSf = baseScaleFactors[m - 1] ?? 1;
     const sc = monthlySelfConsumptions[idx]!;
-    const growthFactor = growthFactors[m - 1] ?? 1;
 
-    totalLoadKwh = totalLoadKwh.plus(new Decimal(sc.totalLoadKwh).mul(sf));
-    totalSolarGenerationKwh = totalSolarGenerationKwh.plus(new Decimal(sc.totalSolarGenerationKwh).mul(sf));
-    selfConsumedKwh = selfConsumedKwh.plus(new Decimal(sc.selfConsumedKwh).mul(sf));
-    gridImportKwh = gridImportKwh.plus(new Decimal(sc.gridImportKwh).mul(sf));
-    gridExportKwh = gridExportKwh.plus(new Decimal(sc.gridExportKwh).mul(sf));
-    daytimeLoadKwh = daytimeLoadKwh.plus(new Decimal(sc.daytimeLoadKwh).mul(sf));
-    daytimeSelfConsumed = daytimeSelfConsumed.plus(new Decimal(sc.daytimeSolarCoverage * sc.daytimeLoadKwh).mul(sf));
+    totalLoadKwh = totalLoadKwh.plus(new Decimal(sc.totalLoadKwh).mul(baseSf));
+    totalSolarGenerationKwh = totalSolarGenerationKwh.plus(
+      new Decimal(sc.totalSolarGenerationKwh).mul(baseSf),
+    );
+    selfConsumedKwh = selfConsumedKwh.plus(
+      new Decimal(sc.selfConsumedKwh).mul(baseSf),
+    );
+    gridImportKwh = gridImportKwh.plus(
+      new Decimal(sc.gridImportKwh).mul(baseSf),
+    );
+    gridExportKwh = gridExportKwh.plus(
+      new Decimal(sc.gridExportKwh).mul(baseSf),
+    );
+    daytimeLoadKwh = daytimeLoadKwh.plus(
+      new Decimal(sc.daytimeLoadKwh).mul(baseSf),
+    );
+    daytimeSelfConsumed = daytimeSelfConsumed.plus(
+      new Decimal(sc.daytimeSolarCoverage * sc.daytimeLoadKwh).mul(baseSf),
+    );
 
-    peakDemandBeforeKw = Decimal.max(peakDemandBeforeKw, new Decimal(sc.peakDemandBeforeKw).mul(growthFactor));
-    peakDemandAfterKw = Decimal.max(peakDemandAfterKw, new Decimal(sc.peakDemandAfterKw).mul(growthFactor));
+    peakDemandBeforeKw = Decimal.max(peakDemandBeforeKw, sc.peakDemandBeforeKw);
+    peakDemandAfterKw = Decimal.max(peakDemandAfterKw, sc.peakDemandAfterKw);
 
     for (const interval of sc.intervalResults) {
       aggregatedIntervalResults.push({
         timestamp: interval.timestamp,
-        loadKwh: round(new Decimal(interval.loadKwh).mul(sf).toNumber(), 6),
-        solarKwh: round(new Decimal(interval.solarKwh).mul(sf).toNumber(), 6),
-        selfConsumedKwh: round(new Decimal(interval.selfConsumedKwh).mul(sf).toNumber(), 6),
-        gridImportKwh: round(new Decimal(interval.gridImportKwh).mul(sf).toNumber(), 6),
-        gridExportKwh: round(new Decimal(interval.gridExportKwh).mul(sf).toNumber(), 6),
-        loadPowerKw: round(new Decimal(interval.loadPowerKw).mul(sf).toNumber(), 6),
-        gridImportPowerKw: round(new Decimal(interval.gridImportPowerKw).mul(sf).toNumber(), 6),
+        loadKwh: round(new Decimal(interval.loadKwh).mul(baseSf).toNumber(), 6),
+        solarKwh: round(
+          new Decimal(interval.solarKwh).mul(baseSf).toNumber(),
+          6,
+        ),
+        selfConsumedKwh: round(
+          new Decimal(interval.selfConsumedKwh).mul(baseSf).toNumber(),
+          6,
+        ),
+        gridImportKwh: round(
+          new Decimal(interval.gridImportKwh).mul(baseSf).toNumber(),
+          6,
+        ),
+        gridExportKwh: round(
+          new Decimal(interval.gridExportKwh).mul(baseSf).toNumber(),
+          6,
+        ),
+        loadPowerKw: round(interval.loadPowerKw, 6),
+        gridImportPowerKw: round(interval.gridImportPowerKw, 6),
       });
     }
 
     const monthStr = `${baseYear}-${String(m).padStart(2, "0")}`;
     monthlyEnergy.push({
       month: monthStr,
-      totalLoadKwh: round(new Decimal(sc.totalLoadKwh).mul(sf), 6),
-      totalSolarGenerationKwh: round(new Decimal(sc.totalSolarGenerationKwh).mul(sf), 6),
-      selfConsumedKwh: round(new Decimal(sc.selfConsumedKwh).mul(sf), 6),
-      gridImportKwh: round(new Decimal(sc.gridImportKwh).mul(sf), 6),
-      gridExportKwh: round(new Decimal(sc.gridExportKwh).mul(sf), 6),
+      totalLoadKwh: round(
+        new Decimal(sc.totalLoadKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      totalSolarGenerationKwh: round(
+        new Decimal(sc.totalSolarGenerationKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      selfConsumedKwh: round(
+        new Decimal(sc.selfConsumedKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      gridImportKwh: round(
+        new Decimal(sc.gridImportKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      gridExportKwh: round(
+        new Decimal(sc.gridExportKwh).mul(baseSf).toNumber(),
+        6,
+      ),
     });
   }
 
-  const count = simulatedMonths.length || 1;
   const aggregatedSelfConsumption: SolarSelfConsumptionResult = {
     intervalMinutes: monthlySelfConsumptions[0]?.intervalMinutes ?? 60,
     intervalResults: aggregatedIntervalResults,
-    totalLoadKwh: round(totalLoadKwh.div(count), 6),
-    totalSolarGenerationKwh: round(totalSolarGenerationKwh.mul(annualizationFactor), 6), // Keep as annual total for runSolarAnalysis/optimizeSolarSize
-    selfConsumedKwh: round(selfConsumedKwh.mul(annualizationFactor), 6), // Keep as annual total
-    gridImportKwh: round(gridImportKwh.div(count), 6), // Return as monthly average (raw/unscaled)
-    gridExportKwh: round(gridExportKwh.div(count), 6), // Return as monthly average (raw/unscaled)
+    totalLoadKwh: round(totalLoadKwh.mul(annualizationFactor).toNumber(), 6),
+    totalSolarGenerationKwh: round(
+      totalSolarGenerationKwh.mul(annualizationFactor).toNumber(),
+      6,
+    ),
+    selfConsumedKwh: round(
+      selfConsumedKwh.mul(annualizationFactor).toNumber(),
+      6,
+    ),
+    gridImportKwh: round(gridImportKwh.mul(annualizationFactor).toNumber(), 6),
+    gridExportKwh: round(gridExportKwh.mul(annualizationFactor).toNumber(), 6),
     selfConsumptionRatio: ratio(selfConsumedKwh, totalSolarGenerationKwh),
     selfSufficiencyRatio: ratio(selfConsumedKwh, totalLoadKwh),
     exportRatio: ratio(gridExportKwh, totalSolarGenerationKwh),
     solarUtilization: ratio(selfConsumedKwh, totalSolarGenerationKwh),
-    daytimeLoadKwh: round(daytimeLoadKwh.div(count), 6),
+    daytimeLoadKwh: round(
+      daytimeLoadKwh.mul(annualizationFactor).toNumber(),
+      6,
+    ),
     daytimeSolarCoverage: ratio(daytimeSelfConsumed, daytimeLoadKwh),
     peakDemandBeforeKw: round(peakDemandBeforeKw, 6),
     peakDemandAfterKw: round(peakDemandAfterKw, 6),
     monthlyEnergy: monthlyEnergy.sort((a, b) => a.month.localeCompare(b.month)),
   };
 
-  const monthlyBreakdown: any[] = [];
+  const monthlyBreakdown: MonthlyBreakdownResult[] = [];
   const monthNames = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December"
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
   ];
   for (let idx = 0; idx < simulatedMonths.length; idx++) {
     const m = simulatedMonths[idx]!;
-    const sf = monthlyScaleFactors[m - 1] ?? 1;
+    const baseSf = baseScaleFactors[m - 1] ?? 1;
     const sc = monthlySelfConsumptions[idx]!;
     const normalWithout = monthlyBillsNormalWithoutSolar[idx]!;
     const touWithout = monthlyBillsTouWithoutSolar[idx]!;
     const normalWith = monthlyBillsNormalWithSolar[idx]!;
     const touWith = monthlyBillsTouWithSolar[idx]!;
 
-    const monthlyBillableExport = sumBillableGridExport(sc, input.exportPolicy).mul(sf);
+    const monthlyBillableExport = sumBillableGridExport(
+      sc,
+      input.exportPolicy,
+    ).mul(baseSf);
     const monthlyExportRev = input.exportPolicy.enabled
       ? monthlyBillableExport.mul(input.exportPolicy.exportRateThbPerKwh)
       : zero;
 
     monthlyBreakdown.push({
       monthIndex: m - 1,
-      monthName: monthNames[m - 1],
-      loadKwh: round(new Decimal(sc.totalLoadKwh).mul(sf), 6),
-      solarGenerationKwh: round(new Decimal(sc.totalSolarGenerationKwh).mul(sf), 6),
-      selfConsumedKwh: round(new Decimal(sc.selfConsumedKwh).mul(sf), 6),
-      gridImportKwh: round(new Decimal(sc.gridImportKwh).mul(sf), 6),
-      gridExportKwh: round(new Decimal(sc.gridExportKwh).mul(sf), 6),
-      exportRevenueThb: round(monthlyExportRev, 2),
+      monthName: monthNames[m - 1]!,
+      loadKwh: round(new Decimal(sc.totalLoadKwh).mul(baseSf).toNumber(), 6),
+      solarGenerationKwh: round(
+        new Decimal(sc.totalSolarGenerationKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      selfConsumedKwh: round(
+        new Decimal(sc.selfConsumedKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      gridImportKwh: round(
+        new Decimal(sc.gridImportKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      gridExportKwh: round(
+        new Decimal(sc.gridExportKwh).mul(baseSf).toNumber(),
+        6,
+      ),
+      exportRevenueThb: round(monthlyExportRev.toNumber(), 2),
       billBeforeSolarNormalThb: round(normalWithout.grandTotal, 2),
       billBeforeSolarTouThb: round(touWithout.grandTotal, 2),
       billAfterSolarNormalThb: round(normalWith.grandTotal, 2),
@@ -1197,7 +1349,13 @@ export function calculateBillAfterSolar(input: {
     });
   }
 
-  const averageMonthlyScaleFactor = input.monthlyScaleFactor ?? (input.monthlyScaleFactors ? (input.monthlyScaleFactors.reduce((a, b) => a + b, 0) / 12) : totalUniqueDays > 0 ? 30.4 / totalUniqueDays : 1);
+  const averageMonthlyScaleFactor =
+    input.monthlyScaleFactor ??
+    (input.monthlyScaleFactors
+      ? input.monthlyScaleFactors.reduce((a, b) => a + b, 0) / 12
+      : totalUniqueDays > 0
+        ? 30.4 / totalUniqueDays
+        : 1);
 
   return {
     billDate,
@@ -1224,15 +1382,24 @@ export function calculateBillAfterSolar(input: {
     calculationTrace: {
       engineVersion: solarEngineVersion,
       usedIntervalMatching: true,
-      tariffVersionIds: [
-        normalTariff.id,
-        touTariff.id,
-      ],
+      tariffVersionIds: [normalTariff.id, touTariff.id],
       lineItemCount:
-        monthlyBillsNormalWithoutSolar.reduce((sum, b) => sum + b.lineItems.length, 0) +
-        monthlyBillsTouWithoutSolar.reduce((sum, b) => sum + b.lineItems.length, 0) +
-        monthlyBillsNormalWithSolar.reduce((sum, b) => sum + b.lineItems.length, 0) +
-        monthlyBillsTouWithSolar.reduce((sum, b) => sum + b.lineItems.length, 0),
+        monthlyBillsNormalWithoutSolar.reduce(
+          (sum, b) => sum + b.lineItems.length,
+          0,
+        ) +
+        monthlyBillsTouWithoutSolar.reduce(
+          (sum, b) => sum + b.lineItems.length,
+          0,
+        ) +
+        monthlyBillsNormalWithSolar.reduce(
+          (sum, b) => sum + b.lineItems.length,
+          0,
+        ) +
+        monthlyBillsTouWithSolar.reduce(
+          (sum, b) => sum + b.lineItems.length,
+          0,
+        ),
     },
   };
 }
@@ -1471,13 +1638,15 @@ export function optimizeSolarSize(input: {
       annualBillSavingsThb: billSavingsAnnual.toNumber(),
       annualExportRevenueThb:
         billComparison.bestWithSolar.annualExportRevenueThb,
-      annualGenerationKwh: billComparison.selfConsumption.totalSolarGenerationKwh,
+      annualGenerationKwh:
+        billComparison.selfConsumption.totalSolarGenerationKwh,
       assumptions: scaledFinancial,
     });
 
     options.push({
       systemSizeKwp,
-      annualGenerationKwh: billComparison.selfConsumption.totalSolarGenerationKwh,
+      annualGenerationKwh:
+        billComparison.selfConsumption.totalSolarGenerationKwh,
       annualSelfConsumedKwh: billComparison.selfConsumption.selfConsumedKwh,
       annualExportedKwh: billComparison.annualGridExport,
       selfConsumptionRatio: billComparison.selfConsumption.selfConsumptionRatio,
@@ -2167,23 +2336,40 @@ function buildBillScenario(input: {
 }): SolarBillScenario {
   const aggregatedBill = aggregateTariffResults(input.monthlyBills);
 
-  const rawAnnualBill = input.monthlyBills.reduce((sum, b) => sum.plus(b.grandTotal), zero);
+  const rawAnnualBill = input.monthlyBills.reduce(
+    (sum, b) => sum.plus(b.grandTotal),
+    zero,
+  );
   const rawAnnualExportRevenue = input.usesSolar
     ? input.monthlyExportRevenues.reduce((sum, r) => sum.plus(r), zero)
     : zero;
-  const rawAnnualGridImportKwh = input.monthlyBills.reduce((sum, b) => sum.plus(b.energyKwh), zero);
+  const rawAnnualGridImportKwh = input.monthlyBills.reduce(
+    (sum, b) => sum.plus(b.energyKwh),
+    zero,
+  );
   const rawAnnualGridExportKwh = input.usesSolar
     ? input.monthlyPhysicalExportsKwh.reduce((sum, e) => sum.plus(e), zero)
     : zero;
 
-  const rawAnnualBaselineBill = input.baselineMonthlyBills.reduce((sum, b) => sum.plus(b.grandTotal), zero);
+  const rawAnnualBaselineBill = input.baselineMonthlyBills.reduce(
+    (sum, b) => sum.plus(b.grandTotal),
+    zero,
+  );
 
   // Apply annualization factor to annual variables
   const annualBill = rawAnnualBill.mul(input.annualizationFactor);
-  const annualExportRevenue = rawAnnualExportRevenue.mul(input.annualizationFactor);
-  const annualGridImportKwh = rawAnnualGridImportKwh.mul(input.annualizationFactor);
-  const annualGridExportKwh = rawAnnualGridExportKwh.mul(input.annualizationFactor);
-  const annualBaselineBill = rawAnnualBaselineBill.mul(input.annualizationFactor);
+  const annualExportRevenue = rawAnnualExportRevenue.mul(
+    input.annualizationFactor,
+  );
+  const annualGridImportKwh = rawAnnualGridImportKwh.mul(
+    input.annualizationFactor,
+  );
+  const annualGridExportKwh = rawAnnualGridExportKwh.mul(
+    input.annualizationFactor,
+  );
+  const annualBaselineBill = rawAnnualBaselineBill.mul(
+    input.annualizationFactor,
+  );
 
   const annualBillSavings = input.usesSolar
     ? Decimal.max(zero, annualBaselineBill.minus(annualBill))
@@ -2195,13 +2381,14 @@ function buildBillScenario(input: {
   // Use raw unscaled values for monthly averages
   const monthlyBill = count > 0 ? rawAnnualBill.div(count) : zero;
   const monthlyEnergyKwh = count > 0 ? rawAnnualGridImportKwh.div(count) : zero;
-  const monthlyExportRevenue = count > 0 ? rawAnnualExportRevenue.div(count) : zero;
-  
+  const monthlyExportRevenue =
+    count > 0 ? rawAnnualExportRevenue.div(count) : zero;
+
   const rawAnnualBillSavings = input.usesSolar
     ? Decimal.max(zero, rawAnnualBaselineBill.minus(rawAnnualBill))
     : zero;
   const monthlyBillSavings = count > 0 ? rawAnnualBillSavings.div(count) : zero;
-  
+
   const rawNetAnnualCost = rawAnnualBill.minus(rawAnnualExportRevenue);
   const netMonthlyCost = count > 0 ? rawNetAnnualCost.div(count) : zero;
 
@@ -2289,10 +2476,11 @@ function detectSolarIntervalMinutes(intervals: SolarGenerationIntervalInput[]) {
 
 function scaleLoadIntervals(
   intervals: LoadIntervalInput[],
-  factor: number,
+  energyFactor: number,
+  powerFactor: number,
 ): LoadIntervalInput[] {
   return intervals.map((interval) => {
-    const energy = new Decimal(interval.energyKwh).mul(factor);
+    const energy = new Decimal(interval.energyKwh).mul(energyFactor);
     return {
       timestamp: interval.timestamp,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
@@ -2300,7 +2488,7 @@ function scaleLoadIntervals(
         ? {}
         : {
             powerKw: new Decimal(interval.powerKw)
-              .mul(factor)
+              .mul(powerFactor)
               .toDecimalPlaces(6)
               .toNumber(),
           }),
@@ -2310,11 +2498,12 @@ function scaleLoadIntervals(
 
 function scaleGridImportIntervals(
   result: SolarSelfConsumptionResult,
-  factor: number,
+  energyFactor: number,
+  powerFactor: number,
 ): LoadIntervalInput[] {
   return result.intervalResults.map((interval) => {
-    const energy = new Decimal(interval.gridImportKwh).mul(factor);
-    const power = new Decimal(interval.gridImportPowerKw).mul(factor);
+    const energy = new Decimal(interval.gridImportKwh).mul(energyFactor);
+    const power = new Decimal(interval.gridImportPowerKw).mul(powerFactor);
     return {
       timestamp: interval.timestamp,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
@@ -2331,17 +2520,6 @@ function toTariffInterval(interval: LoadIntervalInput) {
       ? {}
       : { powerKw: interval.powerKw.toString() }),
   };
-}
-
-function inferMonthlyScaleFactor(intervals: LoadIntervalInput[]) {
-  const days = countUniqueBangkokDates(intervals);
-  const firstDate = intervals[0]
-    ? getBangkokDate(intervals[0].timestamp)
-    : null;
-  const targetDays = firstDate ? daysInMonth(firstDate) : 30;
-  return days > 0
-    ? new Decimal(targetDays).div(days).toDecimalPlaces(6).toNumber()
-    : 1;
 }
 
 function countUniqueBangkokDates(intervals: LoadIntervalInput[]) {
@@ -2769,7 +2947,9 @@ function round(value: Decimal.Value, places: number) {
     .toNumber();
 }
 
-const usdFormatter = new Intl.NumberFormat("en-US", { maximumFractionDigits: 2 });
+const usdFormatter = new Intl.NumberFormat("en-US", {
+  maximumFractionDigits: 2,
+});
 
 function formatMoney(value: number) {
   return usdFormatter.format(value);

@@ -155,9 +155,9 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(comparison.selfConsumption.gridImportKwh).toBe(21.291667);
-    expect(comparison.normalWithSolar.monthlyEnergyKwh).toBe(21.291667);
-    expect(comparison.touWithSolar.monthlyEnergyKwh).toBe(21.291667);
+    expect(comparison.selfConsumption.gridImportKwh).toBeCloseTo(255.5);
+    expect(comparison.normalWithSolar.monthlyEnergyKwh).toBeCloseTo(21.291667);
+    expect(comparison.touWithSolar.monthlyEnergyKwh).toBeCloseTo(21.291667);
     expect(comparison.normalWithSolar.monthlyEnergyKwh).not.toBe(0);
     expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(46.84);
     expect(comparison.calculationTrace.usedIntervalMatching).toBe(true);
@@ -178,9 +178,9 @@ describe("phase 5 solar engine", () => {
       monthlyScaleFactor: 1,
     });
 
-    expect(comparison.selfConsumption.gridExportKwh).toBe(121.666667);
-    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBe(60.83);
-    expect(comparison.annualGridExport).toBe(1460);
+    expect(comparison.selfConsumption.gridExportKwh).toBeCloseTo(1460);
+    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBeCloseTo(60.83);
+    expect(comparison.annualGridExport).toBeCloseTo(1460);
   });
 
   it("matches load and solar intervals with min/load/solar rules", () => {

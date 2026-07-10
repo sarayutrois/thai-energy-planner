@@ -11,6 +11,8 @@ import {
   type ExportPolicy,
 } from "./solar-engine";
 
+type BillAfterSolarInput = Parameters<typeof calculateBillAfterSolar>[0];
+
 // Helper function to create ISO timestamp for tests
 function getBangkokIso(dayOffset: number, hour: number, month = 0) {
   // Uses 2026 as reference year
@@ -20,7 +22,11 @@ function getBangkokIso(dayOffset: number, hour: number, month = 0) {
 }
 
 // Generate simple 24-hour load intervals for a single day
-function createDailyLoad(dayOffset: number, energyKwh = 1.5, month = 0): LoadIntervalInput[] {
+function createDailyLoad(
+  dayOffset: number,
+  energyKwh = 1.5,
+  month = 0,
+): LoadIntervalInput[] {
   const intervals: LoadIntervalInput[] = [];
   for (let hour = 1; hour <= 24; hour++) {
     intervals.push({
@@ -54,16 +60,16 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
   // ==========================================
   // TIER 1: Feature Coverage (Happy Paths)
   // ==========================================
-  
+
   it("T1.F1.1: Processes 12 identical monthly scaling factors correctly", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
     // Pass 12 identical scale factors
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -73,7 +79,7 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
     };
 
     const result = calculateBillAfterSolar(input);
-    
+
     // Expect total annual figures to be equivalent to single scaling factor * 12
     expect(result).toBeDefined();
     expect(result.annualGridImportAfter).toBeGreaterThan(0);
@@ -82,15 +88,17 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T1.F1.2: Processes 12 distinct monthly scaling factors and aggregates them correctly", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
     // Vary scale factors by season (high in Summer, low in Monsoon)
-    const monthlyScaleFactors = [1.0, 1.1, 1.3, 1.4, 1.4, 0.9, 0.8, 0.8, 0.9, 1.0, 1.1, 1.0];
+    const monthlyScaleFactors = [
+      1.0, 1.1, 1.3, 1.4, 1.4, 0.9, 0.8, 0.8, 0.9, 1.0, 1.1, 1.0,
+    ];
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -107,12 +115,12 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T1.F1.3: Maps a single monthlyScaleFactor to 12-element array for backward compatibility", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const inputLegacy: any = {
+    const inputLegacy: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -128,12 +136,12 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T1.F1.4: Automatically infers scale factors per month based on the calendar days in each month", () => {
     const loadIntervals = createWeeklyLoad(); // 7 days base in January
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -149,12 +157,12 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T1.F1.5: Returns a complete month-by-month breakdown of cost, energy, and solar exports", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -163,11 +171,12 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
       monthlyScaleFactors: Array(12).fill(1.0),
     };
 
-    const result: any = calculateBillAfterSolar(input);
+    const result = calculateBillAfterSolar(input);
     expect(result.monthlyBreakdown).toBeDefined();
     expect(result.monthlyBreakdown.length).toBe(12);
-    expect(result.monthlyBreakdown[0].monthName).toBe("January");
-    expect(result.monthlyBreakdown[0].gridImportKwh).toBeGreaterThan(0);
+    const january = result.monthlyBreakdown[0]!;
+    expect(january.monthName).toBe("January");
+    expect(january.gridImportKwh).toBeGreaterThan(0);
   });
 
   // ==========================================
@@ -176,12 +185,12 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T2.F1.1: Rejects scale factors array if its length is not equal to 12", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -190,36 +199,69 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
       monthlyScaleFactors: [1.0, 1.1], // Length 2 instead of 12
     };
 
-    expect(() => calculateBillAfterSolar(input)).toThrow(/monthlyScaleFactors must have exactly 12 elements/);
+    expect(() => calculateBillAfterSolar(input)).toThrow(
+      /monthlyScaleFactors must have exactly 12 elements/,
+    );
   });
 
   it("T2.F1.2: Rejects scaling factors array if it contains negative factors", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
       touTariff: demoTouTariff,
       exportPolicy: mockExportPolicy,
-      monthlyScaleFactors: [1.0, 1.1, -0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+      monthlyScaleFactors: [
+        1.0, 1.1, -0.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+      ],
     };
 
-    expect(() => calculateBillAfterSolar(input)).toThrow(/Scale factors cannot be negative/);
+    expect(() => calculateBillAfterSolar(input)).toThrow(
+      /Scale factors must be finite non-negative numbers without holes/,
+    );
   });
+
+  it.each([
+    Number.NaN,
+    Number.POSITIVE_INFINITY,
+    Number.NEGATIVE_INFINITY,
+    -0.5,
+  ])(
+    "T2.F1.2b: Rejects invalid legacy monthlyScaleFactor %s",
+    (monthlyScaleFactor) => {
+      const loadIntervals = createWeeklyLoad();
+      const solarIntervals = createWeeklyLoad().map((interval) => ({
+        timestamp: interval.timestamp,
+        generationKwh: 0.5,
+      }));
+
+      expect(() =>
+        calculateBillAfterSolar({
+          loadIntervals,
+          solarIntervals,
+          normalTariff: demoNormalTariff,
+          touTariff: demoTouTariff,
+          exportPolicy: mockExportPolicy,
+          monthlyScaleFactor,
+        }),
+      ).toThrow(/monthlyScaleFactor must be a finite non-negative number/);
+    },
+  );
 
   it("T2.F1.3: Processes extreme scale factors safely without numeric overflow or NaN results", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -236,18 +278,31 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T2.F1.4: Rejects scale factors containing undefined or null items", () => {
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
       touTariff: demoTouTariff,
       exportPolicy: mockExportPolicy,
-      monthlyScaleFactors: [1, 1, null, undefined, 1, 1, 1, 1, 1, 1, 1, 1],
+      monthlyScaleFactors: [
+        1,
+        1,
+        null,
+        undefined,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+        1,
+      ] as unknown as number[],
     };
 
     expect(() => calculateBillAfterSolar(input)).toThrow();
@@ -256,12 +311,12 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
   it("T2.F1.5: Aligns representative profile timestamps to match target month's starting day-of-week", () => {
     // Representative profile starts on Monday Jan 5, 2026.
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -270,8 +325,8 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
       monthlyScaleFactors: Array(12).fill(1.0),
     };
 
-    const result: any = calculateBillAfterSolar(input);
-    // When executing October (which starts on a Thursday in 2026), the shifted profile should 
+    const result = calculateBillAfterSolar(input);
+    // When executing October (which starts on a Thursday in 2026), the shifted profile should
     // align starting day-of-week to keep TOU peak/off-peak pricing accurate.
     expect(result).toBeDefined();
   });
@@ -279,14 +334,16 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
   // ==========================================
   // TIER 3: Cross-Feature Integration Tests (Part 1)
   // ==========================================
-  
+
   it("T3.2: Aligns seasonal solar yields correctly with monthly load scaling factors", () => {
     // Load has high scale factor in Mar/Apr, low in Aug
-    const monthlyScaleFactors = [1.0, 1.0, 1.5, 1.5, 1.0, 1.0, 1.0, 0.7, 1.0, 1.0, 1.0, 1.0];
-    
+    const monthlyScaleFactors = [
+      1.0, 1.0, 1.5, 1.5, 1.0, 1.0, 1.0, 0.7, 1.0, 1.0, 1.0, 1.0,
+    ];
+
     const demoInput = createDemoSolarInput("daytime_home");
     // Specific yields are e.g., March: 126, August: 106.
-    (demoInput as any).monthlyScaleFactors = monthlyScaleFactors;
+    demoInput.monthlyScaleFactors = monthlyScaleFactors;
     demoInput.normalTariff = demoNormalTariff;
     demoInput.touTariff = demoTouTariff;
 
@@ -304,14 +361,16 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
     // High A/C usage in summer (Mar-May scale factors > 1.35)
     // Low usage + heavy clouds in Monsoon (Jul-Sep, load factor 0.8, specific yield low)
     const loadIntervals = createWeeklyLoad();
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 0.5,
     }));
 
-    const monthlyScaleFactors = [1.0, 1.1, 1.4, 1.45, 1.35, 0.9, 0.8, 0.8, 0.85, 1.0, 1.0, 1.0];
+    const monthlyScaleFactors = [
+      1.0, 1.1, 1.4, 1.45, 1.35, 0.9, 0.8, 0.8, 0.85, 1.0, 1.0, 1.0,
+    ];
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -327,7 +386,7 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
 
   it("T4.Scenario-3: Enforces Zero-Export clamping independently per month based on seasonal load factors", () => {
     const loadIntervals = createWeeklyLoad(); // low baseline load
-    const solarIntervals = createWeeklyLoad().map(i => ({
+    const solarIntervals = createWeeklyLoad().map((i) => ({
       timestamp: i.timestamp,
       generationKwh: 1.2, // large solar generation leading to export
     }));
@@ -342,9 +401,11 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
     };
 
     // Low load factor in winter (0.6), high load factor in summer (1.5)
-    const monthlyScaleFactors = [0.6, 0.6, 1.5, 1.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.6, 0.6];
+    const monthlyScaleFactors = [
+      0.6, 0.6, 1.5, 1.5, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 0.6, 0.6,
+    ];
 
-    const input: any = {
+    const input: BillAfterSolarInput = {
       loadIntervals,
       solarIntervals,
       normalTariff: demoNormalTariff,
@@ -362,7 +423,9 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
   it("T4.Scenario-5: Integrates 12-month independent load profiles into multi-year lifecycle projection with solar degradation", () => {
     // 10-year lifecycle simulation
     const demoInput = createDemoSolarInput("daytime_home");
-    (demoInput as any).monthlyScaleFactors = [1.0, 1.1, 1.3, 1.3, 1.2, 0.9, 0.8, 0.8, 0.9, 1.0, 1.1, 1.0];
+    demoInput.monthlyScaleFactors = [
+      1.0, 1.1, 1.3, 1.3, 1.2, 0.9, 0.8, 0.8, 0.9, 1.0, 1.1, 1.0,
+    ];
     demoInput.financialAssumptions.projectLifeYears = 10;
     demoInput.solarAssumptions.degradationPercentPerYear = 0.5; // 0.5% degradation/year
     demoInput.normalTariff = demoNormalTariff;
@@ -378,11 +441,11 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
   describe("Adversarial/Stress Challenges - Empirical Verification of Loop & Math", () => {
     it("CHALLENGE-1: Check if annual total solar generation equals sum of scaled monthly generation", () => {
       const loadIntervals = createWeeklyLoad();
-      const solarIntervals = createWeeklyLoad().map(i => ({
+      const solarIntervals = createWeeklyLoad().map((i) => ({
         timestamp: i.timestamp,
         generationKwh: 0.5,
       }));
-      const input: any = {
+      const input: BillAfterSolarInput = {
         loadIntervals,
         solarIntervals,
         normalTariff: demoNormalTariff,
@@ -390,21 +453,25 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
         exportPolicy: mockExportPolicy,
       };
       const result = calculateBillAfterSolar(input);
-      const sumOfScaledMonthlySolar = result.selfConsumption.monthlyEnergy.reduce(
-        (sum: number, m: any) => sum + m.totalSolarGenerationKwh,
-        0
-      );
+      const sumOfScaledMonthlySolar =
+        result.selfConsumption.monthlyEnergy.reduce(
+          (sum, month) => sum + month.totalSolarGenerationKwh,
+          0,
+        );
       // The annual total solar generation should equal the sum of scaled monthly generation
-      expect(result.selfConsumption.totalSolarGenerationKwh).toBeCloseTo(sumOfScaledMonthlySolar, 2);
+      expect(result.selfConsumption.totalSolarGenerationKwh).toBeCloseTo(
+        sumOfScaledMonthlySolar,
+        2,
+      );
     });
 
     it("CHALLENGE-2: Check if annual total load equals sum of scaled monthly load", () => {
       const loadIntervals = createWeeklyLoad();
-      const solarIntervals = createWeeklyLoad().map(i => ({
+      const solarIntervals = createWeeklyLoad().map((i) => ({
         timestamp: i.timestamp,
         generationKwh: 0.5,
       }));
-      const input: any = {
+      const input: BillAfterSolarInput = {
         loadIntervals,
         solarIntervals,
         normalTariff: demoNormalTariff,
@@ -412,25 +479,25 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
         exportPolicy: mockExportPolicy,
       };
       const result = calculateBillAfterSolar(input);
-      const sumOfScaledMonthlyLoad = result.selfConsumption.monthlyEnergy.reduce(
-        (sum: number, m: any) => sum + m.totalLoadKwh,
-        0
-      );
-      
+      const sumOfScaledMonthlyLoad =
+        result.selfConsumption.monthlyEnergy.reduce(
+          (sum, month) => sum + month.totalLoadKwh,
+          0,
+        );
+
       // Let's compare with result.selfConsumption.totalLoadKwh (wait, is it annual total or monthly average?)
       // If it's a monthly average, then totalLoadKwh * 12 should be sumOfScaledMonthlyLoad
       const reportedLoad = result.selfConsumption.totalLoadKwh;
-      console.log("CHALLENGE-2: reportedLoad =", reportedLoad, "sumOfScaledMonthlyLoad =", sumOfScaledMonthlyLoad);
-      expect(reportedLoad * 12).toBeCloseTo(sumOfScaledMonthlyLoad, 2);
+      expect(reportedLoad).toBeCloseTo(sumOfScaledMonthlyLoad, 2);
     });
 
     it("CHALLENGE-3: Verify if monthlyScaleFactors override disables representative days-in-month scaling", () => {
       const loadIntervals = createWeeklyLoad(); // 7 days
-      const solarIntervals = createWeeklyLoad().map(i => ({
+      const solarIntervals = createWeeklyLoad().map((i) => ({
         timestamp: i.timestamp,
         generationKwh: 0.5,
       }));
-      
+
       // Omitted scale factors (inferred): January (31 days) gets sf = 31/7 = 4.428
       const resultInferred = calculateBillAfterSolar({
         loadIntervals,
@@ -450,17 +517,18 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
         monthlyScaleFactors: Array(12).fill(1.0),
       });
 
-      console.log("CHALLENGE-3: inferred Jan load =", resultInferred.selfConsumption.monthlyEnergy[0]!.totalLoadKwh);
-      console.log("CHALLENGE-3: explicit Jan load =", resultExplicit.selfConsumption.monthlyEnergy[0]!.totalLoadKwh);
-      
       // If monthlyScaleFactors is passed as 1.0, the total load in January should still represent 31 days
       // (scaled by 4.428), not just 7 days (scaled by 1.0).
-      expect(resultExplicit.selfConsumption.monthlyEnergy[0]!.totalLoadKwh)
-        .toBeCloseTo(resultInferred.selfConsumption.monthlyEnergy[0]!.totalLoadKwh, 2);
+      expect(
+        resultExplicit.selfConsumption.monthlyEnergy[0]!.totalLoadKwh,
+      ).toBeCloseTo(
+        resultInferred.selfConsumption.monthlyEnergy[0]!.totalLoadKwh,
+        2,
+      );
     });
 
     it("CHALLENGE-4: Empty loadIntervals should throw a clean validation error instead of crashing inside aggregateTariffResults", () => {
-      const input: any = {
+      const input: BillAfterSolarInput = {
         loadIntervals: [],
         solarIntervals: [],
         normalTariff: demoNormalTariff,
@@ -469,17 +537,19 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
       };
 
       // We expect a validation error like "loadIntervals cannot be empty", not "Cannot aggregate empty results list"
-      expect(() => calculateBillAfterSolar(input)).toThrow(/loadIntervals cannot be empty|invalid loadIntervals/i);
+      expect(() => calculateBillAfterSolar(input)).toThrow(
+        /loadIntervals cannot be empty|invalid loadIntervals/i,
+      );
     });
 
     it("CHALLENGE-5: Peak demand (powerKw) should scale with user-specified monthlyScaleFactors (load growth multiplier)", () => {
       const loadIntervals = createWeeklyLoad();
-      const solarIntervals = createWeeklyLoad().map(i => ({
+      const solarIntervals = createWeeklyLoad().map((i) => ({
         timestamp: i.timestamp,
         generationKwh: 0.5,
       }));
 
-      const input: any = {
+      const input: BillAfterSolarInput = {
         loadIntervals,
         solarIntervals,
         normalTariff: demoNormalTariff,
@@ -491,12 +561,13 @@ describe("F1: 12-Month Independent Yearly Load Profile Calculation (Core Engine)
       const result = calculateBillAfterSolar(input);
       // The peak demand in the result or intervalResults should reflect the 1.5x scaling
       // Let's check the peakDemandBeforeKw of the aggregated selfConsumption
-      const basePeak = Math.max(...loadIntervals.map(i => i.powerKw ?? 0));
+      const basePeak = Math.max(...loadIntervals.map((i) => i.powerKw ?? 0));
       const expectedPeak = basePeak * 1.5;
-      
-      console.log("CHALLENGE-5: basePeak =", basePeak, "expectedPeak =", expectedPeak, "reportedPeak =", result.selfConsumption.peakDemandBeforeKw);
-      expect(result.selfConsumption.peakDemandBeforeKw).toBeCloseTo(expectedPeak, 2);
+
+      expect(result.selfConsumption.peakDemandBeforeKw).toBeCloseTo(
+        expectedPeak,
+        2,
+      );
     });
   });
 });
-
