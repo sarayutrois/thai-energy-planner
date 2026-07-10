@@ -44,6 +44,7 @@ const localReportPayloadSchema = z
     sections: z.array(jsonValueSchema).max(50).optional(),
     limitations: z.array(jsonValueSchema).max(50).optional(),
     references: z.array(jsonValueSchema).max(50).optional(),
+    reportAccessToken: z.string().uuid(),
   })
   .strict();
 
@@ -57,34 +58,10 @@ export async function GET(request: Request) {
     );
   }
 
-  try {
-    const reports = await prisma.generatedReport.findMany({
-      orderBy: { generatedAt: "desc" },
-      take: 50,
-      select: {
-        id: true,
-        format: true,
-        fileName: true,
-        storageUrl: true,
-        generatedAt: true,
-        metadata: true,
-        analysisRun: {
-          select: {
-            id: true,
-            name: true,
-            createdAt: true,
-          },
-        },
-      },
-    });
-
-    return NextResponse.json({ ok: true, reports });
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "Database is not available." },
-      { status: 503 },
-    );
-  }
+  return NextResponse.json(
+    { ok: false, error: "Report listing requires an authenticated service." },
+    { status: 403 },
+  );
 }
 
 export async function POST(request: Request) {

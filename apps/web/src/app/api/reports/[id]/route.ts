@@ -51,6 +51,13 @@ export async function GET(
       );
     }
 
+    if (!hasReportAccess(request, report.metadata)) {
+      return NextResponse.json(
+        { ok: false, error: "Report not found." },
+        { status: 404 },
+      );
+    }
+
     return NextResponse.json({ ok: true, report });
   } catch {
     return NextResponse.json(
@@ -97,6 +104,13 @@ export async function DELETE(
       );
     }
 
+    if (!hasReportAccess(request, existing.metadata)) {
+      return NextResponse.json(
+        { ok: false, error: "Report not found." },
+        { status: 404 },
+      );
+    }
+
     await prisma.generatedReport.delete({
       where: { id },
     });
@@ -115,6 +129,13 @@ export async function DELETE(
       { status: 503 },
     );
   }
+}
+
+function hasReportAccess(request: Request, metadata: unknown) {
+  const token = request.headers.get("x-report-access-token");
+  if (!token || !metadata || typeof metadata !== "object") return false;
+  const savedToken = (metadata as Record<string, unknown>).reportAccessToken;
+  return typeof savedToken === "string" && savedToken === token;
 }
 
 function isTrustedOrigin(request: Request) {

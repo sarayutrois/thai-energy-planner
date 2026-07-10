@@ -97,6 +97,7 @@ export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
   createdAt: string;
   serverGeneratedReportId?: string | undefined;
   serverAnalysisRunId?: string | undefined;
+  reportAccessToken?: string | undefined;
   sourcePath: string;
   sourceBillReportId: typeof localBillReportId;
   sourceBill: {

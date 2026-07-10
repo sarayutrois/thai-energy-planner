@@ -28,9 +28,10 @@ export function readLocalAnalysisReport(
 
 export function deleteLocalAnalysisReport(id: string) {
   const report = readLocalAnalysisReport(id);
-  if (report?.serverGeneratedReportId) {
+  if (report?.serverGeneratedReportId && report.reportAccessToken) {
     void fetch(`/api/reports/${report.serverGeneratedReportId}`, {
       method: "DELETE",
+      headers: { "x-report-access-token": report.reportAccessToken },
     }).catch(() => undefined);
   }
   const nextReports = readLocalAnalysisReports().filter(
@@ -113,6 +114,7 @@ export function saveLocalAnalysisReport({
       averageMonthlyCostThb: billSnapshot.averageMonthlyCostThb,
       dataQualityLabel: billSnapshot.dataQualityLabel,
     },
+    reportAccessToken: crypto.randomUUID(),
     ...(profile === undefined
       ? {}
       : {
