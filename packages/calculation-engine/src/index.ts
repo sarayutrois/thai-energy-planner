@@ -73,6 +73,7 @@ export const calculationEngineVersion = "0.1.0-foundation";
 export * from "./load-data.js";
 export * from "./load-profile-adapters.js";
 export * from "./appliance-profile.js";
+export * from "./bill-calibration.js";
 export * from "./energy-types.js";
 export * from "./financial.js";
 export * from "./scenario.js";
