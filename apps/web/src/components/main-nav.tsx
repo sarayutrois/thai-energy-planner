@@ -24,14 +24,29 @@ const navItems = [
   { label: "Load Data", href: "/analysis/load-data", icon: UploadCloud },
   { label: "เปรียบเทียบ", href: "/analysis/scenarios", icon: BarChart3 },
   { label: "Solar", href: "/analysis/solar", icon: SunMedium },
-  { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
-  { label: "EV", href: "/analysis/ev", icon: PlugZap },
-  { label: "Ecosystem", href: "/analysis/ecosystem", icon: Layers },
+  {
+    label: "Battery",
+    href: "/analysis/battery",
+    icon: BatteryCharging,
+    experimental: true,
+  },
+  { label: "EV", href: "/analysis/ev", icon: PlugZap, experimental: true },
+  {
+    label: "Ecosystem",
+    href: "/analysis/ecosystem",
+    icon: Layers,
+    experimental: true,
+  },
   { label: "รายงาน", href: "/analysis/reports", icon: FileText },
 ];
 
 export function MainNav() {
   const [isOpen, setIsOpen] = useState(false);
+  const visibleNavItems = navItems.filter(
+    (item) =>
+      !item.experimental ||
+      process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES === "true",
+  );
 
   return (
     <header className="sticky top-0 z-20 border-b border-border bg-background/88 backdrop-blur">
@@ -61,7 +76,7 @@ export function MainNav() {
           className="hidden items-center gap-1 lg:flex"
           aria-label="Main navigation"
         >
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <a
               key={item.href}
               href={item.href}
@@ -89,7 +104,7 @@ export function MainNav() {
       {isOpen && (
         <div className="lg:hidden border-t border-border bg-background px-4 py-4 shadow-lg absolute w-full left-0">
           <nav className="flex flex-col gap-2" aria-label="Mobile navigation">
-            {navItems.map((item) => (
+            {visibleNavItems.map((item) => (
               <a
                 key={item.href}
                 href={item.href}

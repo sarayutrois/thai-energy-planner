@@ -101,6 +101,7 @@ const nextJourneys: Array<{
   description: string;
   href: string;
   icon: LucideIcon;
+  experimental?: boolean;
 }> = [
   {
     title: "ดูภาพรวมโหลด",
@@ -125,6 +126,7 @@ const nextJourneys: Array<{
     description: "ดูผลของแบตเตอรี่และการชาร์จรถไฟฟ้าต่อค่าไฟ",
     href: "/analysis/battery",
     icon: BatteryCharging,
+    experimental: true,
   },
 ];
 
@@ -344,31 +346,33 @@ export function StartAnalysisWizard() {
           </h2>
         </div>
         <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          {nextJourneys.map((item) => (
-            <a
-              key={item.href}
-              href={item.href}
-              className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              <Card className="h-full transition hover:border-primary">
-                <CardContent className="flex h-full flex-col gap-3 p-5">
-                  <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                    <item.icon aria-hidden="true" className="h-5 w-5" />
-                  </div>
-                  <div className="flex flex-1 flex-col">
-                    <h3 className="font-semibold">{item.title}</h3>
-                    <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
-                      {item.description}
-                    </p>
-                    <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-                      เปิดดู
-                      <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            </a>
-          ))}
+          {nextJourneys
+            .filter((item) => !item.experimental)
+            .map((item) => (
+              <a
+                key={item.href}
+                href={item.href}
+                className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                <Card className="h-full transition hover:border-primary">
+                  <CardContent className="flex h-full flex-col gap-3 p-5">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                      <item.icon aria-hidden="true" className="h-5 w-5" />
+                    </div>
+                    <div className="flex flex-1 flex-col">
+                      <h3 className="font-semibold">{item.title}</h3>
+                      <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
+                        {item.description}
+                      </p>
+                      <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                        เปิดดู
+                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                      </span>
+                    </div>
+                  </CardContent>
+                </Card>
+              </a>
+            ))}
         </div>
       </section>
     </>
