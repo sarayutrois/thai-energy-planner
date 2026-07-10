@@ -15,11 +15,12 @@ import {
   Zap,
   type LucideIcon
 } from "lucide-react";
-import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
-import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
+import type { CanonicalLoadProfile, MonthlyBillInput } from "@thai-energy-planner/shared-types";
+import { calibrateLoadProfileAgainstBills, estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { billWorkspaceStorageKey, localBillReportId, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
+import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 
 const audienceSegment: Record<StoredBillWorkspace["audience"], MonthlyBillInput["customerSegment"]> = {
   home: "residential",
@@ -29,6 +30,7 @@ const audienceSegment: Record<StoredBillWorkspace["audience"], MonthlyBillInput[
 
 export function LocalBillSummary() {
   const [workspace, setWorkspace] = useState<StoredBillWorkspace | null>(null);
+  const [profile, setProfile] = useState<CanonicalLoadProfile | null>(null);
   const [readError, setReadError] = useState(false);
 
   useEffect(() => {
@@ -36,9 +38,11 @@ export function LocalBillSummary() {
       const raw = window.localStorage.getItem(billWorkspaceStorageKey);
       const parsed = raw ? (JSON.parse(raw) as Partial<StoredBillWorkspace>) : null;
       setWorkspace(parsed && Array.isArray(parsed.rows) ? normalizeWorkspace(parsed) : null);
+      setProfile(readLocalLoadProfileSnapshot()?.canonicalProfile ?? null);
       setReadError(false);
     } catch {
       setWorkspace(null);
+      setProfile(null);
       setReadError(true);
     }
   }, []);
@@ -58,6 +62,12 @@ export function LocalBillSummary() {
         hasTwelveMonthBills: validation.bills.length >= 12
       }),
     [validation.bills.length]
+  );
+  const calibration = useMemo(
+    () => profile && validation.bills.length > 0
+      ? calibrateLoadProfileAgainstBills({ profile, bills: validation.bills })
+      : null,
+    [profile, validation.bills],
   );
   const latestRows = summary.monthlyTrend.slice(-4).reverse();
   const averageMonthlyCost = summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
@@ -133,6 +143,25 @@ export function LocalBillSummary() {
           <Metric icon={ReceiptText} label="ค่าไฟรวม" value={`${formatNumber(summary.totalCostThb)} บาท`} />
           <Metric icon={BarChart3} label="เฉลี่ย/เดือน" value={`${formatNumber(averageMonthlyCost)} บาท`} />
         </div>
+
+        {calibration ? (
+          <section className="rounded-md border border-primary/40 bg-primary/5 p-4">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h2 className="text-sm font-semibold">Load Profile เทียบบิลจริง</h2>
+              <Badge variant={calibration.comparedMonths.length > 0 ? "success" : "outline"}>
+                {calibration.comparedMonths.length} เดือนที่เทียบได้
+              </Badge>
+            </div>
+            {calibration.comparedMonths.length > 0 ? (
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <Metric icon={Zap} label="Profile" value={`${formatNumber(calibration.profileKwh)} kWh`} />
+                <Metric icon={ReceiptText} label="Bill" value={`${formatNumber(calibration.billKwh)} kWh`} />
+                <Metric icon={BarChart3} label="Difference" value={`${formatNumber(calibration.varianceKwh)} kWh`} />
+              </div>
+            ) : null}
+            {calibration.warnings.map((warning) => <p className="mt-2 text-sm text-warning" key={warning}>{warning}</p>)}
+          </section>
+        ) : null}
 
         <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
           <section className="rounded-md border border-border bg-muted/25 p-4">
