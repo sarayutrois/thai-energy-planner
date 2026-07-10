@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { ApplianceScheduleInputSchema } from "@thai-energy-planner/shared-types";
 import {
+  createCanonicalLoadProfileFromApplianceRange,
   createCanonicalLoadProfileFromAppliances,
+  simulateApplianceLoadProfileRange,
   simulateApplianceLoadProfile,
 } from "./index";
 
@@ -84,5 +86,27 @@ describe("appliance load profiles", () => {
     expect(result.profile.quality.level).toBe("modeled");
     expect(result.profile.intervals).toHaveLength(24);
     expect(result.profile.intervals[9]!.energyKwh).toBe(1);
+  });
+
+  it("simulates inclusive multi-day ranges and creates a canonical range profile", () => {
+    const range = simulateApplianceLoadProfileRange({
+      appliances: [weekdayAppliance],
+      startDate: "2026-07-06",
+      endDate: "2026-07-07",
+      intervalMinutes: 60,
+    });
+    const canonical = createCanonicalLoadProfileFromApplianceRange({
+      id: "range_1",
+      name: "Weekday range",
+      calculationVersion: "0.1.0",
+      appliances: [weekdayAppliance],
+      startDate: "2026-07-06",
+      endDate: "2026-07-07",
+      intervalMinutes: 60,
+    });
+
+    expect(range.dayCount).toBe(2);
+    expect(range.totalKwh).toBe(2);
+    expect(canonical.profile.intervals).toHaveLength(48);
   });
 });
