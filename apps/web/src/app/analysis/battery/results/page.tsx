@@ -14,6 +14,7 @@ import {
 } from "../battery-page-parts";
 import { ExportReportButton } from "@/components/export-report-button";
 import { AiBatterySummary } from "../ai-battery-summary";
+import { CanonicalBatteryPanel } from "../canonical-battery-panel";
 
 export default async function BatteryResultsPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
   const params = (await searchParams) ?? {};
@@ -28,6 +29,7 @@ export default async function BatteryResultsPage({ searchParams }: { searchParam
         <ExportReportButton targetId="battery-report" filename="battery-analysis-report.pdf" />
       </div>
       <div id="battery-report" className="space-y-6 pt-4">
+        <CanonicalBatteryPanel />
         <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Battery" reportDraft={reportDraft} />
         <AiBatterySummary analysis={analysis} settings={settings} />
       <BatterySummary analysis={analysis} />
