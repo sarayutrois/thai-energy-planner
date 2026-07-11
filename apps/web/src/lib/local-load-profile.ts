@@ -218,6 +218,49 @@ export function selectLocalLoadProfileSnapshot(id: string) {
   return profile;
 }
 
+export function hydrateLocalLoadProfileSnapshot(
+  canonicalProfile: CanonicalLoadProfile,
+  serverLoadProfileId: string,
+): LocalLoadProfileSnapshot {
+  const now = new Date().toISOString();
+  const snapshot: LocalLoadProfileSnapshot = {
+    id: crypto.randomUUID(),
+    createdAt: now,
+    updatedAt: now,
+    sourceName: canonicalProfile.name,
+    rowCount: canonicalProfile.intervals.length,
+    totalKwh: canonicalProfile.intervals.reduce(
+      (sum, interval) => sum + interval.energyKwh,
+      0,
+    ),
+    peakKw: canonicalProfile.intervals.reduce(
+      (peak, interval) => Math.max(peak, interval.averagePowerKw),
+      0,
+    ),
+    detectedIntervalMinutes: canonicalProfile.intervalMinutes,
+    rows: canonicalProfile.intervals.map((interval) => ({
+      timestamp: interval.timestamp,
+      energyKwh: interval.energyKwh,
+      powerKw: interval.averagePowerKw,
+    })),
+    canonicalProfile,
+    serverLoadProfileId,
+  };
+  const profiles = listLocalLoadProfileSnapshots().filter(
+    (profile) => profile.serverLoadProfileId !== serverLoadProfileId,
+  );
+  window.localStorage.setItem(
+    localLoadProfilesStorageKey,
+    JSON.stringify([snapshot, ...profiles].slice(0, 20)),
+  );
+  window.localStorage.setItem(activeLocalLoadProfileIdStorageKey, snapshot.id);
+  window.localStorage.setItem(
+    localLoadProfileStorageKey,
+    JSON.stringify(snapshot),
+  );
+  return snapshot;
+}
+
 function replaceLocalSnapshot(snapshot: LocalLoadProfileSnapshot) {
   const profiles = listLocalLoadProfileSnapshots().map((profile) =>
     profile.id === snapshot.id ? snapshot : profile,

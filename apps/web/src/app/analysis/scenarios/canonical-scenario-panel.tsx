@@ -13,16 +13,21 @@ import type {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  hydrateLocalLoadProfileSnapshot,
   listLocalLoadProfileSnapshots,
   readLocalLoadProfileSnapshot,
   selectLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
+import { authenticatedFetch } from "@/lib/auth-fetch";
 import { ScenarioView } from "./scenario-view";
 
 export function CanonicalScenarioPanel() {
   const [snapshot, setSnapshot] = useState<LocalLoadProfileSnapshot | null>(null);
   const [profiles, setProfiles] = useState<LocalLoadProfileSnapshot[]>([]);
+  const [accountProfiles, setAccountProfiles] = useState<
+    Array<{ id: string; name: string; intervalCount: number }>
+  >([]);
   const [authority, setAuthority] = useState<Authority>("PEA");
   const [customerSegment, setCustomerSegment] = useState<
     "residential" | "small_business"
@@ -31,6 +36,15 @@ export function CanonicalScenarioPanel() {
   useEffect(() => {
     setProfiles(listLocalLoadProfileSnapshots());
     setSnapshot(readLocalLoadProfileSnapshot());
+    void authenticatedFetch("/api/load-profiles")
+      .then(async (response) => {
+        if (!response.ok) return null;
+        return response.json() as Promise<{
+          profiles?: Array<{ id: string; name: string; intervalCount: number }>;
+        }>;
+      })
+      .then((payload) => setAccountProfiles(payload?.profiles ?? []))
+      .catch(() => setAccountProfiles([]));
   }, []);
 
   const profile: CanonicalLoadProfile | null = snapshot?.canonicalProfile ?? null;
@@ -77,6 +91,44 @@ export function CanonicalScenarioPanel() {
             <a className="inline-flex h-10 items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground" href="/analysis/load-data/import">นำเข้าไฟล์โหลด</a>
             <a className="inline-flex h-10 items-center rounded-md border border-border px-4 text-sm font-medium" href="/analysis/load-data/appliances">สร้างจากเครื่องใช้ไฟฟ้า</a>
           </div>
+          {accountProfiles.length > 0 ? (
+            <label className="mt-4 grid max-w-xl gap-1 text-sm font-medium">
+              หรือเลือก Load Profile ที่บันทึกในบัญชี
+              <select
+                className="h-10 rounded-md border border-input bg-background px-3"
+                defaultValue=""
+                onChange={(event) => {
+                  const id = event.target.value;
+                  if (!id) return;
+                  void authenticatedFetch(`/api/load-profiles/${id}`)
+                    .then(async (response) => {
+                      if (!response.ok) return null;
+                      return response.json() as Promise<{
+                        profile?: { id: string; canonicalProfile?: CanonicalLoadProfile };
+                      }>;
+                    })
+                    .then((payload) => {
+                      const remote = payload?.profile;
+                      if (!remote?.canonicalProfile) return;
+                      const hydrated = hydrateLocalLoadProfileSnapshot(
+                        remote.canonicalProfile,
+                        remote.id,
+                      );
+                      setSnapshot(hydrated);
+                      setProfiles(listLocalLoadProfileSnapshots());
+                    })
+                    .catch(() => undefined);
+                }}
+              >
+                <option value="">เลือกโปรไฟล์ในบัญชี</option>
+                {accountProfiles.map((item) => (
+                  <option key={item.id} value={item.id}>
+                    {item.name} · {item.intervalCount.toLocaleString("th-TH")} intervals
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
         </CardContent>
       </Card>
     );
