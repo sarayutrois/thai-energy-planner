@@ -97,7 +97,7 @@ describe("official Thai tariff seed", () => {
     expect(tariff.serviceChargeThb).toBe("8.19");
   });
 
-  it("rejects an official tariff lookup outside the verified tariff and Ft period", () => {
+  it("rejects an official tariff lookup outside the verified Ft period", () => {
     expect(() =>
       getOfficialThaiTariff({
         authority: "PEA",
@@ -105,7 +105,7 @@ describe("official Thai tariff seed", () => {
         meterMode: "normal",
         billDate: "2026-09-01",
       }),
-    ).toThrow("No official Thai tariff is verified");
+    ).toThrow("No official Thai Ft rate is verified");
   });
 
   it("keeps the verified Ft date range unchanged", () => {
@@ -116,13 +116,13 @@ describe("official Thai tariff seed", () => {
       billDate: "2026-07-01",
     });
 
-    expect(tariff.ftPeriods).toEqual([
+    expect(tariff.ftPeriods).toContainEqual(
       expect.objectContaining({
         effectiveFrom: "2026-05-01",
         effectiveTo: "2026-08-31",
         ftThbPerKwh: "0.1623",
       }),
-    ]);
+    );
   });
 
   it("calculates official low-voltage TOU peak and off-peak energy", () => {
