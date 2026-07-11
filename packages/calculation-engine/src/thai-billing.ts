@@ -148,7 +148,14 @@ export function calculateMonthlyTouBill(
       offPeakKwh: input.offPeakKwh ?? input.energyKwh * 0.45,
     });
 
-  return calculateTouBill({ tariffVersion, intervals });
+  // The interval timestamps determine TOU periods.  Ft, however, is a
+  // billing-period rate, so keep the selected verified bill date while
+  // comparing a representative or annualised interval profile.
+  return calculateTouBill({
+    tariffVersion,
+    intervals,
+    ftBillDate: input.billDate,
+  });
 }
 
 export function compareNormalVsTou(

@@ -114,7 +114,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
     expect(payload.trace.processedMonths[0]).toBe("2026-01");
   });
 
-  it("T1.F2.5: Correctly calculates number of calendar days in Feb for Leap Years during sequence validation", () => {
+  it("T1.F2.5: Rejects a leap-year bill when no verified Ft period exists", () => {
     const request: unknown = {
       province: "bangkok",
       propertyType: "home",
@@ -126,8 +126,12 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
     };
 
     const parsed = estimateRequestSchema.parse(request);
-    const payload = runEstimateApiCalculation(parsed);
-    expect(payload).toBeDefined();
+    // The request schema accepts legitimate leap-year dates, but the
+    // calculation must not fabricate an Ft rate for an unverified future
+    // billing period.
+    expect(() => runEstimateApiCalculation(parsed)).toThrow(
+      "No official Thai Ft rate is verified for bill date 2028-02-01.",
+    );
   });
 
   // ==========================================
