@@ -32,7 +32,12 @@ import {
   localBillReportId,
   type StoredBillWorkspace,
 } from "@/lib/local-analysis-snapshot";
-import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import {
+  persistLocalLoadProfile,
+  readLocalLoadProfileSnapshot,
+  saveLocalLoadProfileSnapshot,
+  type LocalLoadProfileSnapshot,
+} from "@/lib/local-load-profile";
 
 const audienceSegment: Record<
   StoredBillWorkspace["audience"],
@@ -45,8 +50,10 @@ const audienceSegment: Record<
 
 export function LocalBillSummary() {
   const [workspace, setWorkspace] = useState<StoredBillWorkspace | null>(null);
+  const [snapshot, setSnapshot] = useState<LocalLoadProfileSnapshot | null>(null);
   const [profile, setProfile] = useState<CanonicalLoadProfile | null>(null);
   const [readError, setReadError] = useState(false);
+  const [applyStatus, setApplyStatus] = useState<"idle" | "saving" | "saved" | "local_only">("idle");
 
   useEffect(() => {
     try {
@@ -59,7 +66,9 @@ export function LocalBillSummary() {
           ? normalizeWorkspace(parsed)
           : null,
       );
-      setProfile(readLocalLoadProfileSnapshot()?.canonicalProfile ?? null);
+      const nextSnapshot = readLocalLoadProfileSnapshot();
+      setSnapshot(nextSnapshot);
+      setProfile(nextSnapshot?.canonicalProfile ?? null);
       setReadError(false);
     } catch {
       setWorkspace(null);
@@ -114,10 +123,47 @@ export function LocalBillSummary() {
   const latestRows = summary.monthlyTrend.slice(-4).reverse();
   const averageMonthlyCost =
     summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
+  const estimatedProfileMonthlyKwh = useMemo(() => {
+    if (!snapshot || snapshot.rows.length === 0) return null;
+    const days = new Set(snapshot.rows.map((row) => bangkokDate(row.timestamp))).size;
+    return days > 0 ? (snapshot.totalKwh / days) * 30.44 : null;
+  }, [snapshot]);
+  const averageBillMonthlyKwh = summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : null;
+  const calibrationFactor = estimatedProfileMonthlyKwh && averageBillMonthlyKwh
+    ? averageBillMonthlyKwh / estimatedProfileMonthlyKwh
+    : null;
+  const isCalibrated = snapshot?.sourceName.includes("ปรับเทียบกับบิล") ?? false;
   const billHref = `/analysis/load-data/bills${workspace ? `?audience=${workspace.audience}&source=bills` : ""}`;
   const savedBillQuery = workspace
     ? `?audience=${workspace.audience}&source=bills`
     : "";
+
+  async function applyBillCalibration() {
+    if (!snapshot || !calibrationFactor || !Number.isFinite(calibrationFactor) || calibrationFactor <= 0) return;
+    setApplyStatus("saving");
+    const rows = snapshot.rows.map((row) => ({
+      ...row,
+      energyKwh: row.energyKwh * calibrationFactor,
+      ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw * calibrationFactor }),
+    }));
+    const nextSnapshot = saveLocalLoadProfileSnapshot({
+      sourceName: `${snapshot.sourceName.replace(" (ปรับเทียบกับบิล)", "")} (ปรับเทียบกับบิล)`,
+      sourceKind: snapshot.canonicalProfile?.source.kind ?? "appliance",
+      totalKwh: rows.reduce((sum, row) => sum + row.energyKwh, 0),
+      peakKw: Math.max(0, ...rows.map((row) => row.powerKw ?? 0)),
+      detectedIntervalMinutes: snapshot.detectedIntervalMinutes,
+      rows,
+      warnings: [
+        `ปรับสเกล ${calibrationFactor.toFixed(3)} เท่า จากค่าเฉลี่ยบิล ${formatNumber(averageBillMonthlyKwh ?? 0)} kWh/เดือน`,
+        "รูปแบบเวลาการใช้ไฟยังมาจาก Load Profile เดิม; การปรับเทียบนี้ใช้ค่าเฉลี่ยบิลต่อเดือน",
+      ],
+      persist: false,
+    });
+    const result = await persistLocalLoadProfile(nextSnapshot);
+    setSnapshot(nextSnapshot);
+    setProfile(nextSnapshot.canonicalProfile ?? null);
+    setApplyStatus(result.status === "saved" ? "saved" : "local_only");
+  }
 
   if (readError) {
     return (
@@ -263,6 +309,30 @@ export function LocalBillSummary() {
                 {warning}
               </p>
             ))}
+            {estimatedProfileMonthlyKwh && averageBillMonthlyKwh && calibrationFactor ? (
+              <div className="mt-4 rounded-md border border-primary/30 bg-background p-4">
+                <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <h3 className="text-sm font-semibold">ยืนยันใช้บิลปรับสเกล</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">ปรับปริมาณรวมให้ตรงกับค่าเฉลี่ยบิลต่อเดือน โดยคงช่วงเวลาการใช้ไฟจาก Load Profile เดิม</p>
+                  </div>
+                  <button
+                    className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
+                    disabled={applyStatus === "saving" || isCalibrated}
+                    onClick={() => void applyBillCalibration()}
+                    type="button"
+                  >
+                    {isCalibrated ? "ปรับเทียบกับบิลแล้ว" : applyStatus === "saving" ? "กำลังบันทึก..." : "ยืนยันใช้บิลปรับสเกล"}
+                  </button>
+                </div>
+                <div className="mt-3 grid gap-3 sm:grid-cols-3">
+                  <Metric icon={Zap} label="Profile ก่อนปรับ" value={`${formatNumber(estimatedProfileMonthlyKwh)} kWh/เดือน`} />
+                  <Metric icon={ReceiptText} label="เฉลี่ยจากบิล" value={`${formatNumber(averageBillMonthlyKwh)} kWh/เดือน`} />
+                  <Metric icon={BarChart3} label="ตัวคูณที่ใช้" value={`${formatNumber(calibrationFactor)} เท่า`} />
+                </div>
+                <p className="mt-3 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : "Solar และ Battery จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
+              </div>
+            ) : null}
           </section>
         ) : null}
 
@@ -518,4 +588,17 @@ function formatDateTime(value: string) {
     dateStyle: "medium",
     timeStyle: "short",
   });
+}
+
+function bangkokDate(timestamp: string) {
+  const parts = new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Bangkok",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(timestamp));
+  const year = parts.find((part) => part.type === "year")?.value;
+  const month = parts.find((part) => part.type === "month")?.value;
+  const day = parts.find((part) => part.type === "day")?.value;
+  return year && month && day ? `${year}-${month}-${day}` : timestamp;
 }
