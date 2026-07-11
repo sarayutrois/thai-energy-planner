@@ -7,19 +7,36 @@ import {
   type LoadSummaryMetrics,
 } from "@thai-energy-planner/calculation-engine";
 import { LoadDashboardChartCard } from "@/components/load-dashboard-chart-card";
-import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import {
+  listLocalLoadProfileSnapshots,
+  readLocalLoadProfileSnapshot,
+  selectLocalLoadProfileSnapshot,
+  type LocalLoadProfileSnapshot,
+} from "@/lib/local-load-profile";
 
 export function LocalLoadDashboard() {
   const [summary, setSummary] = useState<LoadSummaryMetrics | null>(null);
   const [name, setName] = useState<string | null>(null);
+  const [profiles, setProfiles] = useState<LocalLoadProfileSnapshot[]>([]);
+  const [activeId, setActiveId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const profile = readLocalLoadProfileSnapshot()?.canonicalProfile;
-    if (!profile) return;
+  function loadProfile(snapshot: LocalLoadProfileSnapshot | null) {
+    const profile = snapshot?.canonicalProfile;
+    if (!snapshot || !profile) {
+      setSummary(null);
+      setName(null);
+      return;
+    }
+    setActiveId(snapshot.id);
     setName(profile.name);
     setSummary(
       summarizeLoadProfile(canonicalLoadProfileToLoadIntervals(profile)),
     );
+  }
+
+  useEffect(() => {
+    setProfiles(listLocalLoadProfileSnapshots());
+    loadProfile(readLocalLoadProfileSnapshot());
   }, []);
 
   if (!summary) {
@@ -33,6 +50,25 @@ export function LocalLoadDashboard() {
 
   return (
     <>
+      {profiles.length > 1 ? (
+        <label className="mt-6 flex max-w-md flex-col gap-2 text-sm font-medium">
+          Load Profile ที่ใช้วิเคราะห์
+          <select
+            className="h-10 rounded-md border border-input bg-background px-3"
+            onChange={(event) =>
+              loadProfile(selectLocalLoadProfileSnapshot(event.target.value))
+            }
+            value={activeId ?? ""}
+          >
+            {profiles.map((profile) => (
+              <option key={profile.id} value={profile.id}>
+                {profile.sourceName} ·{" "}
+                {profile.rowCount.toLocaleString("th-TH")} intervals
+              </option>
+            ))}
+          </select>
+        </label>
+      ) : null}
       <p className="mt-6 text-sm text-muted-foreground">
         กำลังแสดงข้อมูลจาก:{" "}
         <span className="font-medium text-foreground">{name}</span>
