@@ -19,6 +19,42 @@ const sourceByKind = {
   demo: "DEMO",
 } as const;
 
+export async function GET(request: Request) {
+  const auth = await requireAuthenticatedUser(request);
+  if (auth.response) return auth.response;
+
+  try {
+    const profiles = await prisma.loadProfile.findMany({
+      where: { userId: auth.user.id },
+      orderBy: { updatedAt: "desc" },
+      take: 50,
+      select: {
+        id: true,
+        name: true,
+        source: true,
+        intervalMinutes: true,
+        qualityScore: true,
+        createdAt: true,
+        updatedAt: true,
+        _count: { select: { intervals: true } },
+      },
+    });
+    return NextResponse.json({
+      ok: true,
+      profiles: profiles.map((profile) => ({
+        ...profile,
+        intervalCount: profile._count.intervals,
+        _count: undefined,
+      })),
+    });
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Database is not available." },
+      { status: 503 },
+    );
+  }
+}
+
 export async function POST(request: Request) {
   const blocked = guardApiRequest(request, {
     bucket: "load-profile-write",
