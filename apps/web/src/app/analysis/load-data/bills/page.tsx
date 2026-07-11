@@ -1,4 +1,3 @@
-import { demoManualBills } from "@thai-energy-planner/calculation-engine";
 import { AnalysisStartContextCard } from "@/components/analysis-start-context-card";
 import { Badge } from "@/components/ui/badge";
 import { MainNav } from "@/components/main-nav";
@@ -23,7 +22,7 @@ export default async function BillsPage({ searchParams }: { searchParams?: Promi
         </p>
 
         <AnalysisStartContextCard {...startContext} />
-        <GuidedBillWorkspace audience={startContext.audience} initialBills={demoManualBills} />
+        <GuidedBillWorkspace audience={startContext.audience} initialBills={[]} />
       </section>
     </main>
   );

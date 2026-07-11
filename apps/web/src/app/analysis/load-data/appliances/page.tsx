@@ -3,7 +3,6 @@ import { ApplianceLoadBuilder } from "@/components/appliance-load-builder";
 import { MainNav } from "@/components/main-nav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { demoAppliances } from "@thai-energy-planner/calculation-engine";
 import {
   getAnalysisStartContext,
   type AnalysisStartSearchParams,
@@ -45,7 +44,7 @@ export default async function AppliancesPage({
             <ApplianceLoadBuilder
               startDate="2026-01-05"
               endDate="2026-01-05"
-              initialAppliances={demoAppliances}
+              initialAppliances={[]}
             />
           </CardContent>
         </Card>
