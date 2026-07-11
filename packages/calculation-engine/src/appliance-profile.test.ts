@@ -71,6 +71,26 @@ describe("appliance load profiles", () => {
     expect(result.kwhPerDay).toBe(2);
   });
 
+  it("uses a separate schedule for each day without double-counting an appliance", () => {
+    const appliance = {
+      ...weekdayAppliance,
+      schedule: { ...weekdayAppliance.schedule, daysOfWeek: [0] },
+      schedules: [
+        { ...weekdayAppliance.schedule, startTime: "12:00", endTime: "06:00", daysOfWeek: [0], workingDayOnly: false },
+        { ...weekdayAppliance.schedule, startTime: "18:00", endTime: "06:00", daysOfWeek: [1], workingDayOnly: false },
+      ],
+    };
+    const sunday = simulateApplianceLoadProfile({
+      appliances: [appliance], date: "2026-07-12", intervalMinutes: 60,
+    });
+    const monday = simulateApplianceLoadProfile({
+      appliances: [appliance], date: "2026-07-13", intervalMinutes: 60,
+    });
+
+    expect(sunday.kwhPerDay).toBe(12);
+    expect(monday.kwhPerDay).toBe(12);
+  });
+
   it("creates a canonical modeled profile from appliance intervals", () => {
     const result = createCanonicalLoadProfileFromAppliances({
       id: "appliance_profile_1",

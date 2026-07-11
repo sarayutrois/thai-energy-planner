@@ -182,11 +182,18 @@ export type ApplianceScheduleInput = z.infer<
 export const ApplianceInputSchema = z.object({
   name: z.string().min(1),
   category: z.string().min(1),
+  applianceKind: z.enum(["air_conditioner", "other"]).optional(),
+  coolingCapacityBtu: z.number().int().positive().optional(),
+  compressorType: z.enum(["inverter", "fixed_speed"]).optional(),
+  powerSource: z.enum(["catalog", "nameplate", "manual"]).optional(),
   power: z.number().positive(),
   powerUnit: z.enum(["W", "kW"]),
   quantity: z.number().int().positive(),
   dutyCycle: z.number().min(0).max(1),
   schedule: ApplianceScheduleInputSchema,
+  // `schedule` remains the default for older saved workspaces. Newer clients
+  // can supply one or more schedules to model different times on each day.
+  schedules: z.array(ApplianceScheduleInputSchema).min(1).optional(),
   notes: z.string().optional(),
 });
 export type ApplianceInput = z.infer<typeof ApplianceInputSchema>;

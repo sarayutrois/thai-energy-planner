@@ -24,13 +24,16 @@ import {
   AreaChart,
 } from "recharts";
 import { simulateApplianceLoadProfileRange } from "@thai-energy-planner/calculation-engine";
-import type { ApplianceInput, LoadIntervalInput } from "@thai-energy-planner/shared-types";
+import type {
+  ApplianceInput,
+  ApplianceScheduleInput,
+  LoadIntervalInput,
+} from "@thai-energy-planner/shared-types";
 import { Button } from "@/components/ui/button";
 import {
   persistLocalLoadProfile,
   saveLocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
-import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 
 const draftStorageKey = "thai-energy-planner.appliance-workspace.v2";
 const days = [
@@ -42,6 +45,13 @@ const days = [
   { value: 6, label: "ส" },
   { value: 0, label: "อา" },
 ];
+const airConditionerSizes = [
+  { btu: 9000, inverterW: 800, fixedSpeedW: 950 },
+  { btu: 12000, inverterW: 1100, fixedSpeedW: 1350 },
+  { btu: 18000, inverterW: 1700, fixedSpeedW: 2100 },
+  { btu: 24000, inverterW: 2300, fixedSpeedW: 2800 },
+] as const;
+
 const presets = [
   { name: "เครื่องปรับอากาศ Inverter 9,000 BTU", category: "เครื่องปรับอากาศ", powerW: 800, dutyCycle: 0.65, start: "18:00", end: "23:00" },
   { name: "ตู้เย็น", category: "ตู้เย็น", powerW: 120, dutyCycle: 0.35, start: "00:00", end: "00:00" },
@@ -58,9 +68,20 @@ type Draft = {
   intervalMinutes: 15 | 30 | 60;
   startDate: string;
   endDate: string;
-  billTargetKwh: number | null;
-  calibrated: boolean;
 };
+
+function createDailySchedules(item: ApplianceInput): ApplianceScheduleInput[] {
+  const sourceSchedules = item.schedules?.length ? item.schedules : [item.schedule];
+  return days.flatMap((day) => {
+    const source = sourceSchedules.find((schedule) => schedule.daysOfWeek.includes(day.value));
+    return source ? [{ ...source, daysOfWeek: [day.value] }] : [];
+  });
+}
+
+function scheduleForDay(item: ApplianceInput, day: number): ApplianceScheduleInput | undefined {
+  const sourceSchedules = item.schedules?.length ? item.schedules : [item.schedule];
+  return sourceSchedules.find((schedule) => schedule.daysOfWeek.includes(day));
+}
 
 export function ApplianceLoadBuilder({
   initialAppliances,
@@ -75,8 +96,6 @@ export function ApplianceLoadBuilder({
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(30);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
-  const [billTargetKwh, setBillTargetKwh] = useState<number | null>(null);
-  const [calibrated, setCalibrated] = useState(false);
   const [hydrated, setHydrated] = useState(false);
   const [autoSaveLabel, setAutoSaveLabel] = useState("กำลังเตรียมพื้นที่ทำงาน...");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "local_only">("idle");
@@ -90,14 +109,6 @@ export function ApplianceLoadBuilder({
         if ([15, 30, 60].includes(draft.intervalMinutes ?? 0)) setIntervalMinutes(draft.intervalMinutes!);
         if (draft.startDate) setStartDate(draft.startDate);
         if (draft.endDate) setEndDate(draft.endDate);
-        if (typeof draft.billTargetKwh === "number") setBillTargetKwh(draft.billTargetKwh);
-        setCalibrated(Boolean(draft.calibrated));
-      }
-      const rawBills = window.localStorage.getItem(billWorkspaceStorageKey);
-      if (rawBills && !rawDraft) {
-        const workspace = JSON.parse(rawBills) as StoredBillWorkspace;
-        const values = workspace.rows.map((row) => Number(row.energyKwh)).filter((value) => Number.isFinite(value) && value > 0);
-        if (values.length) setBillTargetKwh(values.reduce((sum, value) => sum + value, 0) / values.length);
       }
     } catch {
       setAutoSaveLabel("ไม่สามารถเรียกข้อมูลที่บันทึกไว้ได้");
@@ -110,12 +121,12 @@ export function ApplianceLoadBuilder({
     if (!hydrated) return;
     setAutoSaveLabel("กำลังบันทึก...");
     const timer = window.setTimeout(() => {
-      const draft: Draft = { appliances, intervalMinutes, startDate, endDate, billTargetKwh, calibrated };
+      const draft: Draft = { appliances, intervalMinutes, startDate, endDate };
       window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
       setAutoSaveLabel(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [appliances, billTargetKwh, calibrated, endDate, hydrated, intervalMinutes, startDate]);
+  }, [appliances, endDate, hydrated, intervalMinutes, startDate]);
 
   const validationIssues = useMemo(() => {
     const issues: string[] = [];
@@ -125,7 +136,9 @@ export function ApplianceLoadBuilder({
       if (!item.name.trim()) issues.push(`รายการที่ ${index + 1}: ระบุชื่อเครื่องใช้ไฟฟ้า`);
       if (!(item.power > 0)) issues.push(`รายการที่ ${index + 1}: กำลังไฟต้องมากกว่า 0 W`);
       if (!(item.quantity > 0)) issues.push(`รายการที่ ${index + 1}: จำนวนต้องมากกว่า 0`);
-      if (!item.schedule.daysOfWeek.length) issues.push(`รายการที่ ${index + 1}: เลือกวันใช้งานอย่างน้อย 1 วัน`);
+      const hasScheduledDay = (item.schedules?.length ? item.schedules : [item.schedule])
+        .some((schedule) => schedule.daysOfWeek.length > 0);
+      if (!hasScheduledDay) issues.push(`รายการที่ ${index + 1}: เลือกวันใช้งานอย่างน้อย 1 วัน`);
     });
     return issues;
   }, [appliances, endDate, startDate]);
@@ -139,21 +152,38 @@ export function ApplianceLoadBuilder({
     }
   }, [appliances, endDate, intervalMinutes, startDate, validationIssues.length]);
 
-  const modeledMonthlyKwh = (simulation?.averageDailyKwh ?? 0) * 30.44;
-  const scaleFactor = calibrated && billTargetKwh && modeledMonthlyKwh > 0 ? billTargetKwh / modeledMonthlyKwh : 1;
-  const dailyKwh = (simulation?.averageDailyKwh ?? 0) * scaleFactor;
+  const dailyKwh = simulation?.averageDailyKwh ?? 0;
   const monthlyKwh = dailyKwh * 30.44;
-  const peakKw = (simulation?.peakKw ?? 0) * scaleFactor;
-  const variancePercent = billTargetKwh && modeledMonthlyKwh > 0 ? ((modeledMonthlyKwh - billTargetKwh) / billTargetKwh) * 100 : null;
-  const quality = billTargetKwh && calibrated
-    ? { label: "สูง", score: 82, detail: "ปรับสเกลจากหน่วยไฟในบิลแล้ว" }
-    : appliances.length >= 5
+  const peakKw = simulation?.peakKw ?? 0;
+  const quality = appliances.length >= 5
       ? { label: "ปานกลาง", score: 62, detail: "คำนวณจากรายการและช่วงเวลาที่ระบุ" }
       : { label: "ต่ำ", score: 38, detail: "ข้อมูลเครื่องใช้ไฟฟ้ายังมีจำนวนจำกัด" };
-  const chartData = useMemo(() => buildHourlyChart(simulation?.intervals ?? [], scaleFactor), [scaleFactor, simulation?.intervals]);
+  const chartData = useMemo(() => buildHourlyChart(simulation?.intervals ?? []), [simulation?.intervals]);
 
   function update(index: number, patch: Partial<ApplianceInput>) {
     setAppliances((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+    setSaveStatus("idle");
+  }
+
+  function updateDaySchedule(
+    index: number,
+    day: number,
+    patch: Partial<ApplianceScheduleInput> | null,
+  ) {
+    setAppliances((current) => current.map((item, itemIndex) => {
+      if (itemIndex !== index) return item;
+      const existing = scheduleForDay(item, day);
+      const schedules = createDailySchedules(item)
+        .filter((schedule) => schedule.daysOfWeek[0] !== day);
+      if (patch) {
+        schedules.push({
+          ...(existing ?? { ...item.schedule, daysOfWeek: [day] }),
+          ...patch,
+          daysOfWeek: [day],
+        });
+      }
+      return { ...item, schedules };
+    }));
     setSaveStatus("idle");
   }
 
@@ -167,6 +197,14 @@ export function ApplianceLoadBuilder({
       powerUnit: "W",
       quantity: 1,
       dutyCycle: preset.dutyCycle,
+      ...(preset.category === "เครื่องปรับอากาศ"
+        ? {
+            applianceKind: "air_conditioner" as const,
+            coolingCapacityBtu: 9000,
+            compressorType: "inverter" as const,
+            powerSource: "catalog" as const,
+          }
+        : { applianceKind: "other" as const, powerSource: "catalog" as const }),
       notes: "ค่ามาตรฐานเริ่มต้น กรุณาตรวจฉลากเครื่องจริง",
       schedule: { startTime: preset.start, endTime: preset.end, daysOfWeek: [0, 1, 2, 3, 4, 5, 6], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
     }]);
@@ -180,27 +218,45 @@ export function ApplianceLoadBuilder({
       powerUnit: "W",
       quantity: 1,
       dutyCycle: 1,
+      applianceKind: "other",
+      powerSource: "manual",
       schedule: { startTime: "18:00", endTime: "22:00", daysOfWeek: [0, 1, 2, 3, 4, 5, 6], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
     }]);
   }
 
-  async function saveForSolar(navigate = false) {
+  function updateAirConditioner(index: number, btu: number, compressorType: "inverter" | "fixed_speed") {
+    const size = airConditionerSizes.find((item) => item.btu === btu);
+    if (!size) return;
+    const power = compressorType === "inverter" ? size.inverterW : size.fixedSpeedW;
+    update(index, {
+      applianceKind: "air_conditioner",
+      coolingCapacityBtu: btu,
+      compressorType,
+      power,
+      powerUnit: "W",
+      powerSource: "catalog",
+      dutyCycle: compressorType === "inverter" ? 0.65 : 0.85,
+      name: `เครื่องปรับอากาศ ${compressorType === "inverter" ? "Inverter" : "Fixed speed"} ${btu.toLocaleString("th-TH")} BTU`,
+    });
+  }
+
+  async function saveLoadProfile(navigateToBills = false) {
     if (!simulation) return;
-    const rows = simulation.intervals.map((row) => ({ ...row, energyKwh: row.energyKwh * scaleFactor, powerKw: (row.powerKw ?? 0) * scaleFactor }));
+    const rows = simulation.intervals;
     const snapshot = saveLocalLoadProfileSnapshot({
-      sourceName: calibrated ? "Load Profile จากเครื่องใช้ไฟฟ้า (ปรับเทียบบิลแล้ว)" : "Load Profile จากเครื่องใช้ไฟฟ้า",
+      sourceName: "Load Profile จากเครื่องใช้ไฟฟ้า",
       sourceKind: "appliance",
       totalKwh: rows.reduce((sum, row) => sum + row.energyKwh, 0),
       peakKw,
       detectedIntervalMinutes: intervalMinutes,
       rows,
-      warnings: calibrated ? [`ปรับสเกล ${scaleFactor.toFixed(3)} เท่าเพื่อให้ใกล้เคียงบิล ${formatNumber(billTargetKwh ?? 0)} kWh/เดือน`] : ["ผลคำนวณจากข้อมูลเครื่องใช้ไฟฟ้าที่ผู้ใช้ระบุ"],
+      warnings: ["ผลคำนวณจากข้อมูลเครื่องใช้ไฟฟ้าที่ผู้ใช้ระบุ ยังไม่ได้เปรียบเทียบกับบิลค่าไฟ"],
       persist: false,
     });
     setSaveStatus("saving");
     const result = await persistLocalLoadProfile(snapshot);
     setSaveStatus(result.status === "saved" ? "saved" : "local_only");
-    if (navigate) window.location.assign("/analysis/solar?source=appliance");
+    if (navigateToBills) window.location.assign("/analysis/load-data/bills?source=appliance");
   }
 
   return (
@@ -241,22 +297,65 @@ export function ApplianceLoadBuilder({
           <div className="mt-5 grid gap-4">
             {appliances.map((item, index) => (
               <div key={`${index}-${item.category}`} className="rounded-lg border border-border p-4">
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_.7fr_1fr_1fr_auto]">
+                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_.7fr_auto]">
                   <TextField label="ชื่อเครื่องใช้ไฟฟ้า" value={item.name} onChange={(name) => update(index, { name })} />
-                  <NumberField label="กำลังไฟ (W)" value={item.powerUnit === "kW" ? item.power * 1000 : item.power} min={1} step={1} onChange={(power) => update(index, { power, powerUnit: "W" })} />
+                  <NumberField label="กำลังไฟ (W)" value={item.powerUnit === "kW" ? item.power * 1000 : item.power} min={1} step={1} onChange={(power) => update(index, { power, powerUnit: "W", powerSource: "nameplate" })} />
                   <NumberField label="จำนวน (เครื่อง)" value={item.quantity} min={1} step={1} onChange={(quantity) => update(index, { quantity: Math.max(1, Math.round(quantity)) })} />
-                  <TimeField label="เริ่มใช้" value={item.schedule.startTime} onChange={(startTime) => update(index, { schedule: { ...item.schedule, startTime } })} />
-                  <TimeField label="หยุดใช้" value={item.schedule.endTime} onChange={(endTime) => update(index, { schedule: { ...item.schedule, endTime } })} />
                   <Button aria-label={`ลบ ${item.name}`} className="self-end px-3" variant="ghost" onClick={() => setAppliances((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
                 </div>
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <span className="mr-1 text-xs font-medium text-muted-foreground">วันที่ใช้งาน</span>
-                  {days.map((day) => {
-                    const active = item.schedule.daysOfWeek.includes(day.value);
-                    return <button key={day.value} aria-pressed={active} className={`h-8 min-w-8 rounded-md border px-2 text-xs font-medium ${active ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background text-muted-foreground"}`} onClick={() => update(index, { schedule: { ...item.schedule, daysOfWeek: active ? item.schedule.daysOfWeek.filter((value) => value !== day.value) : [...item.schedule.daysOfWeek, day.value] } })} type="button">{day.label}</button>;
-                  })}
-                  <span className="ml-auto text-xs text-muted-foreground">ตัวคูณการทำงาน {Math.round(item.dutyCycle * 100)}%</span>
+                {isAirConditioner(item) ? (
+                  <div className="mt-3 grid gap-3 rounded-md border border-primary/20 bg-primary/5 p-3 md:grid-cols-3">
+                    <label className="grid gap-1 text-xs font-medium">ขนาดแอร์ (BTU)
+                      <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={item.coolingCapacityBtu ?? 9000} onChange={(event) => updateAirConditioner(index, Number(event.target.value), item.compressorType ?? "inverter")}>
+                        {airConditionerSizes.map((size) => <option key={size.btu} value={size.btu}>{size.btu.toLocaleString("th-TH")} BTU</option>)}
+                      </select>
+                    </label>
+                    <label className="grid gap-1 text-xs font-medium">ประเภทคอมเพรสเซอร์
+                      <select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={item.compressorType ?? "inverter"} onChange={(event) => updateAirConditioner(index, item.coolingCapacityBtu ?? 9000, event.target.value as "inverter" | "fixed_speed")}>
+                        <option value="inverter">Inverter</option><option value="fixed_speed">Fixed speed</option>
+                      </select>
+                    </label>
+                    <div className="rounded-md bg-background px-3 py-2 text-xs leading-5 text-muted-foreground"><strong className="text-foreground">แหล่งกำลังไฟ: </strong>{powerSourceLabel(item.powerSource)}<br />ค่ามาตรฐานจาก BTU เป็นค่าเริ่มต้น ควรแก้ W ตามฉลากเครื่องจริงเพื่อเพิ่มความแม่นยำ</div>
+                  </div>
+                ) : null}
+                <div className="mt-4 rounded-md border border-border bg-muted/20 p-3">
+                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+                    <p className="text-sm font-semibold">ตั้งเวลาแยกตามวัน</p>
+                    <p className="text-xs text-muted-foreground">เลือกแต่ละวัน แล้วกำหนดเวลาเริ่ม–หยุดได้ต่างกัน</p>
+                  </div>
+                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                    {days.map((day) => {
+                      const schedule = scheduleForDay(item, day.value);
+                      const active = Boolean(schedule);
+                      return (
+                        <div key={day.value} className={`grid grid-cols-[auto_1fr_1fr] items-end gap-2 rounded-md border p-2 ${active ? "border-primary/40 bg-background" : "border-border bg-muted/40"}`}>
+                          <button
+                            aria-pressed={active}
+                            className={`h-10 rounded-md px-2 text-xs font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                            onClick={() => updateDaySchedule(index, day.value, active ? null : {})}
+                            type="button"
+                          >
+                            {day.label}
+                          </button>
+                          <TimeField
+                            label="เริ่ม"
+                            value={schedule?.startTime ?? item.schedule.startTime}
+                            disabled={!active}
+                            onChange={(startTime) => updateDaySchedule(index, day.value, { startTime })}
+                          />
+                          <TimeField
+                            label="หยุด"
+                            value={schedule?.endTime ?? item.schedule.endTime}
+                            disabled={!active}
+                            onChange={(endTime) => updateDaySchedule(index, day.value, { endTime })}
+                          />
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <p className="mt-3 text-xs text-muted-foreground">หากเวลาหยุดน้อยกว่าเวลาเริ่ม ระบบจะคิดว่าใช้งานต่อเนื่องข้ามเที่ยงคืน เช่น 18:00–06:00</p>
                 </div>
+                <p className="mt-3 text-right text-xs text-muted-foreground">ตัวคูณการทำงาน {Math.round(item.dutyCycle * 100)}%</p>
               </div>
             ))}
           </div>
@@ -288,25 +387,6 @@ export function ApplianceLoadBuilder({
         <p className="mt-2 flex items-center gap-2 text-xs text-muted-foreground"><Clock3 className="h-4 w-4" />กราฟแสดงกำลังไฟเฉลี่ยรายชั่วโมงตามช่วงเวลาที่ผู้ใช้ระบุ</p>
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-          <div>
-            <h2 className="text-lg font-semibold">3. เทียบกับบิลค่าไฟ</h2>
-            <p className="mt-1 text-sm text-muted-foreground">ใช้หน่วยไฟเฉลี่ยจากบิลเพื่อปรับสเกล Load Profile ให้ใกล้เคียงการใช้ไฟจริง</p>
-          </div>
-          <a className="inline-flex h-10 items-center justify-center rounded-md border border-border px-4 text-sm font-medium hover:bg-muted" href="/analysis/load-data/bills">กรอกข้อมูลจากบิล</a>
-        </div>
-        <div className="mt-4 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-end">
-          <NumberField label="หน่วยไฟเฉลี่ยจากบิล (kWh/เดือน)" value={billTargetKwh ?? 0} min={0} step={1} onChange={(value) => { setBillTargetKwh(value || null); setCalibrated(false); }} />
-          <div className="rounded-md bg-muted px-4 py-3 text-sm">
-            <span className="text-muted-foreground">Load Profile ก่อนปรับ:</span> <strong>{formatNumber(modeledMonthlyKwh)} kWh/เดือน</strong>
-            <br /><span className="text-muted-foreground">ความต่างจากบิล:</span> <strong>{variancePercent === null ? "ยังเทียบไม่ได้" : `${variancePercent > 0 ? "+" : ""}${formatNumber(variancePercent)}%`}</strong>
-          </div>
-          <Button disabled={!billTargetKwh || modeledMonthlyKwh <= 0} onClick={() => setCalibrated((value) => !value)}>{calibrated ? "ยกเลิกการปรับสเกล" : "เทียบและปรับสเกล"}</Button>
-        </div>
-        {calibrated ? <div className="mt-4 rounded-md border border-success bg-success/10 p-3 text-sm text-foreground"><CheckCircle2 className="mr-2 inline h-4 w-4 text-success" />ปรับโหลด {formatNumber(scaleFactor)} เท่า ให้พลังงานต่อเดือนตรงกับบิลแล้ว รูปทรงการใช้ไฟรายวันยังอ้างอิงช่วงเวลาที่ระบุ</div> : null}
-      </section>
-
       {validationIssues.length ? (
         <div className="rounded-lg border border-warning bg-warning/10 p-4 text-sm">
           <p className="font-semibold"><AlertCircle className="mr-2 inline h-4 w-4" />ข้อมูลที่ยังไม่ครบ</p>
@@ -318,21 +398,21 @@ export function ApplianceLoadBuilder({
         <a className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium hover:bg-muted" href="/analysis/load-data"><ArrowLeft className="h-4 w-4" />ย้อนกลับ</a>
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
           <span className="text-xs text-muted-foreground">{saveStatus === "saving" ? "กำลังบันทึก..." : saveStatus === "saved" ? "บันทึกในบัญชีแล้ว" : saveStatus === "local_only" ? "บันทึกในอุปกรณ์นี้แล้ว" : "พร้อมบันทึกเมื่อข้อมูลครบ"}</span>
-          <Button disabled={!simulation || validationIssues.length > 0 || saveStatus === "saving"} onClick={() => void saveForSolar()}>บันทึก Load Profile</Button>
-          <Button disabled={!simulation || validationIssues.length > 0 || saveStatus === "saving"} onClick={() => void saveForSolar(true)}>บันทึกแล้วไปต่อ<ArrowRight className="h-4 w-4" /></Button>
+          <Button disabled={!simulation || validationIssues.length > 0 || saveStatus === "saving"} onClick={() => void saveLoadProfile()}>บันทึก Load Profile</Button>
+          <Button disabled={!simulation || validationIssues.length > 0 || saveStatus === "saving"} onClick={() => void saveLoadProfile(true)}>บันทึกแล้วกรอกบิล<ArrowRight className="h-4 w-4" /></Button>
         </div>
       </div>
     </div>
   );
 }
 
-function buildHourlyChart(rows: LoadIntervalInput[], scaleFactor: number) {
+function buildHourlyChart(rows: LoadIntervalInput[]) {
   const buckets = Array.from({ length: 24 }, (_, hour) => ({ hour: `${String(hour).padStart(2, "0")}:00`, total: 0, count: 0 }));
   for (const row of rows) {
     const hour = Number(new Intl.DateTimeFormat("en-GB", { timeZone: "Asia/Bangkok", hour: "2-digit", hourCycle: "h23" }).format(new Date(row.timestamp)));
     const bucket = buckets[hour];
     if (!bucket) continue;
-    bucket.total += (row.powerKw ?? 0) * scaleFactor;
+    bucket.total += row.powerKw ?? 0;
     bucket.count += 1;
   }
   return buckets.map((bucket) => ({ hour: bucket.hour, loadKw: bucket.count ? bucket.total / bucket.count : 0 }));
@@ -341,8 +421,8 @@ function buildHourlyChart(rows: LoadIntervalInput[], scaleFactor: number) {
 function TextField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
   return <label className="grid gap-1 text-xs font-medium">{label}<input className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={value} onChange={(event) => onChange(event.target.value)} /></label>;
 }
-function TimeField({ label, value, onChange }: { label: string; value: string; onChange: (value: string) => void }) {
-  return <label className="grid gap-1 text-xs font-medium">{label}<input className="h-10 rounded-md border border-input bg-background px-3 text-sm" type="time" value={value} onChange={(event) => onChange(event.target.value)} /></label>;
+function TimeField({ label, value, onChange, disabled = false }: { label: string; value: string; onChange: (value: string) => void; disabled?: boolean }) {
+  return <label className={`grid gap-1 text-xs font-medium ${disabled ? "text-muted-foreground" : ""}`}>{label}<input className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50" type="time" value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)} /></label>;
 }
 function NumberField({ label, value, onChange, min, step }: { label: string; value: number; onChange: (value: number) => void; min?: number; step?: number }) {
   return <label className="grid gap-1 text-xs font-medium">{label}<input className="h-10 rounded-md border border-input bg-background px-3 text-sm" type="number" value={value} min={min} step={step} onChange={(event) => onChange(Number(event.target.value))} /></label>;
@@ -352,4 +432,14 @@ function Metric({ icon, label, value, detail }: { icon: React.ReactNode; label: 
 }
 function formatNumber(value: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(Number.isFinite(value) ? value : 0);
+}
+
+function isAirConditioner(item: ApplianceInput) {
+  return item.applianceKind === "air_conditioner" || item.category === "เครื่องปรับอากาศ";
+}
+
+function powerSourceLabel(source: ApplianceInput["powerSource"]) {
+  if (source === "nameplate") return "ผู้ใช้ระบุจากฉลากเครื่องจริง";
+  if (source === "manual") return "ผู้ใช้ระบุเอง";
+  return "ค่ามาตรฐานจากขนาด BTU";
 }

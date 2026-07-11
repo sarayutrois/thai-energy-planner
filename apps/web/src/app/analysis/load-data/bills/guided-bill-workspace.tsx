@@ -352,6 +352,17 @@ export function GuidedBillWorkspace({
             <CardTitle>ไปต่อหลังกรอกบิล</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
+            {validation.canSave && validation.bills.length > 0 ? (
+              <NextLink
+                href="/analysis/load-data/dashboard"
+                label="เปรียบเทียบกับ Load Profile"
+                description="ตรวจสอบหน่วยไฟจากบิลกับ Load Profile ที่บันทึกจากรายการเครื่องใช้ไฟฟ้า"
+              />
+            ) : (
+              <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
+                กรอกเดือนและหน่วยไฟให้ครบอย่างน้อย 1 บิล แล้วจึงเปรียบเทียบกับ Load Profile ได้
+              </p>
+            )}
             <button
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
               disabled={!validation.canSave || validation.bills.length === 0}

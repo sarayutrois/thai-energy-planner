@@ -2,6 +2,7 @@ import Decimal from "decimal.js";
 import * as XLSX from "xlsx";
 import type {
   ApplianceInput,
+  ApplianceScheduleInput,
   LoadIntervalInput,
   LoadProfileColumnMapping,
   MonthlyBillInput,
@@ -1060,8 +1061,23 @@ function isApplianceActive(
   minuteOfDay: number,
   holidays: ReadonlySet<string>,
 ): boolean {
-  const start = timeToMinute(appliance.schedule.startTime);
-  const end = timeToMinute(appliance.schedule.endTime);
+  const schedules = appliance.schedules?.length
+    ? appliance.schedules
+    : [appliance.schedule];
+
+  return schedules.some((schedule) =>
+    isScheduleActive(schedule, date, minuteOfDay, holidays),
+  );
+}
+
+function isScheduleActive(
+  schedule: ApplianceScheduleInput,
+  date: string,
+  minuteOfDay: number,
+  holidays: ReadonlySet<string>,
+): boolean {
+  const start = timeToMinute(schedule.startTime);
+  const end = timeToMinute(schedule.endTime);
   const crossesMidnight = start > end;
   const scheduleDate =
     crossesMidnight && minuteOfDay < end ? previousDate(date) : date;
@@ -1070,13 +1086,13 @@ function isApplianceActive(
   const isWorkingDay =
     local.dayOfWeek >= 1 && local.dayOfWeek <= 5 && !isHoliday;
 
-  if (!appliance.schedule.daysOfWeek.includes(local.dayOfWeek)) return false;
-  if (appliance.schedule.workingDayOnly && !isWorkingDay) return false;
-  if (appliance.schedule.holidayOnly && !isHoliday) return false;
+  if (!schedule.daysOfWeek.includes(local.dayOfWeek)) return false;
+  if (schedule.workingDayOnly && !isWorkingDay) return false;
+  if (schedule.holidayOnly && !isHoliday) return false;
 
-  if (appliance.schedule.seasonalMonths.length > 0) {
+  if (schedule.seasonalMonths.length > 0) {
     const month = Number(scheduleDate.slice(5, 7));
-    if (!appliance.schedule.seasonalMonths.includes(month)) return false;
+    if (!schedule.seasonalMonths.includes(month)) return false;
   }
 
   if (start === end) return true;
