@@ -1,27 +1,32 @@
+import { MainNav } from "@/components/main-nav";
+import { Badge } from "@/components/ui/badge";
 import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
-import {
-  BillComparisonTable,
-  RecommendationCards,
-  SolarChartsSection,
-  SolarControls,
-  SolarPageShell,
-  SolarSummary
-} from "./solar-page-parts";
-import { LocalSolarStart } from "./local-solar-start";
 import { SolarApiRuntimePanel } from "./solar-api-runtime-panel";
 
-export default async function SolarOverviewPage({ searchParams }: { searchParams?: Promise<SolarSearchParams> }) {
-  const { analysis, settings, queryString, savedBillContext } = getSolarDemo((await searchParams) ?? {});
+export default async function SolarOverviewPage({
+  searchParams,
+}: {
+  searchParams?: Promise<SolarSearchParams>;
+}) {
+  const { settings } = getSolarDemo((await searchParams) ?? {});
 
   return (
-    <SolarPageShell active="overview" queryString={queryString}>
-      <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
-      <LocalSolarStart />
-      <SolarApiRuntimePanel settings={settings} />
-      <SolarSummary analysis={analysis} />
-      <SolarChartsSection analysis={analysis} />
-      <BillComparisonTable analysis={analysis} />
-      <RecommendationCards analysis={analysis} />
-    </SolarPageShell>
+    <main className="min-h-screen">
+      <MainNav />
+      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+        <div className="flex flex-wrap gap-2">
+          <Badge>Solar screening</Badge>
+          <Badge variant="warning">ใช้ข้อมูล Load Profile จริง</Badge>
+        </div>
+        <h1 className="mt-4 text-3xl font-semibold tracking-normal">
+          ประเมิน Solar จากการใช้ไฟจริง
+        </h1>
+        <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
+          ผลลัพธ์ใช้ Load Profile ที่คุณนำเข้าหรือสร้างไว้เป็นฐาน
+          โดยสมมติฐานหลังคาและต้นทุนเป็นค่าประเมินที่ต้องตรวจหน้างานก่อนตัดสินใจลงทุน
+        </p>
+        <SolarApiRuntimePanel settings={settings} />
+      </section>
+    </main>
   );
 }

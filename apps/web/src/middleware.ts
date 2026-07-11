@@ -43,6 +43,11 @@ export const config = {
     "/analysis/battery/:path*",
     "/analysis/ev/:path*",
     "/analysis/ecosystem/:path*",
+    "/analysis/solar/config/:path*",
+    "/analysis/solar/results/:path*",
+    "/analysis/solar/sizing/:path*",
+    "/analysis/solar/finance/:path*",
+    "/analysis/solar/sensitivity/:path*",
   ],
 };
 
@@ -50,5 +55,6 @@ function experimentalModuleForPath(pathname: string) {
   if (pathname.startsWith("/analysis/battery")) return "battery";
   if (pathname.startsWith("/analysis/ev")) return "ev";
   if (pathname.startsWith("/analysis/ecosystem")) return "ecosystem";
+  if (pathname.startsWith("/analysis/solar/")) return "solar_detail";
   return null;
 }
