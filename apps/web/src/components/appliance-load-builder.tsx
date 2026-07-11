@@ -1,7 +1,10 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { simulateApplianceLoadProfileRange } from "@thai-energy-planner/calculation-engine";
+import {
+  appliancePresets,
+  simulateApplianceLoadProfileRange,
+} from "@thai-energy-planner/calculation-engine";
 import type { ApplianceInput } from "@thai-energy-planner/shared-types";
 import { Button } from "@/components/ui/button";
 import {
@@ -100,6 +103,48 @@ export function ApplianceLoadBuilder({
   return (
     <div className="grid gap-5">
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-border bg-card p-4">
+        <label className="text-sm font-medium">
+          เพิ่มจากรายการอ้างอิง{" "}
+          <select
+            className="ml-2 h-10 rounded-md border border-input bg-background px-3"
+            defaultValue=""
+            onChange={(event) => {
+              const preset = appliancePresets.find(
+                (item) => item.name === event.target.value,
+              );
+              if (!preset) return;
+              setAppliances((current) => [
+                ...current,
+                {
+                  name: preset.name,
+                  category: preset.category,
+                  power: preset.powerKw,
+                  powerUnit: "kW",
+                  quantity: 1,
+                  dutyCycle: preset.dutyCycle,
+                  notes: preset.source,
+                  schedule: {
+                    startTime: "18:00",
+                    endTime: "22:00",
+                    daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
+                    workingDayOnly: false,
+                    holidayOnly: false,
+                    seasonalMonths: [],
+                  },
+                },
+              ]);
+              event.currentTarget.value = "";
+              setSaveStatus("idle");
+            }}
+          >
+            <option value="">เลือกรายการ</option>
+            {appliancePresets.map((preset) => (
+              <option key={preset.name} value={preset.name}>
+                {preset.name}
+              </option>
+            ))}
+          </select>
+        </label>
         <label className="text-sm font-medium">
           Interval{" "}
           <select

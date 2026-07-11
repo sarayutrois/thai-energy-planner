@@ -4,15 +4,18 @@ import type {
   ApplianceInput,
   LoadIntervalInput,
   LoadProfileColumnMapping,
-  MonthlyBillInput
+  MonthlyBillInput,
 } from "@thai-energy-planner/shared-types";
 import {
   ApplianceInputSchema,
   LoadIntervalSchema,
   LoadProfileColumnMappingSchema,
-  MonthlyBillInputSchema
+  MonthlyBillInputSchema,
 } from "@thai-energy-planner/shared-types";
-import { selectTouPeriod, type TariffVersionConfig } from "@thai-energy-planner/tariff-engine";
+import {
+  selectTouPeriod,
+  type TariffVersionConfig,
+} from "@thai-energy-planner/tariff-engine";
 
 export type ValidationIssue = {
   severity: "error" | "warning";
@@ -112,7 +115,7 @@ export const defaultColumnMapping: LoadProfileColumnMapping = {
   powerKw: "power_kw",
   meterId: "meter_id",
   voltage: "voltage",
-  powerFactor: "power_factor"
+  powerFactor: "power_factor",
 };
 
 export const applianceCatalog = [
@@ -126,8 +129,53 @@ export const applianceCatalog = [
   "คอมพิวเตอร์",
   "ไฟส่องสว่าง",
   "EV Charger",
-  "อุปกรณ์กำหนดเอง"
+  "อุปกรณ์กำหนดเอง",
 ];
+
+export const appliancePresets = [
+  {
+    name: "เครื่องปรับอากาศ Inverter 9,000 BTU",
+    category: "เครื่องปรับอากาศ",
+    powerKw: 0.8,
+    dutyCycle: 0.65,
+    source: "ค่าประมาณสำหรับการวางแผน ต้องตรวจฉลากเครื่องจริง",
+  },
+  {
+    name: "ตู้เย็น",
+    category: "ตู้เย็น",
+    powerKw: 0.12,
+    dutyCycle: 0.35,
+    source: "ค่าประมาณสำหรับการวางแผน ต้องตรวจฉลากเครื่องจริง",
+  },
+  {
+    name: "เครื่องทำน้ำอุ่น",
+    category: "เครื่องทำน้ำอุ่น",
+    powerKw: 3.5,
+    dutyCycle: 1,
+    source: "ค่าประมาณสำหรับการวางแผน ต้องตรวจฉลากเครื่องจริง",
+  },
+  {
+    name: "ปั๊มน้ำ",
+    category: "ปั๊มน้ำ",
+    powerKw: 0.37,
+    dutyCycle: 1,
+    source: "ค่าประมาณสำหรับการวางแผน ต้องตรวจฉลากเครื่องจริง",
+  },
+  {
+    name: "เครื่องซักผ้า",
+    category: "เครื่องซักผ้า",
+    powerKw: 0.5,
+    dutyCycle: 1,
+    source: "ค่าประมาณสำหรับการวางแผน ต้องตรวจฉลากเครื่องจริง",
+  },
+  {
+    name: "ไฟส่องสว่าง LED",
+    category: "ไฟส่องสว่าง",
+    powerKw: 0.03,
+    dutyCycle: 1,
+    source: "ค่าประมาณต่อดวง ต้องระบุจำนวนจริง",
+  },
+] as const;
 
 export const demoManualBills: MonthlyBillInput[] = [
   {
@@ -139,7 +187,7 @@ export const demoManualBills: MonthlyBillInput[] = [
     totalCostThb: 1810,
     ftThbPerKwh: 0.5,
     serviceChargeThb: 10,
-    vatThb: 118
+    vatThb: 118,
   },
   {
     authority: "PEA",
@@ -150,7 +198,7 @@ export const demoManualBills: MonthlyBillInput[] = [
     totalCostThb: 1975,
     ftThbPerKwh: 0.5,
     serviceChargeThb: 10,
-    vatThb: 129
+    vatThb: 129,
   },
   {
     authority: "PEA",
@@ -161,7 +209,7 @@ export const demoManualBills: MonthlyBillInput[] = [
     totalCostThb: 2250,
     ftThbPerKwh: 0.5,
     serviceChargeThb: 10,
-    vatThb: 147
+    vatThb: 147,
   },
   {
     authority: "PEA",
@@ -172,8 +220,8 @@ export const demoManualBills: MonthlyBillInput[] = [
     totalCostThb: 2630,
     ftThbPerKwh: 0.5,
     serviceChargeThb: 10,
-    vatThb: 172
-  }
+    vatThb: 172,
+  },
 ];
 
 export const demoAppliances: ApplianceInput[] = [
@@ -190,8 +238,8 @@ export const demoAppliances: ApplianceInput[] = [
       daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
       workingDayOnly: false,
       holidayOnly: false,
-      seasonalMonths: []
-    }
+      seasonalMonths: [],
+    },
   },
   {
     name: "ไฟส่องสว่าง",
@@ -206,8 +254,8 @@ export const demoAppliances: ApplianceInput[] = [
       daysOfWeek: [0, 1, 2, 3, 4, 5, 6],
       workingDayOnly: false,
       holidayOnly: false,
-      seasonalMonths: []
-    }
+      seasonalMonths: [],
+    },
   },
   {
     name: "EV Charger",
@@ -222,12 +270,14 @@ export const demoAppliances: ApplianceInput[] = [
       daysOfWeek: [1, 3, 5],
       workingDayOnly: false,
       holidayOnly: false,
-      seasonalMonths: []
-    }
-  }
+      seasonalMonths: [],
+    },
+  },
 ];
 
-export function validateMonthlyBills(bills: MonthlyBillInput[]): BillValidationResult {
+export function validateMonthlyBills(
+  bills: MonthlyBillInput[],
+): BillValidationResult {
   const issues: ValidationIssue[] = [];
   const seenMonths = new Set<string>();
   const validBills: MonthlyBillInput[] = [];
@@ -236,7 +286,12 @@ export function validateMonthlyBills(bills: MonthlyBillInput[]): BillValidationR
     const rowNumber = index + 1;
     const parsed = MonthlyBillInputSchema.safeParse(bill);
     if (!parsed.success) {
-      issues.push({ severity: "error", code: "invalid_bill", messageTh: "ข้อมูลบิลไม่ถูกต้อง", rowNumber });
+      issues.push({
+        severity: "error",
+        code: "invalid_bill",
+        messageTh: "ข้อมูลบิลไม่ถูกต้อง",
+        rowNumber,
+      });
       return;
     }
 
@@ -247,12 +302,15 @@ export function validateMonthlyBills(bills: MonthlyBillInput[]): BillValidationR
         messageTh: `เดือน ${parsed.data.month} ซ้ำ`,
         rowNumber,
         field: "month",
-        value: parsed.data.month
+        value: parsed.data.month,
       });
     }
     seenMonths.add(parsed.data.month);
 
-    const effectiveRate = parsed.data.energyKwh > 0 ? parsed.data.totalCostThb / parsed.data.energyKwh : null;
+    const effectiveRate =
+      parsed.data.energyKwh > 0
+        ? parsed.data.totalCostThb / parsed.data.energyKwh
+        : null;
     if (effectiveRate !== null && effectiveRate < 1) {
       issues.push({
         severity: "warning",
@@ -260,7 +318,7 @@ export function validateMonthlyBills(bills: MonthlyBillInput[]): BillValidationR
         messageTh: "ค่าไฟรวมต่ำผิดปกติเมื่อเทียบกับหน่วย kWh",
         rowNumber,
         field: "totalCostThb",
-        value: String(parsed.data.totalCostThb)
+        value: String(parsed.data.totalCostThb),
       });
     }
 
@@ -270,69 +328,116 @@ export function validateMonthlyBills(bills: MonthlyBillInput[]): BillValidationR
   return {
     bills: validBills,
     issues,
-    canSave: !issues.some((issue) => issue.severity === "error")
+    canSave: !issues.some((issue) => issue.severity === "error"),
   };
 }
 
 export function summarizeBills(bills: MonthlyBillInput[]): BillSummary {
   const sortedBills = [...bills].sort((a, b) => a.month.localeCompare(b.month));
-  const totalKwh = sortedBills.reduce((sum, bill) => sum.plus(bill.energyKwh), new Decimal(0));
-  const totalCost = sortedBills.reduce((sum, bill) => sum.plus(bill.totalCostThb), new Decimal(0));
+  const totalKwh = sortedBills.reduce(
+    (sum, bill) => sum.plus(bill.energyKwh),
+    new Decimal(0),
+  );
+  const totalCost = sortedBills.reduce(
+    (sum, bill) => sum.plus(bill.totalCostThb),
+    new Decimal(0),
+  );
   const highestMonth = sortedBills.reduce<MonthlyBillInput | null>(
-    (highest, bill) => (!highest || bill.energyKwh > highest.energyKwh ? bill : highest),
-    null
+    (highest, bill) =>
+      !highest || bill.energyKwh > highest.energyKwh ? bill : highest,
+    null,
   );
   const lowestMonth = sortedBills.reduce<MonthlyBillInput | null>(
-    (lowest, bill) => (!lowest || bill.energyKwh < lowest.energyKwh ? bill : lowest),
-    null
+    (lowest, bill) =>
+      !lowest || bill.energyKwh < lowest.energyKwh ? bill : lowest,
+    null,
   );
 
   return {
     monthCount: sortedBills.length,
     totalKwh: totalKwh.toNumber(),
     totalCostThb: totalCost.toNumber(),
-    averageCostPerKwh: totalKwh.gt(0) ? totalCost.div(totalKwh).toNumber() : null,
+    averageCostPerKwh: totalKwh.gt(0)
+      ? totalCost.div(totalKwh).toNumber()
+      : null,
     highestMonth,
     lowestMonth,
     monthlyTrend: sortedBills.map((bill) => ({
       month: bill.month,
       energyKwh: bill.energyKwh,
       totalCostThb: bill.totalCostThb,
-      averageCostPerKwh: bill.energyKwh > 0 ? bill.totalCostThb / bill.energyKwh : null
-    }))
+      averageCostPerKwh:
+        bill.energyKwh > 0 ? bill.totalCostThb / bill.energyKwh : null,
+    })),
   };
 }
 
-export function parseCsvLoadProfile(csvText: string, options: ImportOptions): LoadProfilePreview {
+export function parseCsvLoadProfile(
+  csvText: string,
+  options: ImportOptions,
+): LoadProfilePreview {
   const rows = parseCsvRows(csvText);
   const [headers = [], ...dataRows] = rows;
   const objects = dataRows
     .filter((row) => row.some((cell) => cell.trim() !== ""))
-    .map((row) => Object.fromEntries(headers.map((header, index) => [header, row[index] ?? ""])));
+    .map((row) =>
+      Object.fromEntries(
+        headers.map((header, index) => [header, row[index] ?? ""]),
+      ),
+    );
 
   return buildLoadProfilePreview(objects, options);
 }
 
-export function parseXlsxLoadProfile(input: ArrayBuffer | Uint8Array, options: ImportOptions): LoadProfilePreview {
+export function parseXlsxLoadProfile(
+  input: ArrayBuffer | Uint8Array,
+  options: ImportOptions,
+): LoadProfilePreview {
   const workbook = XLSX.read(input, { type: "array" });
   const firstSheetName = workbook.SheetNames[0];
   if (!firstSheetName) {
-    return emptyPreview([{ severity: "error", code: "empty_workbook", messageTh: "ไม่พบ worksheet ในไฟล์ XLSX" }]);
+    return emptyPreview([
+      {
+        severity: "error",
+        code: "empty_workbook",
+        messageTh: "ไม่พบ worksheet ในไฟล์ XLSX",
+      },
+    ]);
   }
 
   const sheet = workbook.Sheets[firstSheetName];
   if (!sheet) {
-    return emptyPreview([{ severity: "error", code: "missing_sheet", messageTh: "ไม่สามารถอ่าน worksheet แรกได้" }]);
+    return emptyPreview([
+      {
+        severity: "error",
+        code: "missing_sheet",
+        messageTh: "ไม่สามารถอ่าน worksheet แรกได้",
+      },
+    ]);
   }
 
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { raw: false, defval: "" });
+  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, {
+    raw: false,
+    defval: "",
+  });
   return buildLoadProfilePreview(rows, options);
 }
 
-export function buildLoadProfilePreview(rawRows: Array<Record<string, unknown>>, options: ImportOptions): LoadProfilePreview {
-  const mappingResult = LoadProfileColumnMappingSchema.safeParse(options.mapping);
+export function buildLoadProfilePreview(
+  rawRows: Array<Record<string, unknown>>,
+  options: ImportOptions,
+): LoadProfilePreview {
+  const mappingResult = LoadProfileColumnMappingSchema.safeParse(
+    options.mapping,
+  );
   if (!mappingResult.success) {
-    return emptyPreview([{ severity: "error", code: "invalid_column_mapping", messageTh: "Column mapping ไม่ถูกต้อง" }]);
+    return emptyPreview([
+      {
+        severity: "error",
+        code: "invalid_column_mapping",
+        messageTh: "Column mapping ไม่ถูกต้อง",
+      },
+    ]);
   }
 
   const mappedRows: LoadIntervalInput[] = [];
@@ -343,15 +448,31 @@ export function buildLoadProfilePreview(rawRows: Array<Record<string, unknown>>,
     if (mapped) mappedRows.push(mapped);
   });
 
-  const normalizedRows = normalizeIntervals(mappedRows, options.intervalMinutes, issues);
-  const sortedRows = [...normalizedRows].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const normalizedRows = normalizeIntervals(
+    mappedRows,
+    options.intervalMinutes,
+    issues,
+  );
+  const sortedRows = [...normalizedRows].sort((a, b) =>
+    a.timestamp.localeCompare(b.timestamp),
+  );
   const detectedIntervalMinutes = detectIntervalMinutes(sortedRows);
   appendIntervalIssues(sortedRows, detectedIntervalMinutes, issues);
 
-  const totalKwh = sortedRows.reduce((sum, row) => sum.plus(row.energyKwh), new Decimal(0));
-  const peakKw = sortedRows.reduce((peak, row) => Decimal.max(peak, row.powerKw ?? 0), new Decimal(0));
-  const errorCount = issues.filter((issue) => issue.severity === "error").length;
-  const warningCount = issues.filter((issue) => issue.severity === "warning").length;
+  const totalKwh = sortedRows.reduce(
+    (sum, row) => sum.plus(row.energyKwh),
+    new Decimal(0),
+  );
+  const peakKw = sortedRows.reduce(
+    (peak, row) => Decimal.max(peak, row.powerKw ?? 0),
+    new Decimal(0),
+  );
+  const errorCount = issues.filter(
+    (issue) => issue.severity === "error",
+  ).length;
+  const warningCount = issues.filter(
+    (issue) => issue.severity === "warning",
+  ).length;
 
   return {
     rows: sortedRows,
@@ -365,25 +486,35 @@ export function buildLoadProfilePreview(rawRows: Array<Record<string, unknown>>,
     issues,
     warningCount,
     errorCount,
-    canImport: errorCount === 0
+    canImport: errorCount === 0,
   };
 }
 
-export function detectIntervalMinutes(intervals: LoadIntervalInput[]): number | null {
+export function detectIntervalMinutes(
+  intervals: LoadIntervalInput[],
+): number | null {
   if (intervals.length < 2) return null;
 
-  const sorted = [...intervals].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
+  const sorted = [...intervals].sort((a, b) =>
+    a.timestamp.localeCompare(b.timestamp),
+  );
   const minutes = sorted.slice(1).map((row, index) => {
     const previous = sorted[index];
     if (!previous) return 0;
-    return (new Date(row.timestamp).getTime() - new Date(previous.timestamp).getTime()) / 60000;
+    return (
+      (new Date(row.timestamp).getTime() -
+        new Date(previous.timestamp).getTime()) /
+      60000
+    );
   });
   const positive = minutes.filter((value) => value > 0);
 
   return positive.length === 0 ? null : mode(positive);
 }
 
-export function simulateApplianceLoadProfile(input: ApplianceSimulationInput): ApplianceSimulationResult {
+export function simulateApplianceLoadProfile(
+  input: ApplianceSimulationInput,
+): ApplianceSimulationResult {
   const intervalMinutes = input.intervalMinutes ?? 15;
   const holidays = new Set(input.holidays ?? []);
   const intervalHours = intervalMinutes / 60;
@@ -391,41 +522,70 @@ export function simulateApplianceLoadProfile(input: ApplianceSimulationInput): A
   const applianceEnergy = new Map<string, Decimal>();
 
   for (let minute = 0; minute < 24 * 60; minute += intervalMinutes) {
-    intervalsByTimestamp.set(localDateMinuteToBangkokIso(input.date, minute), new Decimal(0));
+    intervalsByTimestamp.set(
+      localDateMinuteToBangkokIso(input.date, minute),
+      new Decimal(0),
+    );
   }
 
   for (const applianceInput of input.appliances) {
     const parsed = ApplianceInputSchema.parse(applianceInput);
-    const powerKw = parsed.powerUnit === "W" ? new Decimal(parsed.power).div(1000) : new Decimal(parsed.power);
-    const intervalEnergy = powerKw.mul(parsed.quantity).mul(parsed.dutyCycle).mul(intervalHours);
+    const powerKw =
+      parsed.powerUnit === "W"
+        ? new Decimal(parsed.power).div(1000)
+        : new Decimal(parsed.power);
+    const intervalEnergy = powerKw
+      .mul(parsed.quantity)
+      .mul(parsed.dutyCycle)
+      .mul(intervalHours);
     let totalApplianceEnergy = new Decimal(0);
 
     for (let minute = 0; minute < 24 * 60; minute += intervalMinutes) {
       if (!isApplianceActive(parsed, input.date, minute, holidays)) continue;
 
       const timestamp = localDateMinuteToBangkokIso(input.date, minute);
-      intervalsByTimestamp.set(timestamp, (intervalsByTimestamp.get(timestamp) ?? new Decimal(0)).plus(intervalEnergy));
+      intervalsByTimestamp.set(
+        timestamp,
+        (intervalsByTimestamp.get(timestamp) ?? new Decimal(0)).plus(
+          intervalEnergy,
+        ),
+      );
       totalApplianceEnergy = totalApplianceEnergy.plus(intervalEnergy);
     }
 
-    applianceEnergy.set(parsed.name, (applianceEnergy.get(parsed.name) ?? new Decimal(0)).plus(totalApplianceEnergy));
+    applianceEnergy.set(
+      parsed.name,
+      (applianceEnergy.get(parsed.name) ?? new Decimal(0)).plus(
+        totalApplianceEnergy,
+      ),
+    );
   }
 
-  const intervals = [...intervalsByTimestamp.entries()].map(([timestamp, energy]) => {
-    const powerKw = energy.div(intervalHours);
-    return {
-      timestamp,
-      energyKwh: energy.toDecimalPlaces(6).toNumber(),
-      powerKw: powerKw.toDecimalPlaces(6).toNumber()
-    };
-  });
-  const kwhPerDay = intervals.reduce((sum, row) => sum.plus(row.energyKwh), new Decimal(0));
-  const peakKw = intervals.reduce((peak, row) => Decimal.max(peak, row.powerKw ?? 0), new Decimal(0));
+  const intervals = [...intervalsByTimestamp.entries()].map(
+    ([timestamp, energy]) => {
+      const powerKw = energy.div(intervalHours);
+      return {
+        timestamp,
+        energyKwh: energy.toDecimalPlaces(6).toNumber(),
+        powerKw: powerKw.toDecimalPlaces(6).toNumber(),
+      };
+    },
+  );
+  const kwhPerDay = intervals.reduce(
+    (sum, row) => sum.plus(row.energyKwh),
+    new Decimal(0),
+  );
+  const peakKw = intervals.reduce(
+    (peak, row) => Decimal.max(peak, row.powerKw ?? 0),
+    new Decimal(0),
+  );
   const applianceShares = [...applianceEnergy.entries()]
     .map(([name, energy]) => ({
       name,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),
-      sharePercent: kwhPerDay.gt(0) ? energy.div(kwhPerDay).mul(100).toDecimalPlaces(2).toNumber() : 0
+      sharePercent: kwhPerDay.gt(0)
+        ? energy.div(kwhPerDay).mul(100).toDecimalPlaces(2).toNumber()
+        : 0,
     }))
     .sort((a, b) => b.energyKwh - a.energyKwh);
 
@@ -434,26 +594,46 @@ export function simulateApplianceLoadProfile(input: ApplianceSimulationInput): A
     kwhPerDay: kwhPerDay.toDecimalPlaces(6).toNumber(),
     estimatedKwhPerMonth: kwhPerDay.mul(30).toDecimalPlaces(2).toNumber(),
     peakKw: peakKw.toDecimalPlaces(6).toNumber(),
-    topAppliance: applianceShares[0] ? { name: applianceShares[0].name, energyKwh: applianceShares[0].energyKwh } : null,
-    applianceShares
+    topAppliance: applianceShares[0]
+      ? {
+          name: applianceShares[0].name,
+          energyKwh: applianceShares[0].energyKwh,
+        }
+      : null,
+    applianceShares,
   };
 }
 
 export function summarizeLoadProfile(
   intervals: LoadIntervalInput[],
-  options: { tariffVersion?: TariffVersionConfig } = {}
+  options: { tariffVersion?: TariffVersionConfig } = {},
 ): LoadSummaryMetrics {
   const validIntervals = intervals
     .map((row) => LoadIntervalSchema.parse(row))
     .sort((a, b) => a.timestamp.localeCompare(b.timestamp));
   const detectedIntervalMinutes = detectIntervalMinutes(validIntervals) ?? 60;
   const intervalHours = detectedIntervalMinutes / 60;
-  const totalKwh = validIntervals.reduce((sum, row) => sum.plus(row.energyKwh), new Decimal(0));
-  const peakDemandKw = validIntervals.reduce((peak, row) => Decimal.max(peak, row.powerKw ?? row.energyKwh / intervalHours), new Decimal(0));
-  const uniqueDates = new Set(validIntervals.map((row) => getBangkokParts(row.timestamp).date));
-  const averageDailyKwh = uniqueDates.size > 0 ? totalKwh.div(uniqueDates.size) : new Decimal(0);
-  const averageLoadKw = validIntervals.length > 0 ? totalKwh.div(validIntervals.length * intervalHours) : new Decimal(0);
-  const loadFactor = peakDemandKw.gt(0) ? averageLoadKw.div(peakDemandKw) : new Decimal(0);
+  const totalKwh = validIntervals.reduce(
+    (sum, row) => sum.plus(row.energyKwh),
+    new Decimal(0),
+  );
+  const peakDemandKw = validIntervals.reduce(
+    (peak, row) =>
+      Decimal.max(peak, row.powerKw ?? row.energyKwh / intervalHours),
+    new Decimal(0),
+  );
+  const uniqueDates = new Set(
+    validIntervals.map((row) => getBangkokParts(row.timestamp).date),
+  );
+  const averageDailyKwh =
+    uniqueDates.size > 0 ? totalKwh.div(uniqueDates.size) : new Decimal(0);
+  const averageLoadKw =
+    validIntervals.length > 0
+      ? totalKwh.div(validIntervals.length * intervalHours)
+      : new Decimal(0);
+  const loadFactor = peakDemandKw.gt(0)
+    ? averageLoadKw.div(peakDemandKw)
+    : new Decimal(0);
 
   let daytimeKwh = new Decimal(0);
   let nighttimeKwh = new Decimal(0);
@@ -468,21 +648,36 @@ export function summarizeLoadProfile(
   for (const interval of validIntervals) {
     const local = getBangkokParts(interval.timestamp);
     const energy = new Decimal(interval.energyKwh);
-    if (local.hour >= 6 && local.hour < 18) daytimeKwh = daytimeKwh.plus(energy);
+    if (local.hour >= 6 && local.hour < 18)
+      daytimeKwh = daytimeKwh.plus(energy);
     else nighttimeKwh = nighttimeKwh.plus(energy);
 
-    if (local.dayOfWeek === 0 || local.dayOfWeek === 6) weekendKwh = weekendKwh.plus(energy);
+    if (local.dayOfWeek === 0 || local.dayOfWeek === 6)
+      weekendKwh = weekendKwh.plus(energy);
     else weekdayKwh = weekdayKwh.plus(energy);
 
     const month = local.date.slice(0, 7);
     monthMap.set(month, (monthMap.get(month) ?? new Decimal(0)).plus(energy));
-    dayOfWeekMap.set(local.dayOfWeek, (dayOfWeekMap.get(local.dayOfWeek) ?? new Decimal(0)).plus(energy));
-    hourMap.set(local.hour, (hourMap.get(local.hour) ?? new Decimal(0)).plus(energy));
+    dayOfWeekMap.set(
+      local.dayOfWeek,
+      (dayOfWeekMap.get(local.dayOfWeek) ?? new Decimal(0)).plus(energy),
+    );
+    hourMap.set(
+      local.hour,
+      (hourMap.get(local.hour) ?? new Decimal(0)).plus(energy),
+    );
 
     if (options.tariffVersion?.meterMode === "tou") {
-      const isHoliday = options.tariffVersion.holidays.some((holiday) => getDateKey(holiday.date) === local.date);
-      const period = selectTouPeriod(options.tariffVersion.touPeriods, interval.timestamp, isHoliday);
-      if (period.periodType === "peak") peakPeriodKwh = peakPeriodKwh.plus(energy);
+      const isHoliday = options.tariffVersion.holidays.some(
+        (holiday) => getDateKey(holiday.date) === local.date,
+      );
+      const period = selectTouPeriod(
+        options.tariffVersion.touPeriods,
+        interval.timestamp,
+        isHoliday,
+      );
+      if (period.periodType === "peak")
+        peakPeriodKwh = peakPeriodKwh.plus(energy);
       else offPeakPeriodKwh = offPeakPeriodKwh.plus(energy);
     }
   }
@@ -504,14 +699,23 @@ export function summarizeLoadProfile(
     weekendKwh: weekendKwh.toDecimalPlaces(6).toNumber(),
     peakPeriodKwh: peakPeriodKwh.toDecimalPlaces(6).toNumber(),
     offPeakPeriodKwh: offPeakPeriodKwh.toDecimalPlaces(6).toNumber(),
-    energyByMonth: [...monthMap.entries()].sort(([a], [b]) => a.localeCompare(b)).map(([month, energy]) => ({ month, energyKwh: energy.toNumber() })),
-    energyByDayOfWeek: [...dayOfWeekMap.entries()].sort(([a], [b]) => a - b).map(([dayOfWeek, energy]) => ({ dayOfWeek, energyKwh: energy.toNumber() })),
-    hourlyProfile: [...hourMap.entries()].sort(([a], [b]) => a - b).map(([hour, energy]) => ({
-      hour,
-      energyKwh: energy.toNumber(),
-      averageKw: energy.div(intervalHours).toDecimalPlaces(6).toNumber()
-    })),
-    loadDurationCurve
+    energyByMonth: [...monthMap.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([month, energy]) => ({ month, energyKwh: energy.toNumber() })),
+    energyByDayOfWeek: [...dayOfWeekMap.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([dayOfWeek, energy]) => ({
+        dayOfWeek,
+        energyKwh: energy.toNumber(),
+      })),
+    hourlyProfile: [...hourMap.entries()]
+      .sort(([a], [b]) => a - b)
+      .map(([hour, energy]) => ({
+        hour,
+        energyKwh: energy.toNumber(),
+        averageKw: energy.div(intervalHours).toDecimalPlaces(6).toNumber(),
+      })),
+    loadDurationCurve,
   };
 }
 
@@ -519,7 +723,7 @@ function mapRowToInterval(
   row: Record<string, unknown>,
   mapping: LoadProfileColumnMapping,
   rowNumber: number,
-  issues: ValidationIssue[]
+  issues: ValidationIssue[],
 ): LoadIntervalInput | null {
   const timestampValue = readCell(row, mapping.timestamp);
   const timestamp = parseTimestampToBangkokIso(timestampValue);
@@ -530,7 +734,7 @@ function mapRowToInterval(
       messageTh: "timestamp ไม่ถูกต้องหรือไม่มี timezone ที่แปลงได้",
       rowNumber,
       field: mapping.timestamp,
-      value: timestampValue
+      value: timestampValue,
     });
     return null;
   }
@@ -541,43 +745,75 @@ function mapRowToInterval(
   const power = powerValue === "" ? null : toNumber(powerValue);
 
   if (energy === null && power === null) {
-    issues.push({ severity: "error", code: "missing_energy_or_power", messageTh: "ต้องมี energy_kwh หรือ power_kw อย่างน้อยหนึ่งค่า", rowNumber });
+    issues.push({
+      severity: "error",
+      code: "missing_energy_or_power",
+      messageTh: "ต้องมี energy_kwh หรือ power_kw อย่างน้อยหนึ่งค่า",
+      rowNumber,
+    });
     return null;
   }
 
   if (energy !== null && energy < 0) {
-    issues.push({ severity: "error", code: "negative_energy_kwh", messageTh: "energy_kwh ห้ามติดลบ", rowNumber, field: mapping.energyKwh, value: energyValue });
+    issues.push({
+      severity: "error",
+      code: "negative_energy_kwh",
+      messageTh: "energy_kwh ห้ามติดลบ",
+      rowNumber,
+      field: mapping.energyKwh,
+      value: energyValue,
+    });
   }
 
   if (power !== null && power < 0) {
-    issues.push({ severity: "error", code: "negative_power_kw", messageTh: "power_kw ห้ามติดลบ", rowNumber, field: mapping.powerKw, value: powerValue });
+    issues.push({
+      severity: "error",
+      code: "negative_power_kw",
+      messageTh: "power_kw ห้ามติดลบ",
+      rowNumber,
+      field: mapping.powerKw,
+      value: powerValue,
+    });
   }
 
   return {
     timestamp,
     energyKwh: energy ?? 0,
     powerKw: power ?? undefined,
-    meterId: mapping.meterId ? readCell(row, mapping.meterId) || undefined : undefined,
-    voltage: mapping.voltage ? toOptionalNumber(readCell(row, mapping.voltage)) : undefined,
-    powerFactor: mapping.powerFactor ? toOptionalNumber(readCell(row, mapping.powerFactor)) : undefined
+    meterId: mapping.meterId
+      ? readCell(row, mapping.meterId) || undefined
+      : undefined,
+    voltage: mapping.voltage
+      ? toOptionalNumber(readCell(row, mapping.voltage))
+      : undefined,
+    powerFactor: mapping.powerFactor
+      ? toOptionalNumber(readCell(row, mapping.powerFactor))
+      : undefined,
   };
 }
 
 function normalizeIntervals(
   rows: LoadIntervalInput[],
   configuredIntervalMinutes: 15 | 30 | 60 | undefined,
-  issues: ValidationIssue[]
+  issues: ValidationIssue[],
 ): LoadIntervalInput[] {
-  const sorted = [...rows].sort((a, b) => a.timestamp.localeCompare(b.timestamp));
-  const intervalMinutes = configuredIntervalMinutes ?? detectIntervalMinutes(sorted) ?? 60;
+  const sorted = [...rows].sort((a, b) =>
+    a.timestamp.localeCompare(b.timestamp),
+  );
+  const intervalMinutes =
+    configuredIntervalMinutes ?? detectIntervalMinutes(sorted) ?? 60;
   const intervalHours = intervalMinutes / 60;
 
   return sorted.map((row) => {
-    const energyKwh = row.energyKwh || ((row.powerKw ?? 0) * intervalHours);
+    const energyKwh = row.energyKwh || (row.powerKw ?? 0) * intervalHours;
     const powerKw = row.powerKw ?? energyKwh / intervalHours;
     const parsed = LoadIntervalSchema.safeParse({ ...row, energyKwh, powerKw });
     if (!parsed.success) {
-      issues.push({ severity: "error", code: "invalid_interval", messageTh: "ข้อมูล interval ไม่ผ่าน validation" });
+      issues.push({
+        severity: "error",
+        code: "invalid_interval",
+        messageTh: "ข้อมูล interval ไม่ผ่าน validation",
+      });
       return row;
     }
 
@@ -585,7 +821,11 @@ function normalizeIntervals(
   });
 }
 
-function appendIntervalIssues(rows: LoadIntervalInput[], detectedIntervalMinutes: number | null, issues: ValidationIssue[]) {
+function appendIntervalIssues(
+  rows: LoadIntervalInput[],
+  detectedIntervalMinutes: number | null,
+  issues: ValidationIssue[],
+) {
   const seen = new Set<string>();
   rows.forEach((row, index) => {
     if (seen.has(row.timestamp)) {
@@ -595,7 +835,7 @@ function appendIntervalIssues(rows: LoadIntervalInput[], detectedIntervalMinutes
         messageTh: "timestamp ซ้ำ",
         rowNumber: index + 2,
         field: "timestamp",
-        value: formatBangkokMinute(row.timestamp)
+        value: formatBangkokMinute(row.timestamp),
       });
     }
     seen.add(row.timestamp);
@@ -607,19 +847,31 @@ function appendIntervalIssues(rows: LoadIntervalInput[], detectedIntervalMinutes
     const previous = rows[index - 1];
     const current = rows[index];
     if (!previous || !current) continue;
-    const diffMinutes = (new Date(current.timestamp).getTime() - new Date(previous.timestamp).getTime()) / 60000;
+    const diffMinutes =
+      (new Date(current.timestamp).getTime() -
+        new Date(previous.timestamp).getTime()) /
+      60000;
     if (diffMinutes <= 0) {
-      issues.push({ severity: "error", code: "timestamp_not_ascending", messageTh: "timestamp ไม่เรียงตามเวลา", rowNumber: index + 2 });
+      issues.push({
+        severity: "error",
+        code: "timestamp_not_ascending",
+        messageTh: "timestamp ไม่เรียงตามเวลา",
+        rowNumber: index + 2,
+      });
     } else if (diffMinutes !== detectedIntervalMinutes) {
       if (diffMinutes > detectedIntervalMinutes) {
-        for (const missingTimestamp of listMissingBangkokMinutes(previous.timestamp, current.timestamp, detectedIntervalMinutes)) {
+        for (const missingTimestamp of listMissingBangkokMinutes(
+          previous.timestamp,
+          current.timestamp,
+          detectedIntervalMinutes,
+        )) {
           issues.push({
             severity: "warning",
             code: "missing_timestamp",
             messageTh: "timestamp ขาดหาย",
             rowNumber: index + 2,
             field: "timestamp",
-            value: missingTimestamp
+            value: missingTimestamp,
           });
         }
       }
@@ -630,7 +882,7 @@ function appendIntervalIssues(rows: LoadIntervalInput[], detectedIntervalMinutes
         messageTh: "interval ไม่ต่อเนื่องหรือไม่สม่ำเสมอ",
         rowNumber: index + 2,
         field: "timestamp",
-        value: `${formatBangkokMinute(previous.timestamp)} -> ${formatBangkokMinute(current.timestamp)} (${diffMinutes} min)`
+        value: `${formatBangkokMinute(previous.timestamp)} -> ${formatBangkokMinute(current.timestamp)} (${diffMinutes} min)`,
       });
     }
   }
@@ -680,11 +932,30 @@ function parseTimestampToBangkokIso(value: string): string | null {
     return Number.isNaN(date.getTime()) ? null : date.toISOString();
   }
 
-  const ymd = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(trimmed);
-  if (ymd) return localPartsToUtcIso(ymd[1], ymd[2], ymd[3], ymd[4], ymd[5], ymd[6] ?? "00");
+  const ymd = /^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(
+    trimmed,
+  );
+  if (ymd)
+    return localPartsToUtcIso(
+      ymd[1],
+      ymd[2],
+      ymd[3],
+      ymd[4],
+      ymd[5],
+      ymd[6] ?? "00",
+    );
 
-  const dmy = /^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(trimmed);
-  if (dmy) return localPartsToUtcIso(dmy[3], dmy[2], dmy[1], dmy[4], dmy[5], dmy[6] ?? "00");
+  const dmy =
+    /^(\d{2})\/(\d{2})\/(\d{4})[ T](\d{2}):(\d{2})(?::(\d{2}))?$/.exec(trimmed);
+  if (dmy)
+    return localPartsToUtcIso(
+      dmy[3],
+      dmy[2],
+      dmy[1],
+      dmy[4],
+      dmy[5],
+      dmy[6] ?? "00",
+    );
 
   const parsed = new Date(trimmed);
   return Number.isNaN(parsed.getTime()) ? null : parsed.toISOString();
@@ -696,10 +967,19 @@ function localPartsToUtcIso(
   day: string | undefined,
   hour: string | undefined,
   minute: string | undefined,
-  second: string | undefined
+  second: string | undefined,
 ): string | null {
   if (!year || !month || !day || !hour || !minute || !second) return null;
-  return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 7, Number(minute), Number(second))).toISOString();
+  return new Date(
+    Date.UTC(
+      Number(year),
+      Number(month) - 1,
+      Number(day),
+      Number(hour) - 7,
+      Number(minute),
+      Number(second),
+    ),
+  ).toISOString();
 }
 
 function getBangkokParts(timestamp: string) {
@@ -712,12 +992,15 @@ function getBangkokParts(timestamp: string) {
       hour: "2-digit",
       minute: "2-digit",
       hourCycle: "h23",
-      weekday: "short"
+      weekday: "short",
     })
       .formatToParts(new Date(timestamp))
-      .map((part) => [part.type, part.value])
+      .map((part) => [part.type, part.value]),
   );
-  const dayOfWeek = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[parts.weekday ?? ""] ?? 0;
+  const dayOfWeek =
+    { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 }[
+      parts.weekday ?? ""
+    ] ?? 0;
   const hour = Number(parts.hour ?? 0);
   const minute = Number(parts.minute ?? 0);
 
@@ -726,7 +1009,7 @@ function getBangkokParts(timestamp: string) {
     hour,
     minute,
     dayOfWeek,
-    minuteOfDay: hour * 60 + minute
+    minuteOfDay: hour * 60 + minute,
   };
 }
 
@@ -735,12 +1018,20 @@ function formatBangkokMinute(timestamp: string): string {
   return `${local.date} ${String(local.hour).padStart(2, "0")}:${String(local.minute).padStart(2, "0")}`;
 }
 
-function listMissingBangkokMinutes(previousTimestamp: string, currentTimestamp: string, intervalMinutes: number): string[] {
+function listMissingBangkokMinutes(
+  previousTimestamp: string,
+  currentTimestamp: string,
+  intervalMinutes: number,
+): string[] {
   const missing: string[] = [];
   const currentMs = new Date(currentTimestamp).getTime();
   const stepMs = intervalMinutes * 60000;
 
-  for (let missingMs = new Date(previousTimestamp).getTime() + stepMs; missingMs < currentMs; missingMs += stepMs) {
+  for (
+    let missingMs = new Date(previousTimestamp).getTime() + stepMs;
+    missingMs < currentMs;
+    missingMs += stepMs
+  ) {
     missing.push(formatBangkokMinute(new Date(missingMs).toISOString()));
   }
 
@@ -748,13 +1039,19 @@ function listMissingBangkokMinutes(previousTimestamp: string, currentTimestamp: 
 }
 
 function getDateKey(value: string) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(value) ? value : getBangkokParts(value).date;
+  return /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? value
+    : getBangkokParts(value).date;
 }
 
 function localDateMinuteToBangkokIso(date: string, minuteOfDay: number) {
   const hour = Math.floor(minuteOfDay / 60);
   const minute = minuteOfDay % 60;
-  return parseTimestampToBangkokIso(`${date} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`) ?? "";
+  return (
+    parseTimestampToBangkokIso(
+      `${date} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+    ) ?? ""
+  );
 }
 
 function isApplianceActive(
@@ -766,10 +1063,12 @@ function isApplianceActive(
   const start = timeToMinute(appliance.schedule.startTime);
   const end = timeToMinute(appliance.schedule.endTime);
   const crossesMidnight = start > end;
-  const scheduleDate = crossesMidnight && minuteOfDay < end ? previousDate(date) : date;
+  const scheduleDate =
+    crossesMidnight && minuteOfDay < end ? previousDate(date) : date;
   const local = getBangkokParts(localDateMinuteToBangkokIso(scheduleDate, 0));
   const isHoliday = holidays.has(scheduleDate);
-  const isWorkingDay = local.dayOfWeek >= 1 && local.dayOfWeek <= 5 && !isHoliday;
+  const isWorkingDay =
+    local.dayOfWeek >= 1 && local.dayOfWeek <= 5 && !isHoliday;
 
   if (!appliance.schedule.daysOfWeek.includes(local.dayOfWeek)) return false;
   if (appliance.schedule.workingDayOnly && !isWorkingDay) return false;
@@ -815,7 +1114,11 @@ function toOptionalNumber(value: string): number | undefined {
 function mode(values: number[]): number {
   const counts = new Map<number, number>();
   values.forEach((value) => counts.set(value, (counts.get(value) ?? 0) + 1));
-  return [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ?? values[0] ?? 0;
+  return (
+    [...counts.entries()].sort((a, b) => b[1] - a[1] || a[0] - b[0])[0]?.[0] ??
+    values[0] ??
+    0
+  );
 }
 
 function emptyPreview(issues: ValidationIssue[]): LoadProfilePreview {
@@ -831,6 +1134,6 @@ function emptyPreview(issues: ValidationIssue[]): LoadProfilePreview {
     issues,
     warningCount: issues.filter((issue) => issue.severity === "warning").length,
     errorCount: issues.filter((issue) => issue.severity === "error").length,
-    canImport: !issues.some((issue) => issue.severity === "error")
+    canImport: !issues.some((issue) => issue.severity === "error"),
   };
 }
