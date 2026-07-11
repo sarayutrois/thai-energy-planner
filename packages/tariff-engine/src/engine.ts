@@ -260,7 +260,7 @@ export function calculateTouBill(
     const intervalCharge = energyKwh.mul(period.rateThbPerKwh);
     const ftPeriod = selectFtPeriod(
       input.tariffVersion.ftPeriods,
-      interval.timestamp,
+      input.ftBillDate ?? interval.timestamp,
     );
     const intervalFtCharge = energyKwh.mul(ftPeriod.ftThbPerKwh);
 

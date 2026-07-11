@@ -1,4 +1,9 @@
-import type { Authority, CustomerSegment, MeterMode, TariffStatus } from "@thai-energy-planner/shared-types";
+import type {
+  Authority,
+  CustomerSegment,
+  MeterMode,
+  TariffStatus,
+} from "@thai-energy-planner/shared-types";
 
 export type Numeric = number | string;
 
@@ -106,7 +111,9 @@ export type TariffVersionConfig = TariffVersionRef & {
   policyIncentives: PolicyIncentiveConfig[];
 };
 
-export type TariffSelectionInput<TVersion extends TariffVersionRef = TariffVersionRef> = {
+export type TariffSelectionInput<
+  TVersion extends TariffVersionRef = TariffVersionRef,
+> = {
   authority: Authority;
   customerSegment: CustomerSegment;
   meterMode: MeterMode;
@@ -133,6 +140,8 @@ export type NormalTariffCalculationInput = {
 export type TouTariffCalculationInput = {
   tariffVersion: TariffVersionConfig;
   intervals: LoadIntervalForTariff[];
+  /** Uses one verified Ft period for a screening run while retaining interval timestamps for TOU classification. */
+  ftBillDate?: string | undefined;
   demandKw?: Numeric | undefined;
   snapshotCapturedAt?: string | undefined;
 };

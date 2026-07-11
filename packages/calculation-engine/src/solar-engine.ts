@@ -1074,6 +1074,7 @@ export function calculateBillAfterSolar(input: {
       calculateTouBill({
         tariffVersion: touTariff,
         intervals: billingLoad.map(toTariffInterval),
+        ftBillDate: billDate,
         demandKw: peakLoadKw,
       }),
     );
@@ -1089,6 +1090,7 @@ export function calculateBillAfterSolar(input: {
       calculateTouBill({
         tariffVersion: touTariff,
         intervals: billingImport.map(toTariffInterval),
+        ftBillDate: billDate,
         demandKw: peakImportKw,
       }),
     );
