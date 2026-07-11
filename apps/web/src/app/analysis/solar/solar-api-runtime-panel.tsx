@@ -53,7 +53,9 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
           province: settings.province,
           profile: settings.profile,
           modelMode: settings.modelMode,
-          billDate: "2026-07-01",
+          billDate:
+            profileSnapshot.canonicalProfile?.period.startInclusive.slice(0, 10) ??
+            "2026-07-01",
           voltageLevel: "low_voltage",
           customerSegment: settings.profile === "daytime_shop" ? "small_business" : "residential",
           systemSizeKwp: settings.systemSizeKwp,
