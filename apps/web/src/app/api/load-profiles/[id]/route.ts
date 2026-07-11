@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuthenticatedUser } from "@/lib/supabase-server";
+import { guardApiRequest } from "@/lib/api-security";
 
 const idPattern = /^[a-z0-9_-]{8,160}$/i;
 
@@ -43,6 +44,12 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const blocked = guardApiRequest(request, {
+    bucket: "load-profile-delete",
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (blocked) return blocked;
   const auth = await requireAuthenticatedUser(request);
   if (auth.response) return auth.response;
   const { id } = await params;
