@@ -1,6 +1,6 @@
 "use client";
 
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser";
+import { getSupabaseBrowserClient } from "./supabase-browser";
 
 export async function authenticatedFetch(
   input: RequestInfo | URL,

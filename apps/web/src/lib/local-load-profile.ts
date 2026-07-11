@@ -8,7 +8,7 @@ import {
   type LoadIntervalInput,
   type LoadProfileSourceKind,
 } from "@thai-energy-planner/shared-types";
-import { authenticatedFetch } from "@/lib/auth-fetch";
+import { authenticatedFetch } from "./auth-fetch";
 
 export const localLoadProfileStorageKey = "thai-energy-planner.load-profile.v1";
 
@@ -26,6 +26,10 @@ export type LocalLoadProfileSnapshot = {
   serverLoadProfileId?: string;
 };
 
+export type LoadProfilePersistenceResult =
+  | { status: "saved"; loadProfileId: string }
+  | { status: "local_only"; reason: "not_signed_in" | "network_or_server" };
+
 export function saveLocalLoadProfileSnapshot(input: {
   sourceName: string;
   totalKwh: number;
@@ -34,6 +38,7 @@ export function saveLocalLoadProfileSnapshot(input: {
   rows: LoadIntervalInput[];
   sourceKind?: LoadProfileSourceKind;
   warnings?: string[];
+  persist?: boolean;
 }): LocalLoadProfileSnapshot {
   const existing = readLocalLoadProfileSnapshot();
   const now = new Date().toISOString();
@@ -62,31 +67,44 @@ export function saveLocalLoadProfileSnapshot(input: {
     localLoadProfileStorageKey,
     JSON.stringify(snapshot),
   );
-  void persistLocalLoadProfile(snapshot);
+  if (input.persist !== false) void persistLocalLoadProfile(snapshot);
   return snapshot;
 }
 
-async function persistLocalLoadProfile(snapshot: LocalLoadProfileSnapshot) {
-  if (!snapshot.canonicalProfile) return;
+export async function persistLocalLoadProfile(
+  snapshot: LocalLoadProfileSnapshot,
+): Promise<LoadProfilePersistenceResult> {
+  if (!snapshot.canonicalProfile) {
+    return { status: "local_only", reason: "network_or_server" };
+  }
   const response = await authenticatedFetch("/api/load-profiles", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ profile: snapshot.canonicalProfile }),
   }).catch(() => null);
-  if (!response?.ok) return;
+  if (!response?.ok) {
+    return {
+      status: "local_only",
+      reason: response?.status === 401 ? "not_signed_in" : "network_or_server",
+    };
+  }
   const payload = (await response.json()) as { loadProfileId?: string };
-  if (!payload.loadProfileId) return;
+  if (!payload.loadProfileId) {
+    return { status: "local_only", reason: "network_or_server" };
+  }
   const raw = window.localStorage.getItem(localLoadProfileStorageKey);
-  if (!raw) return;
+  if (!raw) return { status: "saved", loadProfileId: payload.loadProfileId };
   const current = JSON.parse(raw) as LocalLoadProfileSnapshot;
-  if (current.updatedAt !== snapshot.updatedAt) return;
-  window.localStorage.setItem(
-    localLoadProfileStorageKey,
-    JSON.stringify({
-      ...current,
-      serverLoadProfileId: payload.loadProfileId,
-    }),
-  );
+  if (current.updatedAt === snapshot.updatedAt) {
+    window.localStorage.setItem(
+      localLoadProfileStorageKey,
+      JSON.stringify({
+        ...current,
+        serverLoadProfileId: payload.loadProfileId,
+      }),
+    );
+  }
+  return { status: "saved", loadProfileId: payload.loadProfileId };
 }
 
 export function createCanonicalProfileForSnapshot(input: {

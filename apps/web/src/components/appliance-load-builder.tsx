@@ -4,7 +4,10 @@ import { useMemo, useState } from "react";
 import { simulateApplianceLoadProfileRange } from "@thai-energy-planner/calculation-engine";
 import type { ApplianceInput } from "@thai-energy-planner/shared-types";
 import { Button } from "@/components/ui/button";
-import { saveLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import {
+  persistLocalLoadProfile,
+  saveLocalLoadProfileSnapshot,
+} from "@/lib/local-load-profile";
 
 export function ApplianceLoadBuilder({
   initialAppliances,
@@ -19,7 +22,9 @@ export function ApplianceLoadBuilder({
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(15);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
-  const [saved, setSaved] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<
+    "idle" | "saving" | "saved" | "local_only"
+  >("idle");
   const simulation = useMemo(() => {
     if (endDate < startDate) return null;
     return simulateApplianceLoadProfileRange({
@@ -36,7 +41,7 @@ export function ApplianceLoadBuilder({
         itemIndex === index ? { ...item, ...patch } : item,
       ),
     );
-    setSaved(false);
+    setSaveStatus("idle");
   }
 
   function updateTime(
@@ -51,7 +56,7 @@ export function ApplianceLoadBuilder({
           : item,
       ),
     );
-    setSaved(false);
+    setSaveStatus("idle");
   }
 
   function addAppliance() {
@@ -74,19 +79,22 @@ export function ApplianceLoadBuilder({
         },
       },
     ]);
-    setSaved(false);
+    setSaveStatus("idle");
   }
 
-  function saveForSolar() {
-    saveLocalLoadProfileSnapshot({
+  async function saveForSolar() {
+    const snapshot = saveLocalLoadProfileSnapshot({
       sourceName: "Appliance load profile",
       sourceKind: "appliance",
       totalKwh: simulation?.totalKwh ?? 0,
       peakKw: simulation?.peakKw ?? 0,
       detectedIntervalMinutes: intervalMinutes,
       rows: simulation?.intervals ?? [],
+      persist: false,
     });
-    setSaved(true);
+    setSaveStatus("saving");
+    const result = await persistLocalLoadProfile(snapshot);
+    setSaveStatus(result.status === "saved" ? "saved" : "local_only");
   }
 
   return (
@@ -114,7 +122,7 @@ export function ApplianceLoadBuilder({
             value={startDate}
             onChange={(event) => {
               setStartDate(event.target.value);
-              setSaved(false);
+              setSaveStatus("idle");
             }}
           />
         </label>
@@ -126,7 +134,7 @@ export function ApplianceLoadBuilder({
             value={endDate}
             onChange={(event) => {
               setEndDate(event.target.value);
-              setSaved(false);
+              setSaveStatus("idle");
             }}
           />
         </label>
@@ -193,7 +201,7 @@ export function ApplianceLoadBuilder({
               setAppliances((current) =>
                 current.filter((_, itemIndex) => itemIndex !== index),
               );
-              setSaved(false);
+              setSaveStatus("idle");
             }}
           >
             Remove
@@ -203,7 +211,7 @@ export function ApplianceLoadBuilder({
       <div className="flex flex-wrap items-center gap-3 rounded-md border border-success bg-success/10 p-4 text-sm">
         <Button
           disabled={appliances.length === 0 || !simulation}
-          onClick={saveForSolar}
+          onClick={() => void saveForSolar()}
         >
           Save for Solar Analysis
         </Button>
@@ -214,9 +222,13 @@ export function ApplianceLoadBuilder({
           Open Solar Analysis
         </a>
         <span className="text-muted-foreground">
-          {saved
-            ? "Saved modeled Canonical Load Profile."
-            : "Changes are calculated locally before saving."}
+          {saveStatus === "saved"
+            ? "บันทึกในบัญชีและพร้อมใช้วิเคราะห์ Solar แล้ว"
+            : saveStatus === "local_only"
+              ? "บันทึกในเบราว์เซอร์แล้ว แต่ยังไม่บันทึกในบัญชี กรุณาเข้าสู่ระบบหรือลองใหม่"
+              : saveStatus === "saving"
+                ? "กำลังบันทึกในบัญชี..."
+                : "การแก้ไขจะคำนวณในหน้านี้ก่อนบันทึก"}
         </span>
       </div>
     </div>
