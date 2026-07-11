@@ -2,32 +2,20 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { FileUp, RefreshCw, ServerCog } from "lucide-react";
-import { canonicalLoadProfileToLoadIntervals, type SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
+import {
+  canonicalLoadProfileToLoadIntervals,
+  type SolarAnalysisResult,
+} from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readLocalLoadProfileSnapshot, type LocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
 
 type SolarAnalyzeResponse =
-  | {
-      ok: true;
-      analysis: SolarAnalysisResult;
-      trace: {
-        authority: "PEA" | "MEA";
-        customerSegment: "residential" | "small_business";
-        billDate: string;
-        inputIntervalCount: number;
-        uploadedSolarIntervalCount: number;
-        tariffVersionIds: string[];
-      };
-      warnings: string[];
-    }
-  | {
-      ok: false;
-      error: string;
-      issues?: Array<{ path: string; message: string }>;
-    };
+  | { ok: true; analysis: SolarAnalysisResult; trace: { authority: "PEA" | "MEA"; customerSegment: "residential" | "small_business"; billDate: string; inputIntervalCount: number; uploadedSolarIntervalCount: number; tariffVersionIds: string[] }; warnings: string[] }
+  | { ok: false; error: string; issues?: Array<{ path: string; message: string }> };
 
 const solarApiTimeoutMs = 12_000;
 
@@ -40,57 +28,32 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
   const runAnalysis = useCallback(async (profileSnapshot: LocalLoadProfileSnapshot) => {
     setIsLoading(true);
     setError(null);
-
     const controller = new AbortController();
     const timeoutId = window.setTimeout(() => controller.abort(), solarApiTimeoutMs);
-
     try {
+      const monthlyBills = readSavedBills();
       const response = await fetch("/api/solar/analyze", {
-        method: "POST",
-        signal: controller.signal,
-        headers: { "Content-Type": "application/json" },
+        method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          province: settings.province,
-          profile: settings.profile,
-          modelMode: settings.modelMode,
-          billDate:
-            profileSnapshot.canonicalProfile?.period.startInclusive.slice(0, 10) ??
-            "2026-07-01",
-          voltageLevel: "low_voltage",
-          customerSegment: settings.profile === "daytime_shop" ? "small_business" : "residential",
-          systemSizeKwp: settings.systemSizeKwp,
-          roofAreaSqm: settings.roofAreaSqm,
-          roofAzimuth: settings.roofAzimuth,
-          roofTilt: settings.roofTilt,
-          systemLossPercent: settings.systemLossPercent,
-          shadingLossPercent: settings.shadingLossPercent,
-          degradationPercentPerYear: settings.degradationPercentPerYear,
-          capexThb: settings.capexThb,
-          oAndMCostPerYear: settings.oAndMCostPerYear,
-          projectLifeYears: settings.projectLifeYears,
-          discountRatePercent: settings.discountRatePercent,
-          electricityEscalationRatePercent: settings.electricityEscalationRatePercent,
-          inverterReplacementCostThb: settings.inverterReplacementCostThb,
-          inverterReplacementYear: settings.inverterReplacementYear,
-          exportEnabled: settings.exportEnabled,
-          exportRateThbPerKwh: settings.exportRateThbPerKwh,
-          exportLimitKw: settings.exportLimitKw,
-          loadIntervals: profileSnapshot.canonicalProfile
-            ? canonicalLoadProfileToLoadIntervals(profileSnapshot.canonicalProfile)
-            : profileSnapshot.rows
-        })
+          province: settings.province, profile: settings.profile, modelMode: settings.modelMode,
+          billDate: profileSnapshot.canonicalProfile?.period.startInclusive.slice(0, 10) ?? "2026-07-01",
+          voltageLevel: "low_voltage", customerSegment: settings.profile === "daytime_shop" ? "small_business" : "residential",
+          systemSizeKwp: settings.systemSizeKwp, roofAreaSqm: settings.roofAreaSqm, roofAzimuth: settings.roofAzimuth, roofTilt: settings.roofTilt,
+          systemLossPercent: settings.systemLossPercent, shadingLossPercent: settings.shadingLossPercent, degradationPercentPerYear: settings.degradationPercentPerYear,
+          capexThb: settings.capexThb, oAndMCostPerYear: settings.oAndMCostPerYear, projectLifeYears: settings.projectLifeYears,
+          discountRatePercent: settings.discountRatePercent, electricityEscalationRatePercent: settings.electricityEscalationRatePercent,
+          inverterReplacementCostThb: settings.inverterReplacementCostThb, inverterReplacementYear: settings.inverterReplacementYear,
+          exportEnabled: settings.exportEnabled, exportRateThbPerKwh: settings.exportRateThbPerKwh, exportLimitKw: settings.exportLimitKw,
+          loadIntervals: profileSnapshot.canonicalProfile ? canonicalLoadProfileToLoadIntervals(profileSnapshot.canonicalProfile) : profileSnapshot.rows,
+          ...(monthlyBills.length ? { monthlyBills } : {}),
+        }),
       });
       const result = (await response.json()) as SolarAnalyzeResponse;
-
-      if (!response.ok || !result.ok) {
-        const issueText = result.ok ? "" : result.issues?.map((issue) => issue.message).join(", ");
-        throw new Error((result.ok ? null : result.error) || issueText || "Solar analysis failed.");
-      }
-
+      if (!response.ok || !result.ok) throw new Error(result.ok ? "" : result.error);
       setPayload(result);
     } catch (caught) {
       setPayload(null);
-      setError(getRuntimeErrorMessage(caught));
+      setError(caught instanceof DOMException && caught.name === "AbortError" ? "การคำนวณใช้เวลานานเกินไป กรุณาลองอีกครั้ง" : caught instanceof Error && caught.message ? caught.message : "ไม่สามารถคำนวณ Solar ได้ในขณะนี้");
     } finally {
       window.clearTimeout(timeoutId);
       setIsLoading(false);
@@ -98,122 +61,69 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
   }, [settings]);
 
   useEffect(() => {
-    const nextSnapshot = readLocalLoadProfileSnapshot();
-    setSnapshot(nextSnapshot);
-    if (nextSnapshot) void runAnalysis(nextSnapshot);
+    const next = readLocalLoadProfileSnapshot();
+    setSnapshot(next);
+    if (next) void runAnalysis(next);
   }, [runAnalysis]);
 
-  if (!snapshot) {
-    return (
-      <Card className="border-dashed">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileUp aria-hidden="true" className="h-5 w-5 text-primary" />
-            Uploaded interval data
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground md:flex-row md:items-center md:justify-between">
-          <p>ยังไม่มี load profile ที่บันทึกไว้ในเซสชันนี้ ระบบจึงใช้ข้อมูลสำหรับประเมินเบื้องต้นก่อน</p>
-          <a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium text-foreground hover:bg-muted" href="/analysis/load-data/import">
-            Upload load profile
-          </a>
-        </CardContent>
-      </Card>
-    );
-  }
+  if (!snapshot) return (
+    <Card className="border-dashed">
+      <CardHeader><CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5 text-primary" />ยังไม่มี Load Profile สำหรับคำนวณ</CardTitle></CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground md:flex-row md:items-center md:justify-between"><p>กรุณาสร้างหรือนำเข้า Load Profile ก่อน ระบบจึงจะคำนวณจากข้อมูลการใช้ไฟของคุณได้</p><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium text-foreground hover:bg-muted" href="/analysis/load-data">ไปเตรียมข้อมูลการใช้ไฟ</a></CardContent>
+    </Card>
+  );
 
   return (
     <Card className="border-primary/40 bg-primary/5">
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-          <div>
-            <CardTitle className="flex items-center gap-2">
-              <ServerCog aria-hidden="true" className="h-5 w-5 text-primary" />
-              API analysis from uploaded interval data
-            </CardTitle>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              ใช้ profile `{snapshot.sourceName}` จำนวน {snapshot.rowCount.toLocaleString("th-TH")} intervals แล้วส่งเข้า /api/solar/analyze
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Badge>{snapshot.detectedIntervalMinutes ? `${snapshot.detectedIntervalMinutes} min` : "interval"}</Badge>
-            <Badge variant="outline">{formatNumber(snapshot.totalKwh)} kWh</Badge>
-            {payload ? <Badge variant="success">{payload.trace.authority}</Badge> : null}
-          </div>
+          <div><CardTitle className="flex items-center gap-2"><ServerCog className="h-5 w-5 text-primary" />ผลวิเคราะห์จาก Load Profile ที่เลือก</CardTitle><p className="mt-2 text-sm leading-6 text-muted-foreground">ใช้ “{snapshot.sourceName}” จำนวน {snapshot.rowCount.toLocaleString("th-TH")} ช่วงข้อมูล · อัปเดต {formatDate(snapshot.updatedAt)}</p></div>
+          <div className="flex flex-wrap gap-2"><Badge>{snapshot.detectedIntervalMinutes ? `${snapshot.detectedIntervalMinutes} นาที` : "ข้อมูลช่วงเวลา"}</Badge><Badge variant="outline">{formatNumber(snapshot.totalKwh)} kWh</Badge><Badge variant="outline">{snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "ข้อมูลจำลอง" : "ค่าประมาณ"}</Badge>{payload ? <Badge variant="success">อัตรา {payload.trace.authority}</Badge> : null}</div>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
-        <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
-          ผลลัพธ์นี้เป็นการประเมินเบื้องต้นจากข้อมูลและสมมติฐานที่ผู้ใช้ระบุ ใช้เพื่อประกอบการตัดสินใจเท่านั้น ไม่ใช่ใบเสนอราคา และผลลัพธ์จริงอาจเปลี่ยนแปลงตามหน้างาน
-        </div>
-        {isLoading ? (
-          <div className="rounded-md border border-border bg-muted/40 p-3 text-sm leading-6 text-muted-foreground">
-            กำลังรัน Solar API จาก load profile ที่อัปโหลดไว้ ถ้าใช้เวลานานเกินไป ระบบจะหยุดและแสดง fallback แทน
-          </div>
-        ) : null}
+        <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">ผลลัพธ์เป็นค่าประมาณจากข้อมูลการใช้ไฟที่เลือกและสมมติฐานหลังคา/ต้นทุนที่ระบุ ใช้ประกอบการตัดสินใจเบื้องต้น ต้องตรวจหน้างานและรับใบเสนอราคาก่อนลงทุน</div>
+        {isLoading ? <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">กำลังคำนวณจาก Load Profile ที่เลือก…</div> : null}
         {error ? <div className="rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
-        {payload ? <RuntimeMetrics analysis={payload.analysis} trace={payload.trace} /> : null}
-        {payload?.warnings.length ? (
-          <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
-            {payload.warnings.map((warning) => (
-              <p key={warning}>{warning}</p>
-            ))}
-          </div>
-        ) : null}
-        <div className="flex flex-wrap gap-2">
-          <Button disabled={isLoading} onClick={() => void runAnalysis(snapshot)} type="button" variant="outline">
-            <RefreshCw aria-hidden="true" className="mr-2 h-4 w-4" />
-            {isLoading ? "Running..." : "Run API analysis again"}
-          </Button>
-          <a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted" href="/analysis/load-data/import">
-            Replace load profile
-          </a>
-        </div>
+        {payload ? <RuntimeMetrics analysis={payload.analysis} trace={payload.trace} snapshot={snapshot} hasBills={readSavedBills().length > 0} /> : null}
+        {payload?.warnings.length ? <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">{payload.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div> : null}
+        <div className="flex flex-wrap gap-2"><Button disabled={isLoading} onClick={() => void runAnalysis(snapshot)} variant="outline"><RefreshCw className="h-4 w-4" />{isLoading ? "กำลังคำนวณ..." : "คำนวณอีกครั้ง"}</Button><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted" href="/analysis/load-data">แก้ไข Load Profile</a><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted" href="/analysis/solar/config">แก้ไขสมมติฐาน Solar</a></div>
       </CardContent>
     </Card>
   );
 }
 
-function getRuntimeErrorMessage(caught: unknown) {
-  if (caught instanceof DOMException && caught.name === "AbortError") {
-    return "Solar API ใช้เวลานานเกินไป ระบบหยุดการคำนวณรอบนี้แล้ว และยังคงแสดงผลข้อมูลสำหรับประเมินเบื้องต้นด้านล่างให้ใช้งานต่อได้";
-  }
-  return caught instanceof Error ? caught.message : "Solar analysis failed.";
+function RuntimeMetrics({ analysis, trace, snapshot, hasBills }: { analysis: SolarAnalysisResult; trace: Extract<SolarAnalyzeResponse, { ok: true }>['trace']; snapshot: LocalLoadProfileSnapshot; hasBills: boolean }) {
+  const comparison = analysis.billComparison;
+  const suggestedBatteryKwh = getIndicativeBatteryKwh(analysis);
+  return <><div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+    <Metric label="ใช้ไฟโดยประมาณ" value={`${formatNumber(comparison.bestWithoutSolar.monthlyEnergyKwh)} kWh/เดือน`} />
+    <Metric label="ค่าไฟหลัง Solar" value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`} />
+    <Metric label="Solar ที่แนะนำ" value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`} />
+    <Metric label="ประหยัดโดยประมาณ" value={`${formatNumber(comparison.netAnnualBenefit / 12)} บาท/เดือน`} />
+    <Metric label="ลดไฟจากโครงข่าย" value={`${formatNumber(analysis.selfConsumption.selfSufficiencyRatio * 100)}%`} />
+    <Metric label="Battery เบื้องต้น" value={suggestedBatteryKwh ? `${formatNumber(suggestedBatteryKwh)} kWh*` : "ยังไม่เหมาะจาก Solar surplus"} />
+    <Metric label="เงินลงทุนโดยประมาณ" value={`${formatNumber(analysis.financial.initialInvestmentThb)} บาท`} />
+    <Metric label="คืนทุนอย่างง่าย" value={analysis.financial.simplePaybackYears ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี` : "คำนวณไม่ได้"} />
+    <Metric label="ใช้ Solar เอง" value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`} />
+    <Metric label="ช่วงข้อมูลที่ใช้" value={`${trace.inputIntervalCount.toLocaleString("th-TH")} ช่วง`} />
+  </div><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3><div className="mt-3 grid gap-3 md:grid-cols-3"><Info label="ค่าไฟก่อนติดตั้ง" value={`${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ค่าไฟหลังติดตั้ง" value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ประหยัดรายปี" value={`${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`} /></div></section><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3><div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Info label="ข้อมูลการใช้ไฟ" value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`} /><Info label="ข้อมูลจากบิล" value={hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"} /><Info label="อัตราค่าไฟ" value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`} /><Info label="ข้อมูลแสงอาทิตย์" value={`${analysis.solarProfile.source.authority} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`} /><Info label="Battery เบื้องต้น" value={suggestedBatteryKwh ? `* ประมาณจาก Solar ส่วนเกินเฉลี่ยรายวัน; ต้องวิเคราะห์ Battery แยกก่อนลงทุน` : "ไม่มี Solar ส่วนเกินเพียงพอสำหรับเสนอ Battery ในรอบนี้"} /></div></section></>;
 }
 
-function RuntimeMetrics({
-  analysis,
-  trace
-}: {
-  analysis: SolarAnalysisResult;
-  trace: Extract<SolarAnalyzeResponse, { ok: true }>["trace"];
-}) {
-  return (
-    <div className="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-5">
-      <Metric label="System size" value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`} />
-      <Metric label="Annual gen." value={`${formatNumber(analysis.solarProfile.annualGenerationKwh)} kWh`} />
-      <Metric label="Best after solar" value={analysis.billComparison.bestWithSolar.label} />
-      <Metric label="Annual benefit" value={`${formatNumber(analysis.billComparison.netAnnualBenefit)} ฿`} />
-      <Metric label="CAPEX" value={`${formatNumber(analysis.financial.initialInvestmentThb)} ฿`} />
-      <Metric label="Annual O&M" value={`${formatNumber(analysis.financial.assumptionsSnapshot.oAndMCostPerYear)} ฿`} />
-      <Metric label="Payback" value={analysis.financial.simplePaybackYears ? `${formatNumber(analysis.financial.simplePaybackYears)} yrs` : "-"} />
-      <Metric label="NPV" value={`${formatNumber(analysis.financial.npvThb)} ฿`} />
-      <Metric label="IRR" value={analysis.financial.irrPercent !== null ? `${formatNumber(analysis.financial.irrPercent)}%` : "N/A"} />
-      <Metric label="Self-use" value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`} />
-      <Metric label="API intervals" value={trace.inputIntervalCount.toLocaleString("th-TH")} />
-    </div>
-  );
+function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-md border border-border bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 text-sm font-semibold">{value}</p></div>; }
+function Info({ label, value }: { label: string; value: string }) { return <div><p className="text-xs text-muted-foreground">{label}</p><p className="mt-1 font-medium">{value}</p></div>; }
+function formatNumber(value: number) { return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value); }
+function formatDate(value: string) { const date = new Date(value); return Number.isNaN(date.getTime()) ? "ไม่ทราบ" : date.toLocaleString("th-TH-u-ca-gregory", { dateStyle: "medium", timeStyle: "short" }); }
+function readSavedBills() {
+  try {
+    const raw = window.localStorage.getItem(billWorkspaceStorageKey);
+    const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
+    return (workspace?.rows ?? []).map((row) => ({ month: row.month, billThb: Number(row.totalCostThb) })).filter((row): row is { month: string; billThb: number } => /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) && Number.isFinite(row.billThb) && row.billThb > 0).slice(0, 12);
+  } catch { return []; }
 }
-
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border bg-card p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+function sourceStatus(status: "demo" | "draft" | "verified" | "published") { return status === "published" || status === "verified" ? "ข้อมูลอ้างอิง" : status === "draft" ? "ข้อมูลรอตรวจสอบ" : "ค่ามาตรฐานสำหรับประมาณการ"; }
+function getIndicativeBatteryKwh(analysis: SolarAnalysisResult) {
+  const dailySolarSurplus = analysis.selfConsumption.gridExportKwh / 365;
+  if (!Number.isFinite(dailySolarSurplus) || dailySolarSurplus < 1) return null;
+  return Math.min(15, Math.max(2, Math.round(dailySolarSurplus * 1.25 * 2) / 2));
 }

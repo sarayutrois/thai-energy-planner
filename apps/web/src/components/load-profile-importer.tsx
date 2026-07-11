@@ -220,7 +220,7 @@ export function LoadProfileImporter() {
             ดาวน์โหลด CSV ตัวอย่าง
           </a>
           <Button onClick={() => void loadInlineDemo()}>
-            ใช้ข้อมูลตัวอย่าง
+            โหลดชุดข้อมูลสำหรับทดสอบ (ไม่ใช่ข้อมูลจริง)
           </Button>
           <Button onClick={() => void loadTestCsv()} variant="outline">
             ใช้ test CSV

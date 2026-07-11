@@ -86,7 +86,7 @@ export function LocalBatteryStart() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            เพิ่มบิลหรือใช้ข้อมูลตัวอย่างก่อน แล้วหน้านี้จะแนะนำขนาด Battery เริ่มต้นจากค่าใช้ไฟเฉลี่ยให้
+            กรุณาเพิ่มบิลหรือสร้าง Load Profile ก่อน ระบบจึงจะแนะนำขนาด Battery จากข้อมูลการใช้ไฟของคุณได้
           </p>
           <Link
             className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"

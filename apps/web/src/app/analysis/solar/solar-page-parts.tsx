@@ -16,12 +16,12 @@ type SavedBillContext = {
 };
 
 const tabs = [
-  { key: "overview", href: "/analysis/solar", label: "Overview" },
-  { key: "config", href: "/analysis/solar/config", label: "Assumptions" },
-  { key: "results", href: "/analysis/solar/results", label: "Results" },
-  { key: "sizing", href: "/analysis/solar/sizing", label: "Sizing" },
-  { key: "finance", href: "/analysis/solar/finance", label: "Finance" },
-  { key: "sensitivity", href: "/analysis/solar/sensitivity", label: "Sensitivity" }
+  { key: "overview", href: "/analysis/solar", label: "ภาพรวม" },
+  { key: "config", href: "/analysis/solar/config", label: "สมมติฐาน" },
+  { key: "results", href: "/analysis/solar/results", label: "ผลลัพธ์" },
+  { key: "sizing", href: "/analysis/solar/sizing", label: "ขนาดระบบ" },
+  { key: "finance", href: "/analysis/solar/finance", label: "การเงิน" },
+  { key: "sensitivity", href: "/analysis/solar/sensitivity", label: "ความไวของผลลัพธ์" }
 ];
 
 export function SolarPageShell({ active, queryString, children }: { active: string; queryString: string; children: ReactNode }) {
@@ -211,7 +211,7 @@ export function SolarControls({
           </Field>
           <div className="flex items-end">
             <Button type="submit" className="w-full">
-              Run simulation
+              คำนวณผลใหม่
             </Button>
           </div>
           <div className="flex items-end">

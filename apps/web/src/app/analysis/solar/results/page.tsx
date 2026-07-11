@@ -1,4 +1,3 @@
-import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 import { formatApproximateMoneyRange, solarReadinessCopy } from "@/lib/solar-readiness-copy";
@@ -19,6 +18,7 @@ export default async function SolarResultsPage({ searchParams }: { searchParams?
   const params = (await searchParams) ?? {};
   const { analysis, settings, queryString, savedBillContext } = getSolarDemo(params);
   const reportDraft = buildSolarReportDraft(analysis, settings);
+  void reportDraft;
 
   return (
     <SolarPageShell active="results" queryString={queryString}>
@@ -28,14 +28,19 @@ export default async function SolarResultsPage({ searchParams }: { searchParams?
         <ExportReportButton targetId="solar-report" filename="solar-analysis-report.pdf" />
       </div>
       <div id="solar-report" className="space-y-6 pt-4">
-        <LocalBillResultContext enabled={getSingleParam(params.source) === "bills"} moduleName="Solar" reportDraft={reportDraft} />
       <SolarApiRuntimePanel settings={settings} />
-      <SolarSummary analysis={analysis} />
+      <details className="rounded-xl border border-border bg-card p-4">
+        <summary className="cursor-pointer font-semibold">ดูรายละเอียดการคำนวณตามค่ามาตรฐานของระบบ</summary>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">ส่วนนี้เป็นผลจากรูปแบบการใช้ไฟมาตรฐาน ใช้เปรียบเทียบสมมติฐานเท่านั้น ไม่ใช่ผลหลักจาก Load Profile ที่เลือกด้านบน</p>
+        <div className="mt-4 grid gap-6">
+          <SolarSummary analysis={analysis} />
+          <ModelQualityPanel analysis={analysis} />
+          <BillComparisonTable analysis={analysis} />
+          <SolarChartsSection analysis={analysis} />
+          <RecommendationCards analysis={analysis} />
+        </div>
+      </details>
       <AiExecutiveSummary analysis={analysis} />
-      <ModelQualityPanel analysis={analysis} />
-      <BillComparisonTable analysis={analysis} />
-      <SolarChartsSection analysis={analysis} />
-      <RecommendationCards analysis={analysis} />
       </div>
     </SolarPageShell>
   );
@@ -185,10 +190,6 @@ function buildSolarReportDraft(
       }))
     ]
   };
-}
-
-function getSingleParam(value: string | string[] | undefined) {
-  return Array.isArray(value) ? value[0] : value;
 }
 
 function formatNumber(value: number) {

@@ -63,7 +63,7 @@ export function LocalScenarioStart() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            เพิ่มบิลหรือใช้ข้อมูลตัวอย่างก่อน แล้วหน้านี้จะแนะนำ profile และช่วงเวลาย้ายโหลดให้ใกล้กับข้อมูลของคุณมากขึ้น
+            กรุณาเพิ่มบิลหรือสร้าง Load Profile ก่อน ระบบจึงจะเปรียบเทียบช่วงเวลาย้ายโหลดจากข้อมูลของคุณได้
           </p>
           <Link
             className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"

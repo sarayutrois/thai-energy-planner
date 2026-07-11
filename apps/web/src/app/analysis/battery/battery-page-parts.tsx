@@ -41,7 +41,7 @@ export function BatteryPageShell({
         <div className="flex flex-wrap gap-2">
           <Badge>Phase 6</Badge>
           <Badge variant="outline">Battery Engine</Badge>
-          <Badge variant="warning">ข้อมูลตัวอย่างอุปกรณ์ (ประเมินเบื้องต้น)</Badge>
+          <Badge variant="warning">ค่ามาตรฐานของระบบ (ต้องยืนยันก่อนตัดสินใจ)</Badge>
         </div>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -259,7 +259,7 @@ export function BatterySourcePanel({ analysis }: { analysis: BatteryAnalysisResu
       <InfoCard title="Tariff version" icon={<Database aria-hidden="true" className="h-5 w-5 text-primary" />}>
         <InfoRow label="Version" value={analysis.billAfterBattery.tariffVersionLabel} />
         <InfoRow label="Status" value={analysis.billAfterBattery.tariffStatus} />
-        <InfoRow label="Source" value={analysis.billAfterBattery.sourceUrl ?? "ค่าจากข้อมูลตัวอย่าง"} />
+        <InfoRow label="แหล่งข้อมูล" value={analysis.billAfterBattery.sourceUrl ?? "ค่ามาตรฐานของระบบ"} />
       </InfoCard>
       <InfoCard title="Dispatch totals" icon={<BatteryCharging aria-hidden="true" className="h-5 w-5 text-primary" />}>
         <InfoRow label="Charged from solar" value={`${formatNumber(analysis.dispatch.chargedFromSolarKwh)} kWh`} />

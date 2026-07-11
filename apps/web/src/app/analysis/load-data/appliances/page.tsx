@@ -1,53 +1,23 @@
-import { AnalysisStartContextCard } from "@/components/analysis-start-context-card";
 import { ApplianceLoadBuilder } from "@/components/appliance-load-builder";
 import { MainNav } from "@/components/main-nav";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  getAnalysisStartContext,
-  type AnalysisStartSearchParams,
-} from "@/lib/analysis-start";
 
-export default async function AppliancesPage({
-  searchParams,
-}: {
-  searchParams?: Promise<AnalysisStartSearchParams>;
-}) {
-  const startContext = getAnalysisStartContext(
-    (await searchParams) ?? {},
-    "appliances",
-  );
-
+export default function AppliancesPage() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-muted/20">
       <MainNav />
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
-        <div className="mb-5 flex flex-wrap gap-2">
-          <Badge>สร้าง Load Profile</Badge>
-          <Badge variant="outline">แก้ไขและคำนวณทันที</Badge>
+      <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:py-9">
+        <div className="flex flex-wrap gap-2">
+          <Badge>Load Profile</Badge>
+          <Badge variant="outline">ค่าประมาณจากข้อมูลที่ผู้ใช้ระบุ</Badge>
         </div>
-        <h1 className="text-3xl font-semibold tracking-normal">
-          สร้างโหลดจากเครื่องใช้ไฟฟ้า
-        </h1>
+        <h1 className="mt-4 text-3xl font-semibold tracking-tight">สร้างรูปแบบการใช้ไฟรายวัน</h1>
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-          ระบุจำนวนเครื่อง กำลังไฟ และช่วงเวลาใช้งาน ระบบจะคำนวณโหลด kWh และ
-          Peak จากรายการที่กำลังแก้ไข ไม่ใช่ข้อมูลตัวอย่าง
+          ระบุเครื่องใช้ไฟฟ้า กำลังไฟ และช่วงเวลาใช้งาน ระบบจะแสดงโหลด 24 ชั่วโมงและช่วยตรวจสอบกับหน่วยไฟในบิลก่อนนำไปวิเคราะห์ Solar หรือ Battery
         </p>
-
-        <AnalysisStartContextCard {...startContext} />
-
-        <Card className="mt-5">
-          <CardHeader>
-            <CardTitle>รายการเครื่องใช้ไฟฟ้าและโหลดที่คำนวณได้</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ApplianceLoadBuilder
-              startDate="2026-01-05"
-              endDate="2026-01-05"
-              initialAppliances={[]}
-            />
-          </CardContent>
-        </Card>
+        <div className="mt-6">
+          <ApplianceLoadBuilder initialAppliances={[]} startDate="2026-07-01" endDate="2026-07-07" />
+        </div>
       </section>
     </main>
   );

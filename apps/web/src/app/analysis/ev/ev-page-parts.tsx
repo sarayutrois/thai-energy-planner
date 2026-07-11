@@ -36,7 +36,7 @@ export function EvPageShell({
         <div className="flex flex-wrap gap-2">
           <Badge>Phase 6</Badge>
           <Badge variant="outline">EV Module</Badge>
-          <Badge variant="warning">ข้อมูลตัวอย่างอุปกรณ์ (ประเมินเบื้องต้น)</Badge>
+          <Badge variant="warning">ค่ามาตรฐานของระบบ (ต้องยืนยันก่อนตัดสินใจ)</Badge>
         </div>
         <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
@@ -249,7 +249,7 @@ export function EvSourcePanel({ demo, selectedScenario }: { demo: Phase6DemoInpu
       <InfoCard title="Tariff version" icon={<Database aria-hidden="true" className="h-5 w-5 text-primary" />}>
         <InfoRow label="Version" value={selectedScenario.billAfterEv.tariffVersionLabel} />
         <InfoRow label="Status" value={selectedScenario.billAfterEv.tariffStatus} />
-        <InfoRow label="Source" value={selectedScenario.billAfterEv.sourceUrl ?? "ค่าจากข้อมูลตัวอย่าง"} />
+        <InfoRow label="แหล่งข้อมูล" value={selectedScenario.billAfterEv.sourceUrl ?? "ค่ามาตรฐานของระบบ"} />
       </InfoCard>
       <InfoCard title="EV config" icon={<CarFront aria-hidden="true" className="h-5 w-5 text-primary" />}>
         <InfoRow label="Vehicle" value={demo.evConfig.vehicleName} />

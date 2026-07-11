@@ -74,7 +74,7 @@ const dataOptions: Array<{
       "เริ่มง่ายที่สุด กรอกบิลย้อนหลังเพื่อดูค่าไฟเฉลี่ยและแนวโน้มเบื้องต้น",
     href: "/analysis/load-data/bills",
     icon: ReceiptText,
-    badge: "แนะนำ",
+    badge: "ข้อมูลจากบิล",
   },
   {
     value: "interval",
@@ -92,8 +92,14 @@ const dataOptions: Array<{
       "กรอกจำนวนเครื่อง กำลังไฟ และเวลาเปิดใช้งาน เพื่อให้ระบบคำนวณโหลดก่อนวิเคราะห์",
     href: "/analysis/load-data/appliances",
     icon: PlugZap,
-    badge: "สร้างเอง",
+    badge: "แนะนำ",
   },
+];
+
+const orderedDataOptions = [
+  ...dataOptions.filter((item) => item.value === "appliances"),
+  ...dataOptions.filter((item) => item.value === "bills"),
+  ...dataOptions.filter((item) => item.value === "interval"),
 ];
 
 const nextJourneys: Array<{
@@ -134,7 +140,11 @@ export function StartAnalysisWizard() {
   const [audience, setAudience] = useState<AnalysisAudience>("home");
   const primaryHref = useMemo(
     () =>
-      buildAnalysisStartHref("/analysis/load-data/bills", audience, "bills"),
+      buildAnalysisStartHref(
+        "/analysis/load-data/appliances",
+        audience,
+        "appliances",
+      ),
     [audience],
   );
   const importHref = useMemo(
@@ -195,7 +205,7 @@ export function StartAnalysisWizard() {
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-base font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
                 href={primaryHref}
               >
-                เริ่มจากบิลค่าไฟ
+                สร้าง Load Profile
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </a>
               <a
@@ -217,7 +227,7 @@ export function StartAnalysisWizard() {
                 onClick={startDemoWorkspace}
                 type="button"
               >
-                ลองด้วยข้อมูลตัวอย่าง
+                ใช้ค่าประมาณเริ่มต้น
                 <PlayCircle aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>
@@ -302,7 +312,7 @@ export function StartAnalysisWizard() {
             </h2>
           </div>
           <div className="grid gap-4 md:grid-cols-3">
-            {dataOptions.map((item) => (
+            {orderedDataOptions.map((item) => (
               <a
                 key={item.value}
                 href={buildAnalysisStartHref(item.href, audience, item.value)}
@@ -315,7 +325,7 @@ export function StartAnalysisWizard() {
                         <item.icon aria-hidden="true" className="h-5 w-5" />
                       </div>
                       <Badge
-                        variant={item.badge === "แนะนำ" ? "success" : "outline"}
+                        variant={item.value === "appliances" ? "success" : "outline"}
                       >
                         {item.badge}
                       </Badge>

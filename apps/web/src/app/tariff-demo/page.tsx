@@ -20,12 +20,12 @@ export default async function TariffDemoPage({
       <section className="border-b border-border bg-white/78">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 md:px-6 lg:py-10">
           <div className="flex flex-wrap gap-2">
-            <Badge>Phase 2</Badge>
-            <Badge variant="outline">Official Tariff Config</Badge>
+            <Badge>อัตราค่าไฟ</Badge>
+            <Badge variant="outline">ข้อมูลอัตราที่ใช้คำนวณ</Badge>
             <Badge variant="success">{normalResult.tariffStatus}</Badge>
           </div>
           <div className="max-w-3xl space-y-3">
-            <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">ทดสอบ Tariff Engine</h1>
+            <h1 className="text-3xl font-semibold tracking-normal md:text-4xl">ตรวจสอบอัตราค่าไฟที่ใช้คำนวณ</h1>
             <p className="leading-7 text-muted-foreground">
               หน้านี้ใช้ tariff configuration ที่แยกจาก UI และมี version, effective date, Ft, VAT และ source snapshot
               เพื่อให้ตรวจสอบ calculation breakdown ได้อย่างโปร่งใส
@@ -39,7 +39,7 @@ export default async function TariffDemoPage({
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Calculator aria-hidden="true" className="h-5 w-5 text-primary" />
-              Normal tariff input
+              ข้อมูลสำหรับคำนวณค่าไฟ
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -102,14 +102,14 @@ export default async function TariffDemoPage({
         </Card>
 
         <div className="grid gap-5">
-          <ResultPanel icon={ReceiptText} result={normalResult} title="Normal tariff breakdown" />
-          <ResultPanel icon={Clock3} result={touResult} title="TOU representative intervals breakdown" />
+          <ResultPanel icon={ReceiptText} result={normalResult} title="รายละเอียดค่าไฟอัตราปกติ" />
+          <ResultPanel icon={Clock3} result={touResult} title="รายละเอียดค่าไฟตามช่วงเวลา (TOU)" />
 
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <Database aria-hidden="true" className="h-5 w-5 text-primary" />
-                TOU interval trace
+                รายละเอียดช่วงเวลา TOU
               </CardTitle>
             </CardHeader>
             <CardContent>

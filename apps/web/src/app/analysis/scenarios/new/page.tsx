@@ -12,7 +12,7 @@ export default function NewScenarioPage() {
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
           <Badge>Scenario Setup</Badge>
-          <Badge variant="outline">Sample Load Profile</Badge>
+          <Badge variant="outline">Load Profile มาตรฐานของระบบ</Badge>
         </div>
         <h1 className="mt-4 text-3xl font-semibold tracking-normal">สร้าง Scenario เปรียบเทียบ</h1>
 
