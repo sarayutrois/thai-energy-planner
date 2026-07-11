@@ -11,9 +11,13 @@ import {
 import { authenticatedFetch } from "./auth-fetch";
 
 export const localLoadProfileStorageKey = "thai-energy-planner.load-profile.v1";
+export const localLoadProfilesStorageKey =
+  "thai-energy-planner.load-profiles.v1";
+export const activeLocalLoadProfileIdStorageKey =
+  "thai-energy-planner.active-load-profile.v1";
 
 export type LocalLoadProfileSnapshot = {
-  id: "local-load-profile";
+  id: string;
   createdAt: string;
   updatedAt: string;
   sourceName: string;
@@ -43,7 +47,7 @@ export function saveLocalLoadProfileSnapshot(input: {
   const existing = readLocalLoadProfileSnapshot();
   const now = new Date().toISOString();
   const snapshot: LocalLoadProfileSnapshot = {
-    id: "local-load-profile",
+    id: crypto.randomUUID(),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     sourceName: input.sourceName,
@@ -67,6 +71,14 @@ export function saveLocalLoadProfileSnapshot(input: {
     localLoadProfileStorageKey,
     JSON.stringify(snapshot),
   );
+  const profiles = listLocalLoadProfileSnapshots().filter(
+    (profile) => profile.id !== snapshot.id,
+  );
+  window.localStorage.setItem(
+    localLoadProfilesStorageKey,
+    JSON.stringify([snapshot, ...profiles].slice(0, 20)),
+  );
+  window.localStorage.setItem(activeLocalLoadProfileIdStorageKey, snapshot.id);
   if (input.persist !== false) void persistLocalLoadProfile(snapshot);
   return snapshot;
 }
@@ -92,17 +104,12 @@ export async function persistLocalLoadProfile(
   if (!payload.loadProfileId) {
     return { status: "local_only", reason: "network_or_server" };
   }
-  const raw = window.localStorage.getItem(localLoadProfileStorageKey);
-  if (!raw) return { status: "saved", loadProfileId: payload.loadProfileId };
-  const current = JSON.parse(raw) as LocalLoadProfileSnapshot;
-  if (current.updatedAt === snapshot.updatedAt) {
-    window.localStorage.setItem(
-      localLoadProfileStorageKey,
-      JSON.stringify({
-        ...current,
-        serverLoadProfileId: payload.loadProfileId,
-      }),
-    );
+  const current = readLocalLoadProfileSnapshot();
+  if (current?.id === snapshot.id && current.updatedAt === snapshot.updatedAt) {
+    replaceLocalSnapshot({
+      ...current,
+      serverLoadProfileId: payload.loadProfileId,
+    });
   }
   return { status: "saved", loadProfileId: payload.loadProfileId };
 }
@@ -149,6 +156,14 @@ function isSupportedIntervalMinutes(
 export function readLocalLoadProfileSnapshot(): LocalLoadProfileSnapshot | null {
   if (typeof window === "undefined") return null;
 
+  const activeId = window.localStorage.getItem(
+    activeLocalLoadProfileIdStorageKey,
+  );
+  const active = listLocalLoadProfileSnapshots().find(
+    (profile) => profile.id === activeId,
+  );
+  if (active) return active;
+
   const raw = window.localStorage.getItem(localLoadProfileStorageKey);
   if (!raw) return null;
 
@@ -161,7 +176,65 @@ export function readLocalLoadProfileSnapshot(): LocalLoadProfileSnapshot | null 
 }
 
 export function deleteLocalLoadProfileSnapshot() {
+  const current = readLocalLoadProfileSnapshot();
+  if (!current) return;
+  const profiles = listLocalLoadProfileSnapshots().filter(
+    (profile) => profile.id !== current.id,
+  );
+  window.localStorage.setItem(
+    localLoadProfilesStorageKey,
+    JSON.stringify(profiles),
+  );
+  window.localStorage.setItem(
+    activeLocalLoadProfileIdStorageKey,
+    profiles[0]?.id ?? "",
+  );
   window.localStorage.removeItem(localLoadProfileStorageKey);
+}
+
+export function listLocalLoadProfileSnapshots(): LocalLoadProfileSnapshot[] {
+  if (typeof window === "undefined") return [];
+  try {
+    const raw = window.localStorage.getItem(localLoadProfilesStorageKey);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+    return Array.isArray(parsed)
+      ? parsed.filter(isLocalLoadProfileSnapshot)
+      : [];
+  } catch {
+    return [];
+  }
+}
+
+export function selectLocalLoadProfileSnapshot(id: string) {
+  const profile = listLocalLoadProfileSnapshots().find(
+    (item) => item.id === id,
+  );
+  if (!profile) return null;
+  window.localStorage.setItem(activeLocalLoadProfileIdStorageKey, id);
+  window.localStorage.setItem(
+    localLoadProfileStorageKey,
+    JSON.stringify(profile),
+  );
+  return profile;
+}
+
+function replaceLocalSnapshot(snapshot: LocalLoadProfileSnapshot) {
+  const profiles = listLocalLoadProfileSnapshots().map((profile) =>
+    profile.id === snapshot.id ? snapshot : profile,
+  );
+  window.localStorage.setItem(
+    localLoadProfilesStorageKey,
+    JSON.stringify(profiles),
+  );
+  if (
+    window.localStorage.getItem(activeLocalLoadProfileIdStorageKey) ===
+    snapshot.id
+  ) {
+    window.localStorage.setItem(
+      localLoadProfileStorageKey,
+      JSON.stringify(snapshot),
+    );
+  }
 }
 
 function isLocalLoadProfileSnapshot(
@@ -170,7 +243,7 @@ function isLocalLoadProfileSnapshot(
   if (!value || typeof value !== "object") return false;
   const candidate = value as Partial<LocalLoadProfileSnapshot>;
   return (
-    candidate.id === "local-load-profile" &&
+    typeof candidate.id === "string" &&
     typeof candidate.updatedAt === "string" &&
     typeof candidate.sourceName === "string" &&
     typeof candidate.rowCount === "number" &&
