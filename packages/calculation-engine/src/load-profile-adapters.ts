@@ -50,15 +50,44 @@ export function createCanonicalLoadProfileFromLoadIntervals(
     throw new Error("At least one load interval is required");
   }
 
+  const sortedIntervals = [...intervals].sort((a, b) =>
+    a.timestamp.localeCompare(b.timestamp),
+  );
   const intervalDurationMs = options.intervalMinutes * 60 * 1000;
-  const firstTimestamp = new Date(intervals[0]!.timestamp);
-  const lastTimestamp = new Date(intervals[intervals.length - 1]!.timestamp);
+  const timestamps = new Set<string>();
+  let duplicateIntervalCount = 0;
+  for (const interval of sortedIntervals) {
+    if (timestamps.has(interval.timestamp)) duplicateIntervalCount += 1;
+    timestamps.add(interval.timestamp);
+  }
+  if (duplicateIntervalCount > 0) {
+    throw new Error(
+      `Load profile contains ${duplicateIntervalCount} duplicate timestamp(s).`,
+    );
+  }
+
+  const firstTimestamp = new Date(sortedIntervals[0]!.timestamp);
+  const lastTimestamp = new Date(
+    sortedIntervals[sortedIntervals.length - 1]!.timestamp,
+  );
+  const expectedIntervalCount =
+    Math.round(
+      (lastTimestamp.getTime() - firstTimestamp.getTime()) / intervalDurationMs,
+    ) + 1;
+  const missingIntervalCount = Math.max(
+    0,
+    expectedIntervalCount - sortedIntervals.length,
+  );
+  const completeness = sortedIntervals.length / expectedIntervalCount;
   const defaultQuality = {
     level: qualityLevelForSource(options.sourceKind),
-    completeness: 1,
-    missingIntervalCount: 0,
-    duplicateIntervalCount: 0,
-    warnings: [],
+    completeness,
+    missingIntervalCount,
+    duplicateIntervalCount,
+    warnings:
+      missingIntervalCount > 0
+        ? [`${missingIntervalCount} interval(s) are missing in the time range.`]
+        : [],
   };
 
   return CanonicalLoadProfileSchema.parse({
@@ -78,7 +107,7 @@ export function createCanonicalLoadProfileFromLoadIntervals(
         lastTimestamp.getTime() + intervalDurationMs,
       ).toISOString(),
     },
-    intervals: intervals.map((interval) => ({
+    intervals: sortedIntervals.map((interval) => ({
       timestamp: interval.timestamp,
       energyKwh: interval.energyKwh,
       averagePowerKw:
@@ -87,7 +116,14 @@ export function createCanonicalLoadProfileFromLoadIntervals(
       measuredDemandKw: interval.powerKw,
       qualityFlags: [],
     })),
-    quality: { ...defaultQuality, ...options.quality },
+    quality: {
+      ...defaultQuality,
+      level: options.quality?.level ?? defaultQuality.level,
+      warnings: [
+        ...defaultQuality.warnings,
+        ...(options.quality?.warnings ?? []),
+      ],
+    },
     assumptions: options.assumptions ?? {},
     calculationVersion: options.calculationVersion,
   });

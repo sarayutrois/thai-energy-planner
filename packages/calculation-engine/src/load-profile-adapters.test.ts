@@ -43,4 +43,23 @@ describe("load profile adapters", () => {
       { timestamp: "2026-07-01T00:00:00.000Z", energyKwh: 1, powerKw: 4 },
     ]);
   });
+
+  it("calculates completeness from missing intervals", () => {
+    const profile = createCanonicalLoadProfileFromLoadIntervals(
+      [
+        { timestamp: "2026-07-01T00:00:00.000Z", energyKwh: 1 },
+        { timestamp: "2026-07-01T02:00:00.000Z", energyKwh: 1 },
+      ],
+      {
+        id: "profile_missing",
+        name: "Missing interval",
+        sourceKind: "csv",
+        intervalMinutes: 60,
+        calculationVersion: "0.1.0",
+      },
+    );
+
+    expect(profile.quality.completeness).toBeCloseTo(2 / 3);
+    expect(profile.quality.missingIntervalCount).toBe(1);
+  });
 });
