@@ -48,6 +48,8 @@ export const config = {
     "/analysis/solar/sizing/:path*",
     "/analysis/solar/finance/:path*",
     "/analysis/solar/sensitivity/:path*",
+    "/analysis/scenarios/new/:path*",
+    "/analysis/scenarios/compare/:path*",
   ],
 };
 
@@ -56,5 +58,7 @@ function experimentalModuleForPath(pathname: string) {
   if (pathname.startsWith("/analysis/ev")) return "ev";
   if (pathname.startsWith("/analysis/ecosystem")) return "ecosystem";
   if (pathname.startsWith("/analysis/solar/")) return "solar_detail";
+  if (pathname.startsWith("/analysis/scenarios/new")) return "scenario_detail";
+  if (pathname.startsWith("/analysis/scenarios/compare")) return "scenario_detail";
   return null;
 }

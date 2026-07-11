@@ -6,6 +6,7 @@ const labels = {
   ecosystem: "Ecosystem",
   ev: "EV",
   solar_detail: "Solar detailed simulation",
+  scenario_detail: "Scenario sample workflow",
 } as const;
 
 export default async function ModuleUnavailablePage({
