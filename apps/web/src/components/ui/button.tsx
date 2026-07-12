@@ -2,8 +2,8 @@ import type { ButtonHTMLAttributes } from "react";
 import { cn } from "@/lib/utils";
 
 const variants = {
-  default: "bg-primary text-primary-foreground hover:bg-primary/92",
-  outline: "border border-border bg-card text-foreground hover:bg-muted",
+  default: "bg-gradient-to-r from-cyan-300 via-cyan-400 to-sky-400 text-primary-foreground shadow-[0_0_22px_rgba(34,211,238,0.28)] hover:brightness-110",
+  outline: "border border-primary/30 bg-card/80 text-foreground hover:border-primary/70 hover:bg-primary/10",
   ghost: "text-foreground hover:bg-muted"
 };
 

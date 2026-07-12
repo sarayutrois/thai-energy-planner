@@ -1,4 +1,6 @@
 /** @type {import('next').NextConfig} */
+const isDevelopment = process.env.NODE_ENV === "development";
+
 const nextConfig = {
   transpilePackages: [
     "@thai-energy-planner/shared-types",
@@ -26,7 +28,7 @@ const nextConfig = {
               "img-src 'self' data: blob:",
               "font-src 'self' data: https://fonts.gstatic.com",
               "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-              "script-src 'self' 'unsafe-inline'",
+              `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
               "connect-src 'self' https://*.supabase.co wss://*.supabase.co",
             ].join("; "),
           },

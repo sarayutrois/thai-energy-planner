@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
   ArrowLeft,
@@ -179,16 +179,19 @@ export function ApplianceLoadBuilder({
   const [hydrated, setHydrated] = useState(false);
   const [autoSaveLabel, setAutoSaveLabel] = useState("กำลังเตรียมพื้นที่ทำงาน...");
   const [saveStatus, setSaveStatus] = useState<"idle" | "saving" | "saved" | "local_only">("idle");
+  const hasUserEditedBeforeHydration = useRef(false);
 
   useEffect(() => {
     try {
       const rawDraft = window.localStorage.getItem(draftStorageKey);
       if (rawDraft) {
         const draft = JSON.parse(rawDraft) as Partial<Draft>;
-        if (Array.isArray(draft.appliances)) setAppliances(draft.appliances);
-        if ([15, 30, 60].includes(draft.intervalMinutes ?? 0)) setIntervalMinutes(draft.intervalMinutes!);
-        if (draft.startDate) setStartDate(draft.startDate);
-        if (draft.endDate) setEndDate(draft.endDate);
+        if (!hasUserEditedBeforeHydration.current) {
+          if (Array.isArray(draft.appliances)) setAppliances(draft.appliances);
+          if ([15, 30, 60].includes(draft.intervalMinutes ?? 0)) setIntervalMinutes(draft.intervalMinutes!);
+          if (draft.startDate) setStartDate(draft.startDate);
+          if (draft.endDate) setEndDate(draft.endDate);
+        }
       }
     } catch {
       setAutoSaveLabel("ไม่สามารถเรียกข้อมูลที่บันทึกไว้ได้");
@@ -288,17 +291,20 @@ export function ApplianceLoadBuilder({
   function addPreset(presetName: string) {
     const preset = allPresets.find((item) => item.name === presetName);
     if (!preset) return;
+    hasUserEditedBeforeHydration.current = true;
     setAppliances((current) => [...current, applianceFromSeed(preset)]);
   }
 
   function addHomeStarterSet(id: "compact_home" | "family_home") {
     const starterSet = homeStarterSets.find((item) => item.id === id);
     if (!starterSet) return;
+    hasUserEditedBeforeHydration.current = true;
     setAppliances((current) => [...current, ...starterSet.items.map(applianceFromSeed)]);
     setSaveStatus("idle");
   }
 
   function addCustom() {
+    hasUserEditedBeforeHydration.current = true;
     setAppliances((current) => [...current, {
       name: "เครื่องใช้ไฟฟ้า",
       category: "กำหนดเอง",
@@ -366,12 +372,12 @@ export function ApplianceLoadBuilder({
           <div className="flex flex-col gap-2 sm:flex-row">
             <label className="grid gap-1 text-xs font-medium">
               รายการสำเร็จรูป
-              <select className="h-10 min-w-64 rounded-md border border-input bg-background px-3 text-sm" defaultValue="" onChange={(event) => { addPreset(event.target.value); event.currentTarget.value = ""; }}>
+              <select className="h-10 min-w-64 rounded-md border border-input bg-background px-3 text-sm" defaultValue="" disabled={!hydrated} onChange={(event) => { addPreset(event.target.value); event.currentTarget.value = ""; }}>
                 <option value="">เลือกเครื่องใช้ไฟฟ้า</option>
                 {allPresets.map((preset) => <option key={preset.name} value={preset.name}>{preset.name} · {preset.powerW.toLocaleString("th-TH")} W</option>)}
               </select>
             </label>
-            <Button className="self-end" variant="outline" onClick={addCustom}><Plus className="h-4 w-4" />เพิ่มเอง</Button>
+            <Button className="self-end" variant="outline" disabled={!hydrated} onClick={addCustom}><Plus className="h-4 w-4" />เพิ่มเอง</Button>
           </div>
         </div>
         <div className="mt-4 rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
@@ -379,7 +385,7 @@ export function ApplianceLoadBuilder({
           <p className="mt-1 text-xs text-muted-foreground">เพิ่มรายการพื้นฐานให้ครบก่อน แล้วแก้จำนวน กำลังไฟ และเวลาให้ตรงบ้านจริง</p>
           <div className="mt-3 flex flex-wrap gap-2">
             {homeStarterSets.map((starterSet) => (
-              <Button key={starterSet.id} variant="outline" className="h-auto min-h-10 flex-col items-start px-3 py-2 text-left" onClick={() => addHomeStarterSet(starterSet.id)}>
+              <Button key={starterSet.id} variant="outline" disabled={!hydrated} className="h-auto min-h-10 flex-col items-start px-3 py-2 text-left" onClick={() => addHomeStarterSet(starterSet.id)}>
                 <span>{starterSet.label}</span><span className="text-xs font-normal text-muted-foreground">{starterSet.description}</span>
               </Button>
             ))}

@@ -5,41 +5,39 @@
 @layer base {
   :root {
     --font-sans: var(--font-inter), var(--font-prompt), Arial, sans-serif;
-    /* Light Mode Defaults */
-    --background: 0 0% 100%;
-    --foreground: 240 10% 3.9%;
+    --background: 222 47% 7%;
+    --foreground: 210 40% 96%;
     
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 3.9%;
+    --card: 220 39% 10%;
+    --card-foreground: 210 40% 96%;
     
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 3.9%;
+    --popover: 220 39% 10%;
+    --popover-foreground: 210 40% 96%;
     
-    /* Vibrant Orange for primary actions */
-    --primary: 32 98% 53%;
-    --primary-foreground: 0 0% 98%;
+    --primary: 187 96% 48%;
+    --primary-foreground: 222 47% 7%;
     
-    --secondary: 240 4.8% 95.9%;
-    --secondary-foreground: 240 5.9% 10%;
+    --secondary: 218 32% 16%;
+    --secondary-foreground: 210 40% 96%;
     
-    --muted: 240 4.8% 95.9%;
-    --muted-foreground: 240 3.8% 46.1%;
+    --muted: 218 32% 14%;
+    --muted-foreground: 215 20% 65%;
     
-    --accent: 240 4.8% 95.9%;
-    --accent-foreground: 240 5.9% 10%;
+    --accent: 188 75% 13%;
+    --accent-foreground: 180 100% 93%;
     
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
+    --destructive: 0 77% 58%;
+    --destructive-foreground: 0 0% 100%;
     
-    --success: 151 62% 45%;
-    --success-foreground: 0 0% 98%;
+    --success: 158 83% 45%;
+    --success-foreground: 222 47% 7%;
     
-    --warning: 41 96% 55%;
-    --warning-foreground: 0 0% 98%;
+    --warning: 34 100% 58%;
+    --warning-foreground: 222 47% 7%;
     
-    --border: 240 5.9% 90%;
-    --input: 240 5.9% 90%;
-    --ring: 32 98% 53%;
+    --border: 205 44% 25%;
+    --input: 218 31% 21%;
+    --ring: 187 96% 48%;
     
     --radius: 0.75rem;
   }
@@ -55,8 +53,12 @@
     @apply bg-background text-foreground font-sans;
     min-height: 100vh;
     margin: 0;
-    /* Clean white background */
-    background: hsl(var(--background));
+    background:
+      radial-gradient(circle at 78% -10%, hsl(187 96% 48% / 0.16), transparent 30rem),
+      radial-gradient(circle at 4% 35%, hsl(271 91% 65% / 0.12), transparent 28rem),
+      linear-gradient(hsl(222 47% 7% / 0.95), hsl(222 47% 7% / 0.98)),
+      hsl(var(--background));
+    background-attachment: fixed;
     /* Smooth scrolling */
     scroll-behavior: smooth;
   }
@@ -77,15 +79,25 @@
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
   }
+
+  input, select, textarea {
+    background-color: hsl(220 39% 9%);
+    color: hsl(var(--foreground));
+  }
 }
 
 /* Custom Utilities for Premium Look */
 @layer utilities {
   .glass-panel {
-    @apply bg-white/60 backdrop-blur-xl border border-black/5 shadow-xl;
+    @apply bg-card/80 backdrop-blur-xl border border-primary/20 shadow-xl;
   }
   
   .text-gradient {
-    @apply bg-clip-text text-transparent bg-gradient-to-r from-orange-500 to-amber-400;
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-cyan-300 via-sky-300 to-orange-300;
+  }
+
+  .sci-fi-grid {
+    background-image: linear-gradient(hsl(187 96% 48% / 0.045) 1px, transparent 1px), linear-gradient(90deg, hsl(187 96% 48% / 0.045) 1px, transparent 1px);
+    background-size: 28px 28px;
   }
 }
