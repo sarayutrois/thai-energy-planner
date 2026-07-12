@@ -17,7 +17,7 @@ export default function LoadDataPage() {
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2"><Badge>ขั้นตอนที่ 1 จาก 4</Badge><Badge variant="outline">เตรียมข้อมูลการใช้ไฟ</Badge></div>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">เริ่มจากข้อมูลการใช้ไฟที่คุณมี</h1>
-        <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">Load Profile เป็นฐานของการคำนวณ Solar, Battery และค่าไฟ เลือกวิธีที่ตรงกับข้อมูลของคุณมากที่สุด แล้วระบบจะแจ้งระดับความน่าเชื่อถือของผล</p>
+        <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">Load Profile เป็นฐานของการคำนวณ Solar และค่าไฟ เลือกวิธีที่ตรงกับข้อมูลของคุณมากที่สุด แล้วระบบจะแจ้งระดับความน่าเชื่อถือของผล</p>
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {methods.map((method) => (
             <a key={method.href} href={method.href} className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring">

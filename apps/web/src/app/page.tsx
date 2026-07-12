@@ -13,7 +13,7 @@ export default function Home() {
   return <main className="min-h-screen bg-background"><MainNav />
     <section className="mx-auto w-full max-w-6xl px-4 py-16 text-center md:px-6 lg:py-24">
       <div className="flex justify-center gap-2"><Badge>Thai Energy Planner</Badge><Badge variant="outline">วางแผนจากข้อมูลที่ตรวจสอบได้</Badge></div>
-      <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">วางแผนค่าไฟ Solar และ Battery<br className="hidden md:block" />จากข้อมูลการใช้ไฟของคุณ</h1>
+      <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-6xl">วิเคราะห์ค่าไฟ เปรียบเทียบ Normal/TOU<br className="hidden md:block" />และประเมิน Solar</h1>
       <p className="mx-auto mt-5 max-w-3xl text-base leading-7 text-muted-foreground md:text-lg">เริ่มจากบิล มิเตอร์ หรือเครื่องใช้ไฟฟ้า ระบบจะแสดงที่มาของตัวเลข ระดับความน่าเชื่อถือ และข้อจำกัดของผลประมาณการในทุกขั้นตอน</p>
       <div className="mx-auto mt-10 max-w-4xl overflow-hidden rounded-xl border border-border shadow-sm">
         <video src="/solarcell.mp4" autoPlay loop muted playsInline className="w-full aspect-video object-cover" />

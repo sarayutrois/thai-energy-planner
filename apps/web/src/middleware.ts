@@ -3,10 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
   const experimentalModule = experimentalModuleForPath(pathname);
-  if (
-    experimentalModule &&
-    process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES !== "true"
-  ) {
+  const alwaysUnavailable = experimentalModule === "battery" || experimentalModule === "ev" || experimentalModule === "ecosystem";
+  if (experimentalModule && (alwaysUnavailable || process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES !== "true")) {
     const unavailable = new URL("/analysis/unavailable", request.url);
     unavailable.searchParams.set("module", experimentalModule);
     return NextResponse.rewrite(unavailable);

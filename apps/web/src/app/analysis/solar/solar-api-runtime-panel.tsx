@@ -101,7 +101,6 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
 
 function RuntimeMetrics({ analysis, trace, snapshot, hasBills }: { analysis: SolarAnalysisResult; trace: Extract<SolarAnalyzeResponse, { ok: true }>['trace']; snapshot: LocalLoadProfileSnapshot; hasBills: boolean }) {
   const comparison = analysis.billComparison;
-  const batteryGuidance = getBatteryGuidance(analysis);
   const decision = getSolarDecision({ analysis, snapshot, hasBills });
   const recommendedSizing = analysis.sizing.recommended;
   return <><section className={`rounded-md border p-4 ${decision.tone}`}><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><p className="text-xs font-medium uppercase tracking-wide">ผลตัดสินใจ Solar</p><h3 className="mt-1 text-lg font-semibold">{decision.title}</h3><p className="mt-2 max-w-3xl text-sm leading-6">{decision.explanation}</p></div><Badge variant={decision.variant}>{decision.badge}</Badge></div><div className="mt-4 grid gap-3 sm:grid-cols-3"><Info label="ขนาดที่กำลังประเมิน" value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`} /><Info label="ขนาดที่ผ่านเกณฑ์ความคุ้มค่า" value={recommendedSizing ? `${formatNumber(recommendedSizing.systemSizeKwp)} kWp · คืนทุน ${formatNumber(recommendedSizing.simplePaybackYears ?? 0)} ปี` : "ไม่มีขนาดที่ผ่านเกณฑ์"} /><Info label="ข้อมูลที่ใช้ตัดสินใจ" value={snapshot.calibration ? "Load ที่ปรับเทียบกับบิลแล้ว" : hasBills ? "มีบิล แต่ยังไม่ยืนยันปรับเทียบ" : "Load Profile ยังไม่มีบิลยืนยัน"} /></div><p className="mt-3 text-xs leading-5 text-muted-foreground">{decision.nextAction}</p><ul className="mt-2 grid gap-1 text-xs leading-5 text-muted-foreground">{decision.actions.map((action) => <li key={action}>• {action}</li>)}</ul></section><div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
@@ -110,12 +109,11 @@ function RuntimeMetrics({ analysis, trace, snapshot, hasBills }: { analysis: Sol
     <Metric label="ขนาดที่กำลังประเมิน" value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`} />
     <Metric label="ประหยัดโดยประมาณ" value={`${formatNumber(comparison.netAnnualBenefit / 12)} บาท/เดือน`} />
     <Metric label="ลดไฟจากโครงข่าย" value={`${formatNumber(analysis.selfConsumption.selfSufficiencyRatio * 100)}%`} />
-    <Metric label={batteryGuidance.label} value={batteryGuidance.value} />
     <Metric label="เงินลงทุนโดยประมาณ" value={`${formatNumber(analysis.financial.initialInvestmentThb)} บาท`} />
     <Metric label="ระยะคืนทุน" value={analysis.financial.simplePaybackYears ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี` : "ไม่สามารถคืนทุนจากสมมติฐานนี้"} />
     <Metric label="สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่" value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`} />
     <Metric label="ช่วงข้อมูลที่ใช้" value={`${trace.inputIntervalCount.toLocaleString("th-TH")} ช่วง`} />
-  </div><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3><div className="mt-3 grid gap-3 md:grid-cols-3"><Info label="ค่าไฟก่อนติดตั้ง" value={`${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ค่าไฟหลังติดตั้ง" value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ประหยัดรายปี" value={`${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`} /></div></section><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3><div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Info label="ข้อมูลการใช้ไฟ" value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`} /><Info label="ข้อมูลจากบิล" value={hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"} /><Info label="อัตราค่าไฟ" value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`} /><Info label="ข้อมูลแสงอาทิตย์" value={`${analysis.solarProfile.source.authority} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`} /><Info label="Battery" value={batteryGuidance.detail} /></div></section></>;
+  </div><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3><div className="mt-3 grid gap-3 md:grid-cols-3"><Info label="ค่าไฟก่อนติดตั้ง" value={`${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ค่าไฟหลังติดตั้ง" value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ประหยัดรายปี" value={`${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`} /></div></section><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3><div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Info label="ข้อมูลการใช้ไฟ" value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`} /><Info label="ข้อมูลจากบิล" value={hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"} /><Info label="อัตราค่าไฟ" value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`} /><Info label="ข้อมูลแสงอาทิตย์" value={`${analysis.solarProfile.source.authority} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`} /></div></section></>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-md border border-border bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 text-sm font-semibold">{value}</p></div>; }
@@ -148,15 +146,6 @@ function readSavedBillAuthority(): "PEA" | "MEA" | undefined {
   } catch { return undefined; }
 }
 function sourceStatus(status: "demo" | "draft" | "verified" | "published") { return status === "published" || status === "verified" ? "ข้อมูลอ้างอิง" : status === "draft" ? "ข้อมูลรอตรวจสอบ" : "ค่ามาตรฐานสำหรับประมาณการ"; }
-function getBatteryGuidance(analysis: SolarAnalysisResult) {
-  if (!analysis.sizing.recommended) {
-    return { label: "Battery", value: "ยังไม่เสนอ", detail: "ยังไม่มีขนาด Solar ที่ผ่านเกณฑ์ความคุ้มค่า จึงไม่ควรเพิ่ม Battery เพื่อหวังผลตอบแทนทางการเงิน" };
-  }
-  const dailySolarSurplus = analysis.selfConsumption.gridExportKwh / 365;
-  if (!Number.isFinite(dailySolarSurplus) || dailySolarSurplus < 1) return { label: "Battery", value: "ยังไม่จำเป็น", detail: "Solar ส่วนเกินยังน้อย จึงยังไม่มีเหตุผลด้านพลังงานเพียงพอสำหรับเสนอ Battery" };
-  const capacityKwh = Math.min(15, Math.max(2, Math.round(dailySolarSurplus * 1.25 * 2) / 2));
-  return { label: "Battery สำหรับไฟสำรอง", value: `${formatNumber(capacityKwh)} kWh*`, detail: "* เป็นขนาดเบื้องต้นเพื่อไฟสำรองจาก Solar ส่วนเกิน ไม่ใช่คำแนะนำว่าคุ้มค่าเชิงการเงิน; ต้องประเมิน Battery แยกก่อนลงทุน" };
-}
 
 function getSolarDecision({ analysis, snapshot, hasBills }: { analysis: SolarAnalysisResult; snapshot: LocalLoadProfileSnapshot; hasBills: boolean }) {
   const recommended = analysis.sizing.recommended;
@@ -169,7 +158,7 @@ function getSolarDecision({ analysis, snapshot, hasBills }: { analysis: SolarAna
       tone: "border-warning bg-warning/10 text-warning-foreground",
       explanation: `ระบบลองขนาด 0.5–${formatNumber(analysis.sizing.constraints.appliedMaxKwp)} kWp แล้ว แต่ยังไม่มีขนาดที่ทั้ง NPV เป็นบวกและคืนทุนภายในอายุโครงการ โดยใช้ Solar เองเพียง ${formatNumber(selfUsePercent)}%.`,
       nextAction: "ลองลดขนาดระบบ เพิ่มการใช้ไฟช่วงกลางวัน หรือเติมข้อมูลเครื่องใช้และบิลเพื่อให้การประเมินแม่นขึ้นก่อนตัดสินใจลงทุน.",
-      actions: ["ย้ายงานที่เลื่อนได้ เช่น ซักผ้า ปั๊มน้ำ หรือชาร์จ EV มาช่วงกลางวัน", "ตรวจรายการเครื่องใช้และเวลาการใช้งานที่ยังไม่ได้เพิ่ม", "อย่าเพิ่ม Battery เพื่อหวังผลตอบแทนทางการเงินในสถานะนี้"],
+      actions: ["ย้ายงานที่เลื่อนได้ เช่น ซักผ้า หรือปั๊มน้ำ มาช่วงกลางวัน", "ตรวจรายการเครื่องใช้และเวลาการใช้งานที่ยังไม่ได้เพิ่ม"],
     };
   }
   if (!snapshot.calibration || !hasBills || analysis.modelQuality.score < 60) {
@@ -190,6 +179,6 @@ function getSolarDecision({ analysis, snapshot, hasBills }: { analysis: SolarAna
     tone: "border-success bg-success/10",
     explanation: `ขนาด ${formatNumber(recommended.systemSizeKwp)} kWp ให้ NPV สูงสุดในกลุ่มที่คืนทุนภายในอายุโครงการ และใช้ข้อมูล Load Profile ที่ปรับเทียบกับบิลแล้ว โดยใช้ Solar เองประมาณ ${formatNumber(selfUsePercent)}%.`,
     nextAction: "ตรวจพื้นที่หลังคา เงาบัง และใบเสนอราคาจริงก่อนตัดสินใจติดตั้ง.",
-    actions: ["ใช้ขนาดที่ผ่านเกณฑ์เป็นจุดเริ่มต้นขอใบเสนอราคา", "ยืนยันพื้นที่หลังคาและเงาบังหน้างาน", "ประเมิน Battery แยก หากเป้าหมายคือไฟสำรอง"],
+    actions: ["ใช้ขนาดที่ผ่านเกณฑ์เป็นจุดเริ่มต้นขอใบเสนอราคา", "ยืนยันพื้นที่หลังคาและเงาบังหน้างาน"],
   };
 }

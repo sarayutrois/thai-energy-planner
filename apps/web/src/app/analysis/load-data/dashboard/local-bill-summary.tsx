@@ -6,9 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
-  BatteryCharging,
   CalendarDays,
-  CarFront,
   Database,
   ReceiptText,
   SunMedium,
@@ -432,18 +430,6 @@ export function LocalBillSummary() {
               href={`/analysis/solar${savedBillQuery}`}
               icon={SunMedium}
               label="ลอง Solar"
-            />
-            <NextStepLink
-              description="ประเมินขนาด Battery, กำลังจ่ายไฟ และ CAPEX เบื้องต้น"
-              href={`/analysis/battery${savedBillQuery}`}
-              icon={BatteryCharging}
-              label="ลอง Battery"
-            />
-            <NextStepLink
-              description="ตั้งค่าการชาร์จ EV จากรูปแบบค่าไฟและช่วงเวลาการใช้งาน"
-              href={`/analysis/ev${savedBillQuery}`}
-              icon={CarFront}
-              label="ลอง EV"
             />
           </div>
         </section>

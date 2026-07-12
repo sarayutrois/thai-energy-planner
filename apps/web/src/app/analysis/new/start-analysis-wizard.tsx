@@ -2,7 +2,6 @@
 
 import {
   ArrowRight,
-  BatteryCharging,
   Building2,
   FileSpreadsheet,
   FileUp,
@@ -40,7 +39,7 @@ const userTypes: Array<{
     value: "home",
     title: "บ้านพักอาศัย",
     description:
-      "เหมาะกับเจ้าของบ้านที่อยากรู้ว่าค่าไฟสูงเพราะอะไร และ Solar/EV คุ้มไหม",
+      "เหมาะกับเจ้าของบ้านที่อยากรู้ว่าค่าไฟสูงเพราะอะไร และ Solar คุ้มไหม",
     icon: Home,
   },
   {
@@ -80,7 +79,7 @@ const dataOptions: Array<{
     value: "interval",
     title: "มีไฟล์โหลด CSV/XLSX",
     description:
-      "ใช้ข้อมูลละเอียดระดับเวลา เพื่อเทียบ TOU, Solar, Battery และ EV ได้แม่นขึ้น",
+      "ใช้ข้อมูลละเอียดระดับเวลา เพื่อเทียบ TOU และ Solar ได้แม่นขึ้น",
     href: "/analysis/load-data/import",
     icon: FileUp,
     badge: "ละเอียด",
@@ -126,13 +125,6 @@ const nextJourneys: Array<{
     description: "ประเมินขนาดระบบ เงินลงทุน คืนทุน และผลประหยัดต่อปี",
     href: "/analysis/solar",
     icon: SunMedium,
-  },
-  {
-    title: "ลอง Battery / EV",
-    description: "ดูผลของแบตเตอรี่และการชาร์จรถไฟฟ้าต่อค่าไฟ",
-    href: "/analysis/battery",
-    icon: BatteryCharging,
-    experimental: true,
   },
 ];
 
@@ -197,8 +189,7 @@ export function StartAnalysisWizard() {
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
                 เลือกว่าคุณเป็นผู้ใช้แบบไหน มีข้อมูลอะไรอยู่
                 แล้วระบบจะพาไปหน้าที่เหมาะที่สุด
-                เพื่อเริ่มจากค่าไฟปัจจุบันก่อนต่อยอดไป Normal/TOU, Solar,
-                Battery และ EV
+                เพื่อเริ่มจากค่าไฟปัจจุบันก่อนต่อยอดไป Normal/TOU และ Solar
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
