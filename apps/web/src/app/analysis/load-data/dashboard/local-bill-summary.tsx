@@ -133,6 +133,18 @@ export function LocalBillSummary() {
     ? averageBillMonthlyKwh / estimatedProfileMonthlyKwh
     : null;
   const isCalibrated = snapshot?.calibration !== undefined;
+  const profileMonthlyKwhBeforeCalibration = snapshot?.calibration?.profileMonthlyKwhBefore ?? estimatedProfileMonthlyKwh;
+  const unexplainedKwh = profileMonthlyKwhBeforeCalibration && averageBillMonthlyKwh
+    ? averageBillMonthlyKwh - profileMonthlyKwhBeforeCalibration
+    : null;
+  const unexplainedPercent = unexplainedKwh !== null && averageBillMonthlyKwh
+    ? Math.abs(unexplainedKwh / averageBillMonthlyKwh) * 100
+    : null;
+  const calibrationReliability = getCalibrationReliability({
+    billMonthCount: validation.bills.length,
+    unexplainedPercent,
+    isCalibrated,
+  });
   const billHref = `/analysis/load-data/bills${workspace ? `?audience=${workspace.audience}&source=bills` : ""}`;
   const savedBillQuery = workspace
     ? `?audience=${workspace.audience}&source=bills`
@@ -278,34 +290,33 @@ export function LocalBillSummary() {
               <h2 className="text-sm font-semibold">
                 Load Profile เทียบบิลจริง
               </h2>
-              <Badge
-                variant={
-                  calibration.comparedMonths.length > 0 ? "success" : "outline"
-                }
-              >
-                {calibration.comparedMonths.length} เดือนที่เทียบได้
-              </Badge>
+              <div className="flex flex-wrap gap-2">
+                <Badge variant={calibration.comparedMonths.length > 0 ? "success" : "outline"}>
+                  {calibration.comparedMonths.length} เดือนที่เทียบได้
+                </Badge>
+                <Badge variant={calibrationReliability.variant}>{calibrationReliability.label}</Badge>
+              </div>
             </div>
             {calibration.comparedMonths.length > 0 ? (
-              <div className="mt-3 grid gap-3 md:grid-cols-3">
+              <div className="mt-3 grid gap-3 md:grid-cols-4">
                 <Metric
                   icon={Zap}
-                  label="Profile"
+                  label="Load จากรายการเครื่องใช้"
                   value={`${formatNumber(calibration.profileKwh)} kWh`}
                 />
                 <Metric
                   icon={ReceiptText}
-                  label="Bill"
+                  label="ข้อมูลจากบิล"
                   value={`${formatNumber(calibration.billKwh)} kWh`}
                 />
                 <Metric
                   icon={BarChart3}
-                  label="Difference"
+                  label="ส่วนต่างที่ตรวจพบ"
                   value={`${formatNumber(calibration.varianceKwh)} kWh`}
                 />
                 <Metric
                   icon={Database}
-                  label="Lowest coverage"
+                  label="ความครอบคลุมต่ำสุด"
                   value={`${formatNumber((lowestCalibrationCoverage ?? 0) * 100)}%`}
                 />
               </div>
@@ -319,8 +330,8 @@ export function LocalBillSummary() {
               <div className="mt-4 rounded-md border border-primary/30 bg-background p-4">
                 <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                   <div>
-                    <h3 className="text-sm font-semibold">ยืนยันใช้บิลปรับสเกล</h3>
-                    <p className="mt-1 text-sm leading-6 text-muted-foreground">ปรับปริมาณรวมให้ตรงกับค่าเฉลี่ยบิลต่อเดือน โดยคงช่วงเวลาการใช้ไฟจาก Load Profile เดิม</p>
+                    <h3 className="text-sm font-semibold">สรุปการเทียบกับบิล</h3>
+                    <p className="mt-1 text-sm leading-6 text-muted-foreground">ระบบจะปรับเฉพาะปริมาณไฟรวมให้ใกล้บิล โดยคงรูปแบบเวลาใช้งานจาก Load Profile เดิมไว้</p>
                   </div>
                   <button
                     className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
@@ -331,12 +342,15 @@ export function LocalBillSummary() {
                     {applyStatus === "saving" ? "กำลังบันทึก..." : isCalibrated ? "ปรับเทียบใหม่ตามบิลล่าสุด" : "ยืนยันใช้บิลปรับสเกล"}
                   </button>
                 </div>
-                <div className="mt-3 grid gap-3 sm:grid-cols-3">
-                  <Metric icon={Zap} label="Profile ก่อนปรับ" value={`${formatNumber(estimatedProfileMonthlyKwh)} kWh/เดือน`} />
+                <div className="mt-3 grid gap-3 sm:grid-cols-4">
+                  <Metric icon={Zap} label="Load ก่อนปรับ" value={`${formatNumber(profileMonthlyKwhBeforeCalibration ?? 0)} kWh/เดือน`} />
                   <Metric icon={ReceiptText} label="เฉลี่ยจากบิล" value={`${formatNumber(averageBillMonthlyKwh)} kWh/เดือน`} />
+                  <Metric icon={AlertTriangle} label="ส่วนต่างที่ยังอธิบายไม่ได้" value={unexplainedKwh === null ? "-" : `${formatNumber(Math.abs(unexplainedKwh))} kWh (${formatNumber(unexplainedPercent ?? 0)}%)`} />
+                  <Metric icon={Database} label="Load ที่ Solar จะใช้" value={`${formatNumber(isCalibrated ? estimatedProfileMonthlyKwh : averageBillMonthlyKwh)} kWh/เดือน`} />
                   <Metric icon={BarChart3} label="ตัวคูณที่ใช้" value={`${formatNumber(calibrationFactor)} เท่า`} />
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : isCalibrated ? `ปรับเทียบล่าสุด ${formatDateTime(snapshot?.calibration?.appliedAt ?? "")}; ปรับใหม่ได้เมื่อข้อมูลบิลเปลี่ยน` : "Solar และ Battery จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
+                <p className="mt-3 text-xs text-muted-foreground">{calibrationReliability.explanation}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : isCalibrated ? `ปรับเทียบล่าสุด ${formatDateTime(snapshot?.calibration?.appliedAt ?? "")}; ปรับใหม่ได้เมื่อข้อมูลบิลเปลี่ยน` : "Solar และ Battery จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
               </div>
             ) : null}
           </section>
@@ -450,6 +464,39 @@ export function LocalBillSummary() {
       </CardContent>
     </Card>
   );
+}
+
+function getCalibrationReliability(input: {
+  billMonthCount: number;
+  unexplainedPercent: number | null;
+  isCalibrated: boolean;
+}) {
+  if (!input.isCalibrated) {
+    return {
+      label: "รอยืนยันการปรับเทียบ",
+      variant: "outline" as const,
+      explanation: "ยังไม่ได้ยืนยันให้ใช้บิลปรับสเกล ผล Solar และ Battery ยังอ้างอิง Load Profile เดิม",
+    };
+  }
+  if (input.billMonthCount >= 3 && (input.unexplainedPercent ?? 100) <= 15) {
+    return {
+      label: "ความน่าเชื่อถือสูง",
+      variant: "success" as const,
+      explanation: "มีข้อมูลบิลอย่างน้อย 3 เดือนและ Load Profile ใกล้เคียงบิลมากพอสำหรับใช้เป็นข้อมูลตั้งต้น",
+    };
+  }
+  if (input.billMonthCount >= 1 && (input.unexplainedPercent ?? 100) <= 35) {
+    return {
+      label: "ความน่าเชื่อถือปานกลาง",
+      variant: "outline" as const,
+      explanation: "ใช้บิลปรับปริมาณรวมแล้ว แต่ควรเพิ่มเครื่องใช้หรือบิลอีกหลายเดือนเพื่อยืนยันรูปแบบการใช้ไฟ",
+    };
+  }
+  return {
+    label: "ความน่าเชื่อถือต่ำ",
+    variant: "warning" as const,
+    explanation: "ส่วนต่างจากบิลยังมากหรือข้อมูลบิลยังน้อย ควรเพิ่มเครื่องใช้ที่ตกหล่นและตรวจเวลาใช้งานก่อนตัดสินใจลงทุน",
+  };
 }
 
 function normalizeWorkspace(
