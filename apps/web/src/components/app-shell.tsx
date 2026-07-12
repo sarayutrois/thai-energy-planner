@@ -44,7 +44,6 @@ const breadcrumbLabels: Array<{ href: string; label: string }> = [
   { href: "/analysis/ev", label: "EV" },
   { href: "/analysis/reports", label: "รายงาน" },
   { href: "/analysis/new", label: "เริ่มวิเคราะห์" },
-  { href: "/analysis", label: "วิเคราะห์พลังงาน" },
   { href: "/tariff-demo", label: "ค่าไฟ" }
 ];
 

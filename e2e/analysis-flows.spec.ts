@@ -7,6 +7,12 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate((key) => window.localStorage.removeItem(key), billWorkspaceKey);
 });
 
+test("legacy analysis entry redirects to the start flow", async ({ page }) => {
+  await page.goto("/analysis");
+  await page.waitForURL("**/analysis/new");
+  await expect(page.getByRole("heading", { name: "เริ่มวิเคราะห์ค่าไฟแบบไม่ต้องรู้เทคนิคก่อน" })).toBeVisible();
+});
+
 test("Flow A: user without data sees no fabricated KPI or export", async ({ page }) => {
   await page.goto("/analysis/load-data/bills");
   await expect(page.getByRole("heading", { name: "ยังไม่มีข้อมูลค่าไฟ" })).toBeVisible();
