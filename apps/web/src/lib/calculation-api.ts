@@ -103,6 +103,7 @@ export type EstimateApiPayload = {
 export const solarAnalyzeRequestSchema = z
   .object({
     province: z.string().min(1).default("Bangkok"),
+    authority: z.enum(["PEA", "MEA"]).optional(),
     latitude: z.number().min(-90).max(90).optional(),
     longitude: z.number().min(-180).max(180).optional(),
     customerSegment: z.enum(["residential", "small_business"]).optional(),
@@ -296,7 +297,7 @@ export function runSolarAnalyzeApiCalculation(
   request: SolarAnalyzeApiRequest,
   solarResource?: SolarResourceOverride,
 ): SolarAnalyzeApiPayload {
-  const authority = inferThaiAuthorityFromProvince(request.province);
+  const authority = request.authority ?? inferThaiAuthorityFromProvince(request.province);
   const customerSegment = request.customerSegment ?? (request.profile === "daytime_shop" ? "small_business" : "residential");
   const demoInput = createDemoSolarInput(request.profile as DemoSolarProfileKey, buildSolarOverrides(request));
   const tariffs = getOfficialThaiTariffPair({

@@ -32,6 +32,7 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
     const timeoutId = window.setTimeout(() => controller.abort(), solarApiTimeoutMs);
     try {
       const monthlyBills = readSavedBills();
+      const billAuthority = readSavedBillAuthority();
       const response = await fetch("/api/solar/analyze", {
         method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -48,6 +49,7 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
           exportEnabled: settings.exportEnabled, exportRateThbPerKwh: settings.exportRateThbPerKwh, exportLimitKw: settings.exportLimitKw,
           loadIntervals: profileSnapshot.canonicalProfile ? canonicalLoadProfileToLoadIntervals(profileSnapshot.canonicalProfile) : profileSnapshot.rows,
           ...(monthlyBills.length ? { monthlyBills } : {}),
+          ...(billAuthority ? { authority: billAuthority } : {}),
         }),
       });
       const result = (await response.json()) as SolarAnalyzeResponse;
@@ -122,6 +124,16 @@ function readSavedBills() {
     const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
     return (workspace?.rows ?? []).map((row) => ({ month: row.month, billThb: Number(row.totalCostThb) })).filter((row): row is { month: string; billThb: number } => /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) && Number.isFinite(row.billThb) && row.billThb > 0).slice(0, 12);
   } catch { return []; }
+}
+function readSavedBillAuthority(): "PEA" | "MEA" | undefined {
+  try {
+    const raw = window.localStorage.getItem(billWorkspaceStorageKey);
+    const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
+    const authorities = (workspace?.rows ?? [])
+      .map((row) => row.authority)
+      .filter((authority): authority is "PEA" | "MEA" => authority === "PEA" || authority === "MEA");
+    return authorities.length > 0 && authorities.every((authority) => authority === authorities[0]) ? authorities[0] : undefined;
+  } catch { return undefined; }
 }
 function sourceStatus(status: "demo" | "draft" | "verified" | "published") { return status === "published" || status === "verified" ? "ข้อมูลอ้างอิง" : status === "draft" ? "ข้อมูลรอตรวจสอบ" : "ค่ามาตรฐานสำหรับประมาณการ"; }
 function getIndicativeBatteryKwh(analysis: SolarAnalysisResult) {
