@@ -11,7 +11,7 @@ import { readLocalLoadProfileSnapshot, type LocalLoadProfileSnapshot } from "@/l
 export function EnergyOverviewDashboard() {
   const [profile, setProfile] = useState<LocalLoadProfileSnapshot | null>(null);
   const [bills, setBills] = useState<StoredBillWorkspace | null>(null);
-  useEffect(() => { try { setProfile(readLocalLoadProfileSnapshot()); const raw = window.localStorage.getItem(billWorkspaceStorageKey); setBills(raw ? JSON.parse(raw) as StoredBillWorkspace : null); } catch { setProfile(null); setBills(null); } }, []);
+  useEffect(() => { try { setProfile(readLocalLoadProfileSnapshot()); const raw = window.localStorage.getItem(billWorkspaceStorageKey); const parsed = raw ? JSON.parse(raw) as StoredBillWorkspace : null; setBills(parsed?.mode === "user" ? parsed : null); } catch { setProfile(null); setBills(null); } }, []);
   const load = useMemo(() => profile?.canonicalProfile ? summarizeLoadProfile(profile.canonicalProfile.intervals.map((row) => ({ timestamp: row.timestamp, energyKwh: row.energyKwh, powerKw: row.averagePowerKw }))) : null, [profile]);
   const validBills = useMemo(() => (bills?.rows ?? []).map((row) => ({ kwh: Number(row.energyKwh), cost: Number(row.totalCostThb) })).filter((row) => Number.isFinite(row.kwh) && row.kwh > 0 && Number.isFinite(row.cost) && row.cost > 0), [bills]);
   const billMonthlyKwh = validBills.length ? validBills.reduce((sum, row) => sum + row.kwh, 0) / validBills.length : null;

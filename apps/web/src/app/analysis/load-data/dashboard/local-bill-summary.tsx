@@ -62,7 +62,7 @@ export function LocalBillSummary() {
         ? (JSON.parse(raw) as Partial<StoredBillWorkspace>)
         : null;
       setWorkspace(
-        parsed && Array.isArray(parsed.rows)
+        parsed?.mode === "user" && Array.isArray(parsed.rows)
           ? normalizeWorkspace(parsed)
           : null,
       );
@@ -515,6 +515,7 @@ function normalizeWorkspace(
       authority: row.authority === "MEA" ? "MEA" : "PEA",
       meterMode: row.meterMode === "tou" ? "tou" : "normal",
     })),
+    mode: "user",
     updatedAt: input.updatedAt ?? new Date().toISOString(),
   };
 }

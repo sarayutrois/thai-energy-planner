@@ -124,6 +124,7 @@ function readSavedBills() {
   try {
     const raw = window.localStorage.getItem(billWorkspaceStorageKey);
     const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
+    if (workspace?.mode !== "user") return [];
     return (workspace?.rows ?? []).map((row) => ({ month: row.month, billThb: Number(row.totalCostThb) })).filter((row): row is { month: string; billThb: number } => /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) && Number.isFinite(row.billThb) && row.billThb > 0).slice(0, 12);
   } catch { return []; }
 }
@@ -131,6 +132,7 @@ function readSavedBillAuthority(): "PEA" | "MEA" | undefined {
   try {
     const raw = window.localStorage.getItem(billWorkspaceStorageKey);
     const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
+    if (workspace?.mode !== "user") return undefined;
     const authorities = (workspace?.rows ?? [])
       .map((row) => row.authority)
       .filter((authority): authority is "PEA" | "MEA" => authority === "PEA" || authority === "MEA");

@@ -169,6 +169,7 @@ export function StartAnalysisWizard() {
   function startDemoWorkspace() {
     const payload: StoredBillWorkspace = {
       audience,
+      mode: "sample",
       rows: buildDemoBillRows(audience),
       updatedAt: new Date().toISOString(),
     };

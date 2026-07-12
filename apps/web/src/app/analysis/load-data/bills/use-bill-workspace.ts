@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { type AnalysisAudience } from "@/lib/analysis-start";
-import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
+import { billWorkspaceStorageKey, type BillWorkspaceMode, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import { parseBillCsv } from "@/lib/csv-parser";
 import { exportToCsv } from "@thai-energy-planner/report-engine";
 import { downloadJsonFile, downloadTextFile } from "@/lib/file-download";
+import { getStoredWorkspaceMode, sampleHomeBills } from "./bill-workspace-state";
 
 function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: number) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -38,21 +39,33 @@ export type EditableBillRow = {
 };
 
 export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: AnalysisAudience) {
-  const [rows, setRows] = useState<EditableBillRow[]>(() => loadStoredRows(initialBills, audience));
+  const [workspace, setWorkspace] = useState(() => loadStoredWorkspace(initialBills, audience));
+  const { mode, rows } = workspace;
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
 
   useDebouncedEffect(() => {
+    if (mode === "empty") {
+      window.localStorage.removeItem(billWorkspaceStorageKey);
+      setSaveStatus("ยังไม่มีข้อมูลที่บันทึกไว้");
+      return;
+    }
     const payload: StoredBillWorkspace = {
       audience,
+      mode,
       rows,
       updatedAt: new Date().toISOString()
     };
     window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
     setSaveStatus(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
-  }, [audience, rows], 500);
+  }, [audience, mode, rows], 500);
 
   function updateRow(id: string, patch: Partial<EditableBillRow>) {
-    setRows((current) => current.map((row) => (row.id === id ? { ...row, ...patch } : row)));
+    setWorkspace((current) => {
+      if (current.mode === "sample") {
+        return { mode: "user", rows: [{ ...emptyRow(), id, ...patch }] };
+      }
+      return { mode: "user", rows: current.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)) };
+    });
   }
 
   function addRow() {
@@ -61,65 +74,59 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
       .filter(Boolean)
       .sort()
       .at(-1);
-    setRows((current) => [
-      ...current,
-      {
-        id: crypto.randomUUID(),
-        month: nextMonth(latest),
-        energyKwh: "",
-        totalCostThb: "",
-        authority: current.at(-1)?.authority ?? "PEA",
-        meterMode: current.at(-1)?.meterMode ?? "normal"
-      }
-    ]);
+    setWorkspace((current) => ({
+      mode: "user",
+      rows: current.mode === "sample" ? [{ ...emptyRow(), month: nextMonth(undefined) }] : [...current.rows, { ...emptyRow(), month: nextMonth(latest), authority: current.rows.at(-1)?.authority ?? "PEA", meterMode: current.rows.at(-1)?.meterMode ?? "normal" }]
+    }));
   }
 
   function removeRow(id: string) {
-    setRows((current) => (current.length <= 1 ? current : current.filter((row) => row.id !== id)));
+    setWorkspace((current) => {
+      const rows = current.rows.filter((row) => row.id !== id);
+      return { mode: rows.length === 0 ? "empty" : current.mode, rows };
+    });
   }
 
   function upsertRow(patch: Partial<EditableBillRow> & { month: string }) {
-    setRows((current) => {
-      const existingIdx = current.findIndex(r => r.month === patch.month);
-      if (existingIdx !== -1) {
-        const next = [...current];
-        next[existingIdx] = { ...next[existingIdx], ...patch } as EditableBillRow;
-        return next;
+    setWorkspace((current) => {
+      if (current.mode === "sample") {
+        return { mode: "user", rows: [{ ...emptyRow(), ...patch, id: crypto.randomUUID() }] };
       }
-      return [...current, {
+      const rows = current.rows;
+      const existingIdx = rows.findIndex(r => r.month === patch.month);
+      if (existingIdx !== -1) {
+        const next = [...rows];
+        next[existingIdx] = { ...next[existingIdx], ...patch } as EditableBillRow;
+        return { mode: "user", rows: next };
+      }
+      return { mode: "user", rows: [...rows, {
         id: crypto.randomUUID(),
         month: patch.month,
         energyKwh: patch.energyKwh || "",
         totalCostThb: patch.totalCostThb || "",
-        authority: (patch.authority as "PEA" | "MEA") || current.at(-1)?.authority || "PEA",
-        meterMode: current.at(-1)?.meterMode ?? "normal"
-      }].sort((a, b) => a.month.localeCompare(b.month));
+        authority: (patch.authority as "PEA" | "MEA") || rows.at(-1)?.authority || "PEA",
+        meterMode: rows.at(-1)?.meterMode ?? "normal"
+      }].sort((a, b) => a.month.localeCompare(b.month)) };
     });
   }
 
-  function loadExample(kind: "home" | "shop") {
-    const multiplier = kind === "shop" ? 2.4 : 1;
-    setRows(
-      initialBills.map((bill, index) => ({
-        ...toEditableRow({
-          ...bill,
-          customerSegment: kind === "shop" ? "small_business" : "residential",
-          energyKwh: Math.round(bill.energyKwh * multiplier + index * 18),
-          totalCostThb: Math.round(bill.totalCostThb * multiplier + index * 95)
-        }),
-        authority: "PEA"
-      }))
-    );
+  function loadExample() {
+    setWorkspace({ mode: "sample", rows: sampleHomeBills.map(toEditableRow) });
   }
 
   function resetWorkspace() {
     window.localStorage.removeItem(billWorkspaceStorageKey);
-    setRows(initialBills.map(toEditableRow));
+    setWorkspace({ mode: "empty", rows: [] });
+  }
+
+  function startUserEntry() {
+    setWorkspace({ mode: "user", rows: [] });
   }
 
   function exportWorkspace() {
     const payload: StoredBillWorkspace = {
       audience,
+      mode,
       rows,
       updatedAt: new Date().toISOString()
     };
@@ -159,7 +166,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
           setSaveStatus("ไฟล์ CSV ไม่มีข้อมูลบิลที่นำเข้าได้");
           return;
         }
-        setRows(importedRows);
+        setWorkspace({ mode: "user", rows: importedRows });
         setSaveStatus("นำเข้า CSV แล้ว");
         return;
       }
@@ -180,7 +187,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
         return;
       }
 
-      setRows(rawRows.map(sanitizeRow));
+      setWorkspace({ mode: "user", rows: rawRows.map(sanitizeRow) });
       setSaveStatus("นำเข้าข้อมูลบิลแล้ว");
     } catch {
       setSaveStatus("นำเข้าไฟล์ไม่สำเร็จ");
@@ -191,12 +198,14 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
 
   return {
     rows,
+    mode,
     saveStatus,
     updateRow,
     addRow,
     removeRow,
     loadExample,
     resetWorkspace,
+    startUserEntry,
     exportWorkspace,
     exportWorkspaceCsv,
     importWorkspace,
@@ -228,21 +237,22 @@ export function toBillInput(row: EditableBillRow): MonthlyBillInput {
   };
 }
 
-function loadStoredRows(initialBills: MonthlyBillInput[], audience: AnalysisAudience): EditableBillRow[] {
-  if (typeof window === "undefined") return initialBills.map(toEditableRow);
+function loadStoredWorkspace(initialBills: MonthlyBillInput[], audience: AnalysisAudience): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
+  if (typeof window === "undefined") return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
 
   try {
     const raw = window.localStorage.getItem(billWorkspaceStorageKey);
-    if (!raw) return initialBills.map(toEditableRow);
+    if (!raw) return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
     const parsed = JSON.parse(raw) as Partial<StoredBillWorkspace>;
-    if (parsed.audience !== audience || !Array.isArray(parsed.rows) || parsed.rows.length === 0) {
-      return initialBills.map(toEditableRow);
-    }
-
-    return parsed.rows.map(sanitizeRow);
+    const mode = getStoredWorkspaceMode(parsed, audience);
+    return { mode, rows: mode === "empty" ? [] : parsed.rows!.map(sanitizeRow) };
   } catch {
-    return initialBills.map(toEditableRow);
+    return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
   }
+}
+
+function emptyRow(): EditableBillRow {
+  return { id: crypto.randomUUID(), month: "", energyKwh: "", totalCostThb: "", authority: "PEA", meterMode: "normal" };
 }
 
 function nextMonth(month: string | undefined): string {

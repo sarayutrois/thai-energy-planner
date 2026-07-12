@@ -14,7 +14,7 @@ export function readLocalBillReportSnapshot(): LocalBillReportSnapshot | null {
 
   const workspaceRaw = window.localStorage.getItem(billWorkspaceStorageKey);
   const workspace = workspaceRaw ? (JSON.parse(workspaceRaw) as Partial<StoredBillWorkspace>) : null;
-  const generatedSnapshot = workspace ? buildSnapshotFromWorkspace(workspace) : null;
+  const generatedSnapshot = workspace?.mode === "user" ? buildSnapshotFromWorkspace(workspace) : null;
   if (generatedSnapshot) {
     window.localStorage.setItem(billReportStorageKey, JSON.stringify(generatedSnapshot));
   }
@@ -75,6 +75,7 @@ function normalizeWorkspace(input: Partial<StoredBillWorkspace>): StoredBillWork
       authority: row.authority === "MEA" ? "MEA" : "PEA",
       meterMode: row.meterMode === "tou" ? "tou" : "normal"
     })),
+    mode: "user",
     updatedAt: input.updatedAt ?? new Date().toISOString()
   };
 }

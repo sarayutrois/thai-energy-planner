@@ -15,8 +15,11 @@ export type StoredBillRow = {
   meterMode: "normal" | "tou";
 };
 
+export type BillWorkspaceMode = "empty" | "sample" | "user";
+
 export type StoredBillWorkspace = {
   audience: AnalysisAudience;
+  mode: BillWorkspaceMode;
   rows: StoredBillRow[];
   updatedAt: string;
 };

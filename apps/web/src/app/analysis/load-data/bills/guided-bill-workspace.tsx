@@ -37,12 +37,14 @@ export function GuidedBillWorkspace({
 }) {
   const {
     rows,
+    mode,
     saveStatus,
     updateRow,
     addRow,
     removeRow,
     loadExample,
     resetWorkspace,
+    startUserEntry,
     exportWorkspace,
     exportWorkspaceCsv,
     importWorkspace,
@@ -55,6 +57,7 @@ export function GuidedBillWorkspace({
   const bills = useMemo(() => rows.map(toBillInput), [rows]);
   const validation = useMemo(() => validateMonthlyBills(bills), [bills]);
   const summary = useMemo(() => summarizeBills(validation.bills), [validation.bills]);
+  const hasBillData = validation.bills.length > 0;
   const dataQuality = useMemo(
     () =>
       estimateDataQuality({
@@ -64,7 +67,7 @@ export function GuidedBillWorkspace({
       }),
     [validation.bills.length]
   );
-  const recommendations = useMemo(() => buildBillRecommendations(validation.bills, summary), [summary, validation.bills]);
+  const recommendations = useMemo(() => (hasBillData ? buildBillRecommendations(validation.bills, summary) : []), [hasBillData, summary, validation.bills]);
   const averageMonthlyKwh = useMemo(
     () => (summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0),
     [summary.totalKwh, summary.monthCount]
@@ -127,6 +130,7 @@ export function GuidedBillWorkspace({
   function proceedToLoadComparison() {
     window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify({
       audience,
+      mode: "user",
       rows,
       updatedAt: new Date().toISOString(),
     }));
@@ -151,17 +155,10 @@ export function GuidedBillWorkspace({
               <Badge variant="outline">{saveStatus}</Badge>
               <button
                 className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={() => loadExample("home")}
+                onClick={loadExample}
                 type="button"
               >
-                ตัวอย่างบ้าน
-              </button>
-              <button
-                className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={() => loadExample("shop")}
-                type="button"
-              >
-                ตัวอย่างร้านค้า
+                ทดลองด้วยข้อมูลตัวอย่าง
               </button>
               <button
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
@@ -290,7 +287,6 @@ export function GuidedBillWorkspace({
                       <button
                         aria-label="ลบเดือนนี้"
                         className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                        disabled={rows.length <= 1}
                         onClick={() => removeRow(row.id)}
                         type="button"
                       >
@@ -314,7 +310,31 @@ export function GuidedBillWorkspace({
         </CardContent>
       </Card>
 
-      {validation.issues.length > 0 ? (
+      {mode === "empty" ? (
+        <Card className="border-dashed">
+          <CardContent className="py-8 text-center">
+            <ReceiptText aria-hidden="true" className="mx-auto h-8 w-8 text-muted-foreground" />
+            <h2 className="mt-3 text-lg font-semibold">ยังไม่มีข้อมูลค่าไฟ</h2>
+            <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-muted-foreground">เพิ่มบิลอย่างน้อย 1 เดือนเพื่อดูภาพรวมเบื้องต้น และแนะนำให้ใช้ข้อมูล 6–12 เดือนเพื่อการวิเคราะห์ที่น่าเชื่อถือขึ้น</p>
+            <div className="mt-5 flex flex-wrap justify-center gap-2">
+              <button className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90" onClick={addRow} type="button">เริ่มกรอกข้อมูลของฉัน</button>
+              <button className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted" onClick={loadExample} type="button">ทดลองด้วยข้อมูลตัวอย่าง</button>
+            </div>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {mode === "sample" ? (
+        <div className="rounded-md border border-warning bg-warning/10 p-4 text-sm">
+          <p className="font-semibold">ข้อมูลตัวอย่างบ้าน — ตัวเลขเหล่านี้ยังไม่ใช่ข้อมูลค่าไฟของคุณ</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button className="rounded-md border border-border bg-card px-3 py-2 font-medium hover:bg-muted" onClick={resetWorkspace} type="button">ล้างข้อมูลตัวอย่าง</button>
+            <button className="rounded-md bg-primary px-3 py-2 font-medium text-primary-foreground hover:bg-primary/90" onClick={startUserEntry} type="button">เริ่มกรอกข้อมูลของฉัน</button>
+          </div>
+        </div>
+      ) : null}
+
+      {rows.length > 0 && validation.issues.length > 0 ? (
         <Card className="border-warning">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
@@ -333,14 +353,14 @@ export function GuidedBillWorkspace({
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-5">
-        <Metric label="จำนวนเดือน" value={`${summary.monthCount}`} />
-        <Metric label="หน่วยรวม" value={`${formatNumber(summary.totalKwh)} kWh`} />
-        <Metric label="ค่าไฟรวม" value={`${formatNumber(summary.totalCostThb)} บาท`} />
-        <Metric label="เฉลี่ยต่อเดือน" value={`${formatNumber(summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0)} บาท`} />
-        <Metric label="คุณภาพข้อมูล" value={`${dataQuality.labelTh} (${dataQuality.score})`} />
+        <Metric label="จำนวนเดือน" value={hasBillData ? `${summary.monthCount}` : "N/A"} />
+        <Metric label="หน่วยรวม" value={hasBillData ? `${formatNumber(summary.totalKwh)} kWh` : "N/A"} />
+        <Metric label="ค่าไฟรวม" value={hasBillData ? `${formatNumber(summary.totalCostThb)} บาท` : "N/A"} />
+        <Metric label="เฉลี่ยต่อเดือน" value={hasBillData ? `${formatNumber(summary.totalCostThb / summary.monthCount)} บาท` : "N/A"} />
+        <Metric label="คุณภาพข้อมูล" value={hasBillData ? `${dataQuality.labelTh} (${dataQuality.score})` : "ยังไม่มีข้อมูล"} />
       </div>
 
-      <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
+      {hasBillData ? <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
         <Card>
           <CardHeader>
             <CardTitle>คำแนะนำเบื้องต้น</CardTitle>
@@ -363,7 +383,7 @@ export function GuidedBillWorkspace({
             <CardTitle>ไปต่อหลังกรอกบิล</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {validation.canSave && validation.bills.length > 0 ? (
+            {mode === "user" && validation.canSave && validation.bills.length > 0 ? (
               <button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring" onClick={proceedToLoadComparison} type="button">
                 บันทึกบิลแล้วไปเทียบ Load Profile
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -375,7 +395,7 @@ export function GuidedBillWorkspace({
             )}
             <button
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
-              disabled={!validation.canSave || validation.bills.length === 0}
+              disabled={mode !== "user" || !validation.canSave || validation.bills.length === 0}
               onClick={createLocalReport}
               type="button"
             >
@@ -387,7 +407,7 @@ export function GuidedBillWorkspace({
             <NextLink href={buildAnalysisStartHref("/analysis/load-data/import", audience, "interval")} label="มีไฟล์ละเอียดแล้ว" description="อัปโหลด load profile เพื่อเพิ่มความแม่นยำของ TOU, Solar, Battery และ EV" />
           </CardContent>
         </Card>
-      </div>
+      </div> : null}
     </div>
   );
 }
