@@ -100,7 +100,7 @@ function normalizeBillDate(value: string | undefined, warnings: string[]) {
 
   if (value) {
     warnings.push(
-      `Official tariff seed currently covers ${officialSeedEffectiveFrom} to ${officialSeedEffectiveTo}; ${defaultBillDate} was used instead.`
+      `ข้อมูลอัตราค่าไฟที่ตรวจสอบได้ครอบคลุม ${officialSeedEffectiveFrom} ถึง ${officialSeedEffectiveTo} จึงใช้วันที่ ${defaultBillDate} แทน`
     );
   }
   return defaultBillDate;
@@ -110,7 +110,7 @@ function normalizeEnergyKwh(value: string | undefined, warnings: string[]) {
   if (!value) return "250";
   const parsed = Number(value);
   if (Number.isFinite(parsed) && parsed >= 0) return String(parsed);
-  warnings.push("Monthly kWh must be non-negative; 250 kWh was used instead.");
+  warnings.push("จำนวนหน่วยไฟต้องเป็นศูนย์หรือมากกว่า จึงใช้ 250 kWh เป็นค่าเริ่มต้นสำหรับการทดลองคำนวณ");
   return "250";
 }
 
