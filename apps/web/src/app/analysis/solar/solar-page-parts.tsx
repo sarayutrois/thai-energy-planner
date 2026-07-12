@@ -174,7 +174,7 @@ export function SolarControls({
               name="inverterReplacementCostThb"
               type="number"
               min="0"
-              step="1000"
+              step="100"
               defaultValue={settings.inverterReplacementCostThb}
               className={inputClassName}
             />
