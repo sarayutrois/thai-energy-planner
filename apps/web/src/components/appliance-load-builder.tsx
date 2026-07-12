@@ -34,8 +34,9 @@ import {
   persistLocalLoadProfile,
   saveLocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
+import { applianceSourceLabel, storedApplianceWorkspaceMode, type ApplianceWorkspaceMode } from "@/components/appliance-workspace-state";
 
-const draftStorageKey = "thai-energy-planner.appliance-workspace.v2";
+const draftStorageKey = "thai-energy-planner.appliance-workspace.v3";
 const days = [
   { value: 1, label: "จ" },
   { value: 2, label: "อ" },
@@ -86,7 +87,7 @@ const additionalPresets: ApplianceSeed[] = [
 ];
 const allPresets: ApplianceSeed[] = [...presets, ...additionalPresets];
 
-const homeStarterSets: Array<{ id: "compact_home" | "family_home"; label: string; description: string; items: ApplianceSeed[] }> = [
+const homeStarterSets: Array<{ id: string; label: string; description: string; items: ApplianceSeed[] }> = [
   {
     id: "compact_home",
     label: "บ้านเล็ก 1 ห้องนอน",
@@ -114,9 +115,34 @@ const homeStarterSets: Array<{ id: "compact_home" | "family_home"; label: string
       { name: "ปั๊มน้ำ", category: "ปั๊มน้ำ", powerW: 370, dutyCycle: 0.4, start: "06:00", end: "20:00" },
     ],
   },
+  {
+    id: "condo",
+    label: "ห้องเช่า/คอนโด",
+    description: "แอร์ 1 เครื่อง ตู้เย็น และไฟส่องสว่าง",
+    items: [presets[0], presets[1], presets[5]],
+  },
+  {
+    id: "small_shop",
+    label: "ร้านค้าขนาดเล็ก",
+    description: "แอร์ ไฟส่องสว่าง และอุปกรณ์หน้าร้าน",
+    items: [presets[0], presets[5], presets[6]],
+  },
+  {
+    id: "multi_air",
+    label: "บ้านที่มีเครื่องปรับอากาศหลายเครื่อง",
+    description: "ตัวอย่างแอร์ 2 เครื่อง พร้อมตู้เย็นและไฟส่องสว่าง",
+    items: [presets[0], { ...presets[0], name: "เครื่องปรับอากาศ Inverter 18,000 BTU", powerW: 1700 }, presets[1], presets[5]],
+  },
+  {
+    id: "ev_home",
+    label: "บ้านที่มีรถยนต์ไฟฟ้า",
+    description: "ตัวอย่างบ้านพร้อมเครื่องชาร์จรถยนต์ไฟฟ้า",
+    items: [presets[0], presets[1], presets[5], presets[7]],
+  },
 ];
 
 type Draft = {
+  mode: ApplianceWorkspaceMode;
   appliances: ApplianceInput[];
   intervalMinutes: 15 | 30 | 60;
   startDate: string;
@@ -173,6 +199,7 @@ export function ApplianceLoadBuilder({
   endDate: string;
 }) {
   const [appliances, setAppliances] = useState(initialAppliances);
+  const [mode, setMode] = useState<ApplianceWorkspaceMode>(initialAppliances.length ? "user" : "empty");
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(30);
   const [startDate, setStartDate] = useState(initialStartDate);
   const [endDate, setEndDate] = useState(initialEndDate);
@@ -187,7 +214,11 @@ export function ApplianceLoadBuilder({
       if (rawDraft) {
         const draft = JSON.parse(rawDraft) as Partial<Draft>;
         if (!hasUserEditedBeforeHydration.current) {
-          if (Array.isArray(draft.appliances)) setAppliances(draft.appliances);
+          if (Array.isArray(draft.appliances)) {
+            const storedMode = storedApplianceWorkspaceMode(draft.mode, draft.appliances.length);
+            setAppliances(storedMode === "empty" ? [] : draft.appliances);
+            setMode(storedMode);
+          }
           if ([15, 30, 60].includes(draft.intervalMinutes ?? 0)) setIntervalMinutes(draft.intervalMinutes!);
           if (draft.startDate) setStartDate(draft.startDate);
           if (draft.endDate) setEndDate(draft.endDate);
@@ -204,12 +235,15 @@ export function ApplianceLoadBuilder({
     if (!hydrated) return;
     setAutoSaveLabel("กำลังบันทึก...");
     const timer = window.setTimeout(() => {
-      const draft: Draft = { appliances, intervalMinutes, startDate, endDate };
-      window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      if (mode === "empty") window.localStorage.removeItem(draftStorageKey);
+      else {
+        const draft: Draft = { mode, appliances, intervalMinutes, startDate, endDate };
+        window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+      }
       setAutoSaveLabel(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
     }, 500);
     return () => window.clearTimeout(timer);
-  }, [appliances, endDate, hydrated, intervalMinutes, startDate]);
+  }, [appliances, endDate, hydrated, intervalMinutes, mode, startDate]);
 
   const validationIssues = useMemo(() => {
     const issues: string[] = [];
@@ -235,6 +269,7 @@ export function ApplianceLoadBuilder({
     }
   }, [appliances, endDate, intervalMinutes, startDate, validationIssues.length]);
 
+  const hasAppliances = appliances.length > 0;
   const dailyKwh = simulation?.averageDailyKwh ?? 0;
   const monthlyKwh = dailyKwh * 30.44;
   const peakKw = simulation?.peakKw ?? 0;
@@ -245,6 +280,7 @@ export function ApplianceLoadBuilder({
 
   function update(index: number, patch: Partial<ApplianceInput>) {
     setAppliances((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, ...patch } : item));
+    setMode("user");
     setSaveStatus("idle");
   }
 
@@ -267,6 +303,7 @@ export function ApplianceLoadBuilder({
       }
       return { ...item, schedules };
     }));
+    setMode("user");
     setSaveStatus("idle");
   }
 
@@ -285,6 +322,7 @@ export function ApplianceLoadBuilder({
       for (const day of targetDays) schedules.push({ ...source, daysOfWeek: [day] });
       return { ...item, schedules };
     }));
+    setMode("user");
     setSaveStatus("idle");
   }
 
@@ -293,13 +331,16 @@ export function ApplianceLoadBuilder({
     if (!preset) return;
     hasUserEditedBeforeHydration.current = true;
     setAppliances((current) => [...current, applianceFromSeed(preset)]);
+    setMode("user");
   }
 
-  function addHomeStarterSet(id: "compact_home" | "family_home") {
+  function addHomeStarterSet(id: string) {
     const starterSet = homeStarterSets.find((item) => item.id === id);
     if (!starterSet) return;
     hasUserEditedBeforeHydration.current = true;
-    setAppliances((current) => [...current, ...starterSet.items.map(applianceFromSeed)]);
+    if (appliances.length > 0 && !window.confirm("เปลี่ยนเป็นชุดตัวอย่างใหม่และแทนที่รายการเดิมใช่หรือไม่")) return;
+    setAppliances(starterSet.items.map(applianceFromSeed));
+    setMode("sample");
     setSaveStatus("idle");
   }
 
@@ -316,6 +357,7 @@ export function ApplianceLoadBuilder({
       powerSource: "manual",
       schedule: { startTime: "18:00", endTime: "22:00", daysOfWeek: [0, 1, 2, 3, 4, 5, 6], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
     }]);
+    setMode("user");
   }
 
   function updateAirConditioner(index: number, btu: number, compressorType: "inverter" | "fixed_speed") {
@@ -336,6 +378,7 @@ export function ApplianceLoadBuilder({
 
   async function saveLoadProfile(navigateToBills = false) {
     if (!simulation) return;
+    if (mode === "sample" && !window.confirm("ชุดอุปกรณ์นี้ยังเป็นข้อมูลตัวอย่าง ผลลัพธ์เป็นเพียงตัวอย่าง ต้องการบันทึกต่อหรือไม่")) return;
     const rows = simulation.intervals;
     const snapshot = saveLocalLoadProfileSnapshot({
       sourceName: "Load Profile จากเครื่องใช้ไฟฟ้า",
@@ -353,6 +396,16 @@ export function ApplianceLoadBuilder({
     if (navigateToBills) window.location.assign("/analysis/load-data/bills?source=appliance");
   }
 
+  function clearAll() {
+    setAppliances([]);
+    setMode("empty");
+    setSaveStatus("idle");
+  }
+
+  function useSampleAsStartingPoint() {
+    setMode("user");
+  }
+
   return (
     <div className="grid gap-6">
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/35 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -362,6 +415,17 @@ export function ApplianceLoadBuilder({
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Save className="h-4 w-4" />{autoSaveLabel}</div>
       </div>
+
+      {mode === "sample" ? (
+        <div className="rounded-xl border border-warning bg-warning/10 p-4">
+          <p className="font-semibold">กำลังใช้ชุดอุปกรณ์ตัวอย่าง — กรุณาปรับจำนวน กำลังไฟ และเวลาใช้งานให้ตรงกับสถานที่จริง</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <Button onClick={useSampleAsStartingPoint}>ใช้ชุดนี้เป็นจุดเริ่มต้น</Button>
+            <Button variant="outline" onClick={clearAll}>ล้างทั้งหมด</Button>
+            <Button variant="outline" onClick={clearAll}>เปลี่ยนชุดตัวอย่าง</Button>
+          </div>
+        </div>
+      ) : null}
 
       <section className="rounded-xl border border-border bg-card p-4 md:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
@@ -395,8 +459,8 @@ export function ApplianceLoadBuilder({
         {appliances.length === 0 ? (
           <div className="mt-5 rounded-lg border border-dashed border-border px-5 py-10 text-center">
             <Zap className="mx-auto h-8 w-8 text-muted-foreground" />
-            <p className="mt-3 font-medium">ยังไม่มีข้อมูลเครื่องใช้ไฟฟ้า</p>
-            <p className="mt-1 text-sm text-muted-foreground">เลือกจากรายการสำเร็จรูปหรือเพิ่มรายการเองเพื่อเริ่มคำนวณ</p>
+            <p className="mt-3 font-medium">ยังไม่มีอุปกรณ์</p>
+            <p className="mt-1 text-sm text-muted-foreground">เพิ่มเครื่องใช้ไฟฟ้าทีละรายการ หรือเลือกชุดตัวอย่างเพื่อเริ่มต้น</p>
           </div>
         ) : (
           <div className="mt-5 grid gap-4">
@@ -406,7 +470,7 @@ export function ApplianceLoadBuilder({
                   <TextField label="ชื่อเครื่องใช้ไฟฟ้า" value={item.name} onChange={(name) => update(index, { name })} />
                   <NumberField label="กำลังไฟ (W)" value={item.powerUnit === "kW" ? item.power * 1000 : item.power} min={1} step={1} onChange={(power) => update(index, { power, powerUnit: "W", powerSource: "nameplate" })} />
                   <NumberField label="จำนวน (เครื่อง)" value={item.quantity} min={1} step={1} onChange={(quantity) => update(index, { quantity: Math.max(1, Math.round(quantity)) })} />
-                  <Button aria-label={`ลบ ${item.name}`} className="self-end px-3" variant="ghost" onClick={() => setAppliances((current) => current.filter((_, itemIndex) => itemIndex !== index))}><Trash2 className="h-4 w-4" /></Button>
+                  <Button aria-label={`ลบ ${item.name}`} className="self-end px-3" variant="ghost" onClick={() => { const next = appliances.filter((_, itemIndex) => itemIndex !== index); setAppliances(next); setMode(next.length ? "user" : "empty"); }}><Trash2 className="h-4 w-4" /></Button>
                 </div>
                 {isAirConditioner(item) ? (
                   <div className="mt-3 grid gap-3 rounded-md border border-primary/20 bg-primary/5 p-3 md:grid-cols-3">
@@ -476,11 +540,12 @@ export function ApplianceLoadBuilder({
 
       <section className="rounded-xl border border-border bg-card p-4 md:p-5">
         <h2 className="text-lg font-semibold">2. ตรวจสอบผลการคำนวณ</h2>
+        <p className="mt-1 text-sm font-medium text-muted-foreground">{applianceSourceLabel(mode)}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric icon={<Gauge className="h-5 w-5" />} label="Peak Load" value={`${formatNumber(peakKw)} kW`} />
-          <Metric icon={<Zap className="h-5 w-5" />} label="พลังงานต่อวัน" value={`${formatNumber(dailyKwh)} kWh/วัน`} />
-          <Metric icon={<ReceiptText className="h-5 w-5" />} label="พลังงานต่อเดือน" value={`${formatNumber(monthlyKwh)} kWh/เดือน`} />
-          <Metric icon={<CheckCircle2 className="h-5 w-5" />} label="ความน่าเชื่อถือ" value={`${quality.label} · ${quality.score}/100`} detail={quality.detail} />
+          <Metric icon={<Gauge className="h-5 w-5" />} label="Peak Load" value={hasAppliances ? `${formatNumber(peakKw)} kW` : "N/A"} />
+          <Metric icon={<Zap className="h-5 w-5" />} label="พลังงานต่อวัน" value={hasAppliances ? `${formatNumber(dailyKwh)} kWh/วัน` : "N/A"} />
+          <Metric icon={<ReceiptText className="h-5 w-5" />} label="พลังงานต่อเดือน" value={hasAppliances ? `${formatNumber(monthlyKwh)} kWh/เดือน` : "N/A"} />
+          <Metric icon={<CheckCircle2 className="h-5 w-5" />} label="ความน่าเชื่อถือ" value={hasAppliances ? `${quality.label} · ${quality.score}/100` : "ยังไม่มีข้อมูล"} detail={hasAppliances ? quality.detail : undefined} />
         </div>
         <div className="mt-5 h-[300px] rounded-lg border border-border p-3">
           {chartData.some((row) => row.loadKw > 0) ? (
@@ -539,7 +604,7 @@ function TimeField({ label, value, onChange, disabled = false }: { label: string
 function NumberField({ label, value, onChange, min, step }: { label: string; value: number; onChange: (value: number) => void; min?: number; step?: number }) {
   return <label className="grid gap-1 text-xs font-medium">{label}<input className="h-10 rounded-md border border-input bg-background px-3 text-sm" type="number" value={value} min={min} step={step} onChange={(event) => onChange(Number(event.target.value))} /></label>;
 }
-function Metric({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail?: string }) {
+function Metric({ icon, label, value, detail }: { icon: React.ReactNode; label: string; value: string; detail?: string | undefined }) {
   return <div className="rounded-lg border border-border bg-background p-4"><div className="flex items-center gap-2 text-primary">{icon}<p className="text-xs font-medium text-muted-foreground">{label}</p></div><p className="mt-3 text-xl font-semibold">{value}</p>{detail ? <p className="mt-1 text-xs text-muted-foreground">{detail}</p> : null}</div>;
 }
 function formatNumber(value: number) {
