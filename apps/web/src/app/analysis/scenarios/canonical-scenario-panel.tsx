@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { Check, History, RefreshCw } from "lucide-react";
 import {
   createScenarioInputFromCanonicalLoadProfile,
   runScenarioComparison,
@@ -14,7 +15,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   hydrateLocalLoadProfileSnapshot,
-  listLocalLoadProfileSnapshots,
+  formatLocalLoadProfileLabel,
+  listDistinctLocalLoadProfileSnapshots,
   readLocalLoadProfileSnapshot,
   selectLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
@@ -32,10 +34,15 @@ export function CanonicalScenarioPanel() {
   const [customerSegment, setCustomerSegment] = useState<
     "residential" | "small_business"
   >("residential");
+  const [showHistory, setShowHistory] = useState(false);
+
+  function refreshProfiles() {
+    setProfiles(listDistinctLocalLoadProfileSnapshots());
+    setSnapshot(readLocalLoadProfileSnapshot());
+  }
 
   useEffect(() => {
-    setProfiles(listLocalLoadProfileSnapshots());
-    setSnapshot(readLocalLoadProfileSnapshot());
+    refreshProfiles();
     void authenticatedFetch("/api/load-profiles")
       .then(async (response) => {
         if (!response.ok) return null;
@@ -47,7 +54,8 @@ export function CanonicalScenarioPanel() {
       .catch(() => setAccountProfiles([]));
   }, []);
 
-  const profile: CanonicalLoadProfile | null = snapshot?.canonicalProfile ?? null;
+  const activeSnapshot = snapshot;
+  const profile: CanonicalLoadProfile | null = activeSnapshot?.canonicalProfile ?? null;
 
   const result = useMemo(() => {
     if (!profile) return null;
@@ -81,7 +89,7 @@ export function CanonicalScenarioPanel() {
     }
   }, [authority, customerSegment, profile]);
 
-  if (!profile) {
+  if (!profile || !activeSnapshot) {
     return (
       <Card className="mt-6 border-dashed">
         <CardHeader><CardTitle>ยังไม่มี Load Profile สำหรับเปรียบเทียบ</CardTitle></CardHeader>
@@ -115,7 +123,7 @@ export function CanonicalScenarioPanel() {
                         remote.id,
                       );
                       setSnapshot(hydrated);
-                      setProfiles(listLocalLoadProfileSnapshots());
+                      setProfiles(listDistinctLocalLoadProfileSnapshots());
                     })
                     .catch(() => undefined);
                 }}
@@ -148,22 +156,20 @@ export function CanonicalScenarioPanel() {
         </div>
       </CardHeader>
       <CardContent className="grid gap-5">
-        {profiles.length > 1 ? (
-          <label className="grid max-w-xl gap-1 text-sm font-medium">
-            Load Profile ที่ใช้วิเคราะห์
-            <select
-              className="h-10 rounded-md border border-input bg-background px-3"
-              value={snapshot?.id ?? ""}
-              onChange={(event) => setSnapshot(selectLocalLoadProfileSnapshot(event.target.value))}
-            >
-              {profiles.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.sourceName} · {item.rowCount.toLocaleString("th-TH")} intervals
-                </option>
-              ))}
-            </select>
-          </label>
-        ) : null}
+        <section className="rounded-md border border-border bg-background p-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <p className="text-xs font-medium text-muted-foreground">Load Profile ที่กำลังใช้</p>
+              <p className="mt-1 font-semibold">{formatLocalLoadProfileLabel(activeSnapshot)}</p>
+              <p className="mt-1 text-xs text-muted-foreground">อัปเดต {new Date(activeSnapshot.updatedAt).toLocaleString("th-TH-u-ca-gregory", { dateStyle: "medium", timeStyle: "short" })}</p>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <button className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted" type="button" onClick={refreshProfiles}><RefreshCw className="h-4 w-4" />รีเฟรชข้อมูลล่าสุด</button>
+              {profiles.length > 1 ? <button className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted" type="button" onClick={() => setShowHistory((visible) => !visible)}><History className="h-4 w-4" />{showHistory ? "ซ่อนประวัติ" : "ดูประวัติ"}</button> : null}
+            </div>
+          </div>
+          {showHistory ? <div className="mt-4 grid gap-2 border-t border-border pt-4">{profiles.map((item) => <button key={item.id} className={`flex items-center justify-between gap-3 rounded-md border p-3 text-left text-sm hover:bg-muted ${item.id === activeSnapshot.id ? "border-primary bg-primary/5" : "border-border"}`} type="button" onClick={() => { const selected = selectLocalLoadProfileSnapshot(item.id); setSnapshot(selected); setShowHistory(false); refreshProfiles(); }}><span><span className="block font-medium">{formatLocalLoadProfileLabel(item)}</span><span className="mt-1 block text-xs text-muted-foreground">อัปเดต {new Date(item.updatedAt).toLocaleString("th-TH-u-ca-gregory", { dateStyle: "medium", timeStyle: "short" })}</span></span>{item.id === activeSnapshot.id ? <Check className="h-4 w-4 text-primary" /> : null}</button>)}</div> : null}
+        </section>
         <div className="flex flex-wrap gap-3">
           <label className="grid gap-1 text-sm font-medium">
             Authority

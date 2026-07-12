@@ -8,7 +8,8 @@ import {
 } from "@thai-energy-planner/calculation-engine";
 import { LoadDashboardChartCard } from "@/components/load-dashboard-chart-card";
 import {
-  listLocalLoadProfileSnapshots,
+  formatLocalLoadProfileLabel,
+  listDistinctLocalLoadProfileSnapshots,
   readLocalLoadProfileSnapshot,
   selectLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
@@ -19,6 +20,11 @@ export function LocalLoadDashboard() {
   const [name, setName] = useState<string | null>(null);
   const [profiles, setProfiles] = useState<LocalLoadProfileSnapshot[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
+
+  function refreshProfiles() {
+    setProfiles(listDistinctLocalLoadProfileSnapshots());
+    loadProfile(readLocalLoadProfileSnapshot());
+  }
 
   function loadProfile(snapshot: LocalLoadProfileSnapshot | null) {
     const profile = snapshot?.canonicalProfile;
@@ -35,8 +41,7 @@ export function LocalLoadDashboard() {
   }
 
   useEffect(() => {
-    setProfiles(listLocalLoadProfileSnapshots());
-    loadProfile(readLocalLoadProfileSnapshot());
+    refreshProfiles();
   }, []);
 
   if (!summary) {
@@ -62,8 +67,7 @@ export function LocalLoadDashboard() {
           >
             {profiles.map((profile) => (
               <option key={profile.id} value={profile.id}>
-                {profile.sourceName} ·{" "}
-                {profile.rowCount.toLocaleString("th-TH")} intervals
+                {formatLocalLoadProfileLabel(profile)}
               </option>
             ))}
           </select>
@@ -72,6 +76,7 @@ export function LocalLoadDashboard() {
       <p className="mt-6 text-sm text-muted-foreground">
         กำลังแสดงข้อมูลจาก:{" "}
         <span className="font-medium text-foreground">{name}</span>
+        <button className="ml-3 text-primary underline underline-offset-4" type="button" onClick={refreshProfiles}>รีเฟรชข้อมูลล่าสุด</button>
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
         <Metric title="Total kWh" value={summary.totalKwh} />

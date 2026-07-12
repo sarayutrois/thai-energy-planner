@@ -213,6 +213,40 @@ export function listLocalLoadProfileSnapshots(): LocalLoadProfileSnapshot[] {
   }
 }
 
+/** Returns the newest snapshot for each visually identical profile, for picker/history UI. */
+export function listDistinctLocalLoadProfileSnapshots(): LocalLoadProfileSnapshot[] {
+  const activeId = typeof window === "undefined"
+    ? null
+    : window.localStorage.getItem(activeLocalLoadProfileIdStorageKey);
+  const snapshots = [...listLocalLoadProfileSnapshots()].sort((left, right) => {
+    if (left.id === activeId) return -1;
+    if (right.id === activeId) return 1;
+    return right.updatedAt.localeCompare(left.updatedAt);
+  });
+  const seen = new Set<string>();
+  return snapshots.filter((snapshot) => {
+    const key = [
+      normalizeProfileName(snapshot.sourceName),
+      snapshot.rowCount,
+      snapshot.detectedIntervalMinutes ?? "unknown",
+    ].join("|");
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export function formatLocalLoadProfileLabel(snapshot: LocalLoadProfileSnapshot) {
+  const days = new Set(snapshot.rows.map((row) => row.timestamp.slice(0, 10))).size;
+  const source = snapshot.calibration
+    ? "Load Profile ที่ปรับเทียบกับบิลแล้ว"
+    : snapshot.sourceName.replace(/\s*\(ปรับเทียบกับบิล\)\s*/g, "");
+  const frequency = snapshot.detectedIntervalMinutes
+    ? `ทุก ${snapshot.detectedIntervalMinutes} นาที`
+    : "ช่วงเวลาไม่ระบุ";
+  return `${source} · ${days || "-"} วัน · ${frequency}`;
+}
+
 export function selectLocalLoadProfileSnapshot(id: string) {
   const profile = listLocalLoadProfileSnapshots().find(
     (item) => item.id === id,
@@ -286,6 +320,13 @@ function replaceLocalSnapshot(snapshot: LocalLoadProfileSnapshot) {
       JSON.stringify(snapshot),
     );
   }
+}
+
+function normalizeProfileName(name: string) {
+  return name
+    .replace(/\s*\(ปรับเทียบกับบิล\)\s*/g, "")
+    .trim()
+    .toLocaleLowerCase("th-TH");
 }
 
 function isLocalLoadProfileSnapshot(
