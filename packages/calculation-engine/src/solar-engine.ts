@@ -248,6 +248,8 @@ export type SizingOptionResult = {
 
 export type SolarSizingOptimizationResult = {
   options: SizingOptionResult[];
+  /** Highest-NPV option that repays within project life; null means no financially viable size was found. */
+  recommended: SizingOptionResult | null;
   fastestPayback: SizingOptionResult | null;
   highestNpv: SizingOptionResult | null;
   highestAnnualSavings: SizingOptionResult | null;
@@ -1651,6 +1653,13 @@ export function optimizeSolarSize(input: {
     (option) => option.simplePaybackYears ?? Number.POSITIVE_INFINITY,
   );
   const highestNpv = maxBy(options, (option) => option.npvThb);
+  const viableOptions = options.filter(
+    (option) =>
+      option.npvThb > 0 &&
+      option.simplePaybackYears !== null &&
+      option.simplePaybackYears <= input.financialAssumptions.projectLifeYears,
+  );
+  const recommended = maxBy(viableOptions, (option) => option.npvThb);
   const highestAnnualSavings = maxBy(
     options,
     (option) => option.annualNetBenefitThb,
@@ -1666,6 +1675,7 @@ export function optimizeSolarSize(input: {
 
   return {
     options,
+    recommended,
     fastestPayback,
     highestNpv,
     highestAnnualSavings,
@@ -1905,20 +1915,17 @@ export function buildSolarRecommendations(input: {
     input.intervalDays < 30
       ? ["ข้อมูลการใช้ไฟมีน้อยกว่า 30 วัน (ข้อมูลอาจไม่แม่นยำเพียงพอ)"]
       : [];
-  const payback = input.financial.simplePaybackYears;
+  const recommended = input.sizing.recommended;
 
-  if (
-    input.financial.npvThb > 0 &&
-    payback !== null &&
-    payback <= input.financial.assumptionsSnapshot.projectLifeYears
-  ) {
+  if (recommended) {
     recommendations.push({
       type: "solar_worth_it",
       title: "การติดตั้งโซลาร์เซลล์มีความคุ้มค่า",
-      explanation: `NPV คือ ${formatMoney(input.financial.npvThb)} บาท และระยะเวลาคืนทุนคือ ${payback} ปี`,
+      explanation: `ขนาด ${recommended.systemSizeKwp} kWp ให้ NPV ${formatMoney(recommended.npvThb)} บาท และคืนทุน ${recommended.simplePaybackYears} ปี`,
       supportingMetrics: {
-        npvThb: input.financial.npvThb,
-        paybackYears: payback,
+        recommendedSystemSizeKwp: recommended.systemSizeKwp,
+        npvThb: recommended.npvThb,
+        paybackYears: recommended.simplePaybackYears,
       },
       confidence: input.intervalDays >= 30 ? "high" : "medium",
       limitations,
@@ -2132,9 +2139,9 @@ export function runSolarAnalysis(
     exportPolicy: input.exportPolicy,
     financialAssumptions: input.financialAssumptions,
     billDate: input.billDate,
-    minKwp: 1,
+    minKwp: 0.5,
     maxKwp: 20,
-    stepKwp: 1,
+    stepKwp: 0.5,
     roofAreaSqm: input.solarAssumptions.roofAreaSqm,
     monthlyScaleFactor: input.monthlyScaleFactor,
     monthlyScaleFactors: input.monthlyScaleFactors,

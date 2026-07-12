@@ -50,6 +50,10 @@ function buildSolarReportDraft(
   analysis: ReturnType<typeof getSolarDemo>["analysis"],
   settings: ReturnType<typeof getSolarDemo>["settings"]
 ): LocalAnalysisReportDraft {
+  const recommended = analysis.sizing.recommended;
+  const decisionLabel = recommended
+    ? `เหมาะสำหรับพิจารณาที่ ${recommended.systemSizeKwp} kWp`
+    : "ยังไม่แนะนำติดตั้งตามข้อมูลปัจจุบัน";
   const comparisonRows = [
     analysis.billComparison.normalWithoutSolar,
     analysis.billComparison.touWithoutSolar,
@@ -64,10 +68,13 @@ function buildSolarReportDraft(
     disclaimer: solarReadinessCopy.globalDisclaimer,
     printedAtLabel: new Date().toLocaleDateString("th-TH"),
     title: `รายงานสรุป Solar simulation - ${settings.profile}`,
-    summary: `แบบจำลองนี้ประเมินทางเลือกหลังติดตั้ง Solar ว่า ${analysis.billComparison.bestWithSolar.label} มีประมาณการลดค่าใช้จ่ายรายปีราว ${formatApproximateMoneyRange(
+    summary: `${decisionLabel}. แบบจำลองนี้ประเมินทางเลือกหลังติดตั้ง Solar ว่า ${analysis.billComparison.bestWithSolar.label} มีประมาณการลดค่าใช้จ่ายรายปีราว ${formatApproximateMoneyRange(
       analysis.billComparison.netAnnualBenefit
     )} ต่อปี ภายใต้สมมติฐาน screening estimate และมีระดับความมั่นใจ ${analysis.modelQuality.label} (${analysis.modelQuality.score}/100)`,
     metrics: [
+      { label: "ผลตัดสินใจ Solar", value: decisionLabel },
+      { label: "ขนาดที่กำลังประเมิน", value: `${settings.systemSizeKwp} kWp` },
+      { label: "ขนาดที่ผ่านเกณฑ์", value: recommended ? `${recommended.systemSizeKwp} kWp` : "ไม่มีขนาดที่ผ่านเกณฑ์" },
       { label: "Best after solar", value: analysis.billComparison.bestWithSolar.label },
       { label: "ประมาณการลดค่าใช้จ่ายรายปี", value: `${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี` },
       { label: "Self-consumption", value: `${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%` },
@@ -113,6 +120,7 @@ function buildSolarReportDraft(
         title: "สรุปผลการประเมินเบื้องต้น (Simulation Results)",
         items: [
           { label: "ขนาดระบบที่จำลอง", value: `${settings.systemSizeKwp} kWp` },
+          { label: "ขนาดที่ผ่านเกณฑ์ความคุ้มค่า", value: recommended ? `${recommended.systemSizeKwp} kWp (NPV ${formatNumber(recommended.npvThb)} บาท)` : "ไม่มีขนาดที่ทั้ง NPV เป็นบวกและคืนทุนภายในอายุโครงการ" },
           {
             label: "ประมาณการผลิตไฟฟ้าต่อปี",
             value: `${formatNumber(analysis.solarProfile.annualGenerationKwh)} kWh/year`

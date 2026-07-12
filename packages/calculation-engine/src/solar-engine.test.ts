@@ -384,6 +384,33 @@ describe("phase 5 solar engine", () => {
     expect(result.highestNpv?.npvThb).toBe(
       Math.max(...result.options.map((option) => option.npvThb)),
     );
+    expect(result.recommended?.npvThb).toBeGreaterThan(0);
+    expect(result.recommended?.simplePaybackYears).toBeLessThanOrEqual(
+      demo.financialAssumptions.projectLifeYears,
+    );
+  });
+
+  it("does not recommend a size when every option fails the financial gate", () => {
+    const demo = createDemoSolarInput("evening_home", {
+      systemSizeKwp: 5,
+      capexThb: 2_000_000,
+      exportEnabled: false,
+      exportRateThbPerKwh: 0,
+    });
+    const result = optimizeSolarSize({
+      loadIntervals: demo.loadIntervals,
+      normalTariff: demo.normalTariff,
+      touTariff: demo.touTariff,
+      baseSolarAssumptions: demo.solarAssumptions,
+      exportPolicy: demo.exportPolicy,
+      financialAssumptions: demo.financialAssumptions,
+      minKwp: 0.5,
+      maxKwp: 5,
+      stepKwp: 0.5,
+    });
+
+    expect(result.options).toHaveLength(10);
+    expect(result.recommended).toBeNull();
   });
 
   it("checks sizing at 1, 3, 5, and 10 kWp without blindly choosing the largest payback size", () => {

@@ -248,8 +248,9 @@ function withSavedBillContext(queryString: string, context?: SavedBillContext | 
 
 export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
   const comparison = analysis.billComparison;
+  const recommended = analysis.sizing.recommended;
   return (
-    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-6">
+    <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
       <Metric label="Best after solar" value={comparison.bestWithSolar.label} />
       <Metric
         helpText={solarReadinessCopy.estimatedSavingsHint}
@@ -257,6 +258,7 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
         value={`${formatApproximateMoneyRange(comparison.netAnnualBenefit)}/ปี`}
       />
       <Metric label="Self-consumption" value={formatPercent(analysis.selfConsumption.selfConsumptionRatio)} />
+      <Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatNumber(recommended.systemSizeKwp)} kWp` : "ยังไม่มี"} />
       <Metric label="Payback" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} years` : "-"} />
       <Metric label="NPV" value={`${formatNumber(analysis.financial.npvThb)} baht`} />
       <Metric label="IRR" value={analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%`} />
@@ -392,6 +394,7 @@ export function BillComparisonTable({ analysis }: { analysis: SolarAnalysisResul
 }
 
 export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
+  const recommended = analysis.sizing.recommended;
   return (
     <Card>
       <CardHeader>
@@ -401,7 +404,8 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
         </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="mb-4 grid gap-3 md:grid-cols-4">
+        <div className="mb-4 grid gap-3 md:grid-cols-5">
+          <Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatSizing(recommended.systemSizeKwp)} · NPV ${formatNumber(recommended.npvThb)}` : "ไม่มีขนาดที่ผ่านเกณฑ์"} />
           <Metric label="Fastest payback" value={formatSizing(analysis.sizing.fastestPayback?.systemSizeKwp)} />
           <Metric label="Highest NPV" value={formatSizing(analysis.sizing.highestNpv?.systemSizeKwp)} />
           <Metric label="Highest benefit" value={formatSizing(analysis.sizing.highestAnnualSavings?.systemSizeKwp)} />
@@ -429,7 +433,7 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
           </thead>
           <tbody>
             {analysis.sizing.options.map((row) => (
-              <tr key={row.systemSizeKwp} className="border-t border-border">
+              <tr key={row.systemSizeKwp} className={`border-t border-border ${recommended?.systemSizeKwp === row.systemSizeKwp ? "bg-success/10" : ""}`}>
                 <Td strong>{row.systemSizeKwp}</Td>
                 <Td>{formatNumber(row.annualGenerationKwh)}</Td>
                 <Td>{formatNumber(row.annualSelfConsumedKwh)}</Td>
