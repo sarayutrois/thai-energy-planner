@@ -77,9 +77,9 @@ function buildSolarReportDraft(
       { label: "ขนาดที่ผ่านเกณฑ์", value: recommended ? `${recommended.systemSizeKwp} kWp` : "ไม่มีขนาดที่ผ่านเกณฑ์" },
       { label: "Best after solar", value: analysis.billComparison.bestWithSolar.label },
       { label: "ประมาณการลดค่าใช้จ่ายรายปี", value: `${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี` },
-      { label: "Self-consumption", value: `${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%` },
-      { label: "Export ratio", value: `${formatNumber(analysis.selfConsumption.exportRatio * 100)}%` },
-      { label: "Payback", value: analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} years` : "-" },
+      { label: "สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่", value: `${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%` },
+      { label: "สัดส่วนไฟฟ้าที่ส่งกลับเข้าสู่ระบบ", value: `${formatNumber(analysis.selfConsumption.exportRatio * 100)}%` },
+      { label: "ระยะเวลาคืนทุน", value: analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} ปี` : "-" },
       { label: "NPV", value: `${formatNumber(analysis.financial.npvThb)} baht` },
       { label: "IRR", value: analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%` },
       { label: "Model confidence", value: `${analysis.modelQuality.label} (${analysis.modelQuality.score}/100)` },
@@ -103,8 +103,8 @@ function buildSolarReportDraft(
       { label: "Discount rate", value: `${settings.discountRatePercent}%` },
       { label: "Electricity escalation", value: `${settings.electricityEscalationRatePercent}%/year` },
       { label: "Inverter replacement", value: `${formatNumber(settings.inverterReplacementCostThb)} baht in year ${settings.inverterReplacementYear || "-"}` },
-      { label: "Export rate", value: `${settings.exportRateThbPerKwh} baht/kWh` },
-      { label: "Export limit", value: `${settings.exportLimitKw} kW` }
+      { label: "อัตรารับซื้อไฟฟ้า", value: `${settings.exportRateThbPerKwh} บาท/kWh` },
+      { label: "กำลังส่งกลับสูงสุด", value: `${settings.exportLimitKw} kW` }
     ],
     sections: [
       {

@@ -62,7 +62,7 @@ export function SolarAnalysisCharts({
 }) {
   return (
     <div className="grid gap-4 xl:grid-cols-2">
-      <ChartPanel title="Load vs Solar">
+      <ChartPanel title="การใช้ไฟและพลังงานจาก Solar">
         <ResponsiveContainer width="100%" height={260}>
           <ComposedChart data={intervals}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -70,13 +70,13 @@ export function SolarAnalysisCharts({
             <YAxis width={72} />
             <Tooltip formatter={(value) => `${formatNumber(Number(value))} kWh`} />
             <Legend />
-            <Area type="monotone" dataKey="loadKwh" name="Load" fill="#bfdbfe" stroke="#2563eb" />
+            <Area type="monotone" dataKey="loadKwh" name="การใช้ไฟ" fill="#bfdbfe" stroke="#2563eb" />
             <Line type="monotone" dataKey="solarKwh" name="Solar" stroke="#d97706" strokeWidth={2} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartPanel>
 
-      <ChartPanel title="Grid Import / Export">
+      <ChartPanel title="ไฟฟ้าจากโครงข่ายและไฟฟ้าที่ส่งกลับเข้าสู่ระบบ">
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={intervals}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -84,13 +84,13 @@ export function SolarAnalysisCharts({
             <YAxis width={72} />
             <Tooltip formatter={(value) => `${formatNumber(Number(value))} kWh`} />
             <Legend />
-            <Bar dataKey="gridImportKwh" name="Import" fill="#0f766e" radius={[3, 3, 0, 0]} />
-            <Bar dataKey="gridExportKwh" name="Export" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="gridImportKwh" name="ไฟฟ้าจากโครงข่าย" fill="#0f766e" radius={[3, 3, 0, 0]} />
+            <Bar dataKey="gridExportKwh" name="ไฟฟ้าที่ส่งกลับเข้าสู่ระบบ" fill="#f59e0b" radius={[3, 3, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </ChartPanel>
 
-      <ChartPanel title="Monthly Generation">
+      <ChartPanel title="พลังงาน Solar รายเดือน">
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={monthlyGeneration}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -102,7 +102,7 @@ export function SolarAnalysisCharts({
         </ResponsiveContainer>
       </ChartPanel>
 
-      <ChartPanel title="Self-consumption vs Export">
+      <ChartPanel title="ไฟฟ้า Solar ที่ใช้ภายในและไฟฟ้าที่ส่งกลับเข้าสู่ระบบ">
         <ResponsiveContainer width="100%" height={240}>
           <BarChart data={selfConsumption}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -114,21 +114,21 @@ export function SolarAnalysisCharts({
         </ResponsiveContainer>
       </ChartPanel>
 
-      <ChartPanel title="Annual Cash Flow">
+      <ChartPanel title="กระแสเงินสดรายปี">
         <ResponsiveContainer width="100%" height={250}>
           <ComposedChart data={cashFlows}>
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="year" tick={{ fontSize: 11 }} />
             <YAxis width={82} />
-            <Tooltip formatter={(value) => `${formatNumber(Number(value))} THB`} />
+            <Tooltip formatter={(value) => `${formatNumber(Number(value))} บาท`} />
             <Legend />
-            <Bar dataKey="netCashFlowThb" name="Cash flow" fill="#2563eb" radius={[3, 3, 0, 0]} />
-            <Line type="monotone" dataKey="cumulativeCashFlowThb" name="Cumulative" stroke="#dc2626" strokeWidth={2} dot={false} />
+            <Bar dataKey="netCashFlowThb" name="กระแสเงินสด" fill="#2563eb" radius={[3, 3, 0, 0]} />
+            <Line type="monotone" dataKey="cumulativeCashFlowThb" name="สะสม" stroke="#dc2626" strokeWidth={2} dot={false} />
           </ComposedChart>
         </ResponsiveContainer>
       </ChartPanel>
 
-      <ChartPanel title="NPV / Payback by Size">
+      <ChartPanel title="มูลค่าปัจจุบันสุทธิและระยะเวลาคืนทุนตามขนาดระบบ">
         <ResponsiveContainer width="100%" height={250}>
           <LineChart data={sizing}>
             <CartesianGrid strokeDasharray="3 3" />
@@ -138,7 +138,7 @@ export function SolarAnalysisCharts({
             <Tooltip formatter={(value) => formatNumber(Number(value))} />
             <Legend />
             <Line yAxisId="left" type="monotone" dataKey="npvThb" name="NPV" stroke="#0f766e" strokeWidth={2} />
-            <Line yAxisId="right" type="monotone" dataKey="paybackYears" name="Payback" stroke="#d97706" strokeWidth={2} />
+            <Line yAxisId="right" type="monotone" dataKey="paybackYears" name="ระยะเวลาคืนทุน" stroke="#d97706" strokeWidth={2} />
           </LineChart>
         </ResponsiveContainer>
       </ChartPanel>

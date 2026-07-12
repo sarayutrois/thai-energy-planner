@@ -39,7 +39,7 @@ export function SolarPageShell({ active, queryString, children }: { active: stri
           <div>
             <h1 className="text-3xl font-semibold tracking-normal">จำลองการติดตั้งโซลาร์เซลล์บนหลังคา</h1>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              ประเมิน self-consumption, รายรับจากไฟส่งออก, payback, NPV, IRR, ขนาดระบบ, sensitivity และความเสี่ยงของโมเดล
+              ประเมินสัดส่วนไฟ Solar ที่ใช้ภายในสถานที่, รายรับจากไฟฟ้าที่ส่งกลับเข้าสู่ระบบ, ระยะเวลาคืนทุน, มูลค่าปัจจุบันสุทธิ, ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์
               โดยผลลัพธ์เป็นเพียงการประมาณการเบื้องต้น ไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด
             </p>
           </div>
@@ -189,13 +189,13 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Export enabled">
+          <Field label="เปิดรับไฟฟ้าที่ส่งกลับเข้าสู่ระบบ">
             <select name="exportEnabled" defaultValue={String(settings.exportEnabled)} className={inputClassName}>
               <option value="true">Enabled</option>
               <option value="false">Disabled</option>
             </select>
           </Field>
-          <Field label="Export rate (baht/kWh)">
+          <Field label="อัตรารับซื้อไฟฟ้า (บาท/kWh)">
             <input
               name="exportRateThbPerKwh"
               type="number"
@@ -205,7 +205,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Export limit (kW)">
+          <Field label="กำลังส่งกลับสูงสุด (kW)">
             <input name="exportLimitKw" type="number" min="0" step="0.1" defaultValue={settings.exportLimitKw} className={inputClassName} />
           </Field>
           <div className="flex items-end">
@@ -218,7 +218,7 @@ export function SolarControls({
               href={`/analysis/solar/sizing?${withSavedBillContext(buildSolarQuery(settings), savedBillContext)}`}
               className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
             >
-              Optimize size
+              หาขนาดระบบที่เหมาะสม
             </a>
           </div>
         </form>
@@ -257,9 +257,9 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
         label="ประมาณการประหยัด/ปี"
         value={`${formatApproximateMoneyRange(comparison.netAnnualBenefit)}/ปี`}
       />
-      <Metric label="Self-consumption" value={formatPercent(analysis.selfConsumption.selfConsumptionRatio)} />
+      <Metric label="สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่" value={formatPercent(analysis.selfConsumption.selfConsumptionRatio)} />
       <Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatNumber(recommended.systemSizeKwp)} kWp` : "ยังไม่มี"} />
-      <Metric label="Payback" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} years` : "-"} />
+      <Metric label="ระยะเวลาคืนทุน" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} ปี` : "-"} />
       <Metric label="NPV" value={`${formatNumber(analysis.financial.npvThb)} baht`} />
       <Metric label="IRR" value={analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%`} />
     </div>
@@ -364,10 +364,10 @@ export function BillComparisonTable({ analysis }: { analysis: SolarAnalysisResul
               <Th>Scenario</Th>
               <Th>Bill/month</Th>
               <Th>Bill/year</Th>
-              <Th>Import kWh/year</Th>
-              <Th>Export kWh/year</Th>
+              <Th>ไฟฟ้าจากโครงข่าย (kWh/ปี)</Th>
+              <Th>ไฟฟ้าที่ส่งกลับเข้าสู่ระบบ (kWh/ปี)</Th>
               <Th>Bill savings/year</Th>
-              <Th>Export revenue/year</Th>
+              <Th>รายได้จากไฟฟ้าที่ส่งกลับ (บาท/ปี)</Th>
               <Th>Net/month</Th>
               <Th>Tariff status</Th>
             </tr>
@@ -406,12 +406,12 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
       <CardContent>
         <div className="mb-4 grid gap-3 md:grid-cols-5">
           <Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatSizing(recommended.systemSizeKwp)} · NPV ${formatNumber(recommended.npvThb)}` : "ไม่มีขนาดที่ผ่านเกณฑ์"} />
-          <Metric label="Fastest payback" value={formatSizing(analysis.sizing.fastestPayback?.systemSizeKwp)} />
+          <Metric label="ขนาดที่คืนทุนเร็วที่สุด" value={formatSizing(analysis.sizing.fastestPayback?.systemSizeKwp)} />
           <Metric label="Highest NPV" value={formatSizing(analysis.sizing.highestNpv?.systemSizeKwp)} />
           <Metric label="Highest benefit" value={formatSizing(analysis.sizing.highestAnnualSavings?.systemSizeKwp)} />
           <Metric label="Best self-use" value={formatSizing(analysis.sizing.bestSelfConsumption?.systemSizeKwp)} />
         </div>
-        {analysis.sizing.options.length === 0 ? <EmptyState title="No sizing options" text="Adjust roof area, export limit, or min/max settings." /> : null}
+        {analysis.sizing.options.length === 0 ? <EmptyState title="ยังไม่มีขนาดระบบที่ประเมินได้" text="ตรวจสอบพื้นที่หลังคา กำลังส่งกลับสูงสุด และช่วงขนาดระบบที่ตั้งไว้" /> : null}
         <Table>
           <thead className="bg-muted text-muted-foreground">
             <tr>
@@ -423,10 +423,10 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
                 </span>
               </Th>
               <Th>Self-used/year</Th>
-              <Th>Export/year</Th>
+              <Th>ไฟฟ้าที่ส่งกลับ/ปี</Th>
               <Th>Self-use</Th>
               <Th>Benefit/year</Th>
-              <Th>Payback</Th>
+              <Th>ระยะเวลาคืนทุน</Th>
               <Th>NPV</Th>
               <Th>IRR</Th>
             </tr>
@@ -464,7 +464,7 @@ export function FinancialTable({ analysis }: { analysis: SolarAnalysisResult }) 
       <CardContent className="grid gap-4">
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="Initial investment" value={`${formatNumber(analysis.financial.initialInvestmentThb)} baht`} />
-          <Metric label="Discounted payback" value={analysis.financial.discountedPaybackYears ? `${analysis.financial.discountedPaybackYears} years` : "-"} />
+          <Metric label="ระยะเวลาคืนทุนคิดลด" value={analysis.financial.discountedPaybackYears ? `${analysis.financial.discountedPaybackYears} ปี` : "-"} />
           <Metric label="ROI" value={`${formatNumber(analysis.financial.roiPercent)}%`} />
           <Metric label="IRR" value={analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%`} />
         </div>
@@ -473,7 +473,7 @@ export function FinancialTable({ analysis }: { analysis: SolarAnalysisResult }) 
             <tr>
               <Th>Year</Th>
               <Th>Bill savings</Th>
-              <Th>Export revenue</Th>
+              <Th>รายได้จากไฟฟ้าที่ส่งกลับ</Th>
               <Th>O&M</Th>
               <Th>Inverter</Th>
               <Th>Net cash flow</Th>
@@ -529,7 +529,7 @@ export function SensitivityTable({ analysis }: { analysis: SolarAnalysisResult }
               <Th>Value</Th>
               <Th>NPV</Th>
               <Th>Impact</Th>
-              <Th>Payback</Th>
+              <Th>ระยะเวลาคืนทุน</Th>
               <Th>ROI</Th>
             </tr>
           </thead>
@@ -594,10 +594,10 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
     ["Degradation", `${assumptions.degradationPercentPerYear}%/year`],
     ["Yield data status", assumptions.yieldSource.status],
     ["Yield source", assumptions.yieldSource.sourceUrl ?? assumptions.yieldSource.notes],
-    ["Export policy status", exportPolicy.status],
-    ["Export rate", `${exportPolicy.exportRateThbPerKwh} baht/kWh`],
-    ["Export limit", `${exportPolicy.exportLimitKw ?? "-"} kW`],
-    ["Export source", exportPolicy.sourceUrl ?? exportPolicy.notes],
+    ["สถานะการรับไฟฟ้าที่ส่งกลับ", exportPolicy.status],
+    ["อัตรารับซื้อไฟฟ้า", `${exportPolicy.exportRateThbPerKwh} บาท/kWh`],
+    ["กำลังส่งกลับสูงสุด", `${exportPolicy.exportLimitKw ?? "-"} kW`],
+    ["แหล่งอ้างอิงอัตรารับซื้อ", exportPolicy.sourceUrl ?? exportPolicy.notes],
     ["Project life", `${financial.projectLifeYears} years`],
     ["Discount rate", `${financial.discountRatePercent}%`],
     ["Electricity escalation", `${financial.electricityEscalationRatePercent}%/year`],
@@ -640,7 +640,7 @@ function StressCase({
       <p className="mt-1 text-sm leading-6 text-muted-foreground">{caseResult.label}</p>
       <div className="mt-3 grid gap-2 text-sm">
         <InfoRow label="NPV" value={`${formatNumber(caseResult.npvThb)} baht`} />
-        <InfoRow label="Payback" value={caseResult.simplePaybackYears === null ? "-" : `${caseResult.simplePaybackYears} years`} />
+        <InfoRow label="ระยะเวลาคืนทุน" value={caseResult.simplePaybackYears === null ? "-" : `${caseResult.simplePaybackYears} ปี`} />
         <InfoRow label="IRR" value={caseResult.irrPercent === null ? "-" : `${formatNumber(caseResult.irrPercent)}%`} />
       </div>
     </div>
