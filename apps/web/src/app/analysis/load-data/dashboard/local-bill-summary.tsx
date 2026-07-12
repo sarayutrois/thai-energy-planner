@@ -132,7 +132,7 @@ export function LocalBillSummary() {
   const calibrationFactor = estimatedProfileMonthlyKwh && averageBillMonthlyKwh
     ? averageBillMonthlyKwh / estimatedProfileMonthlyKwh
     : null;
-  const isCalibrated = snapshot?.sourceName.includes("ปรับเทียบกับบิล") ?? false;
+  const isCalibrated = snapshot?.calibration !== undefined;
   const billHref = `/analysis/load-data/bills${workspace ? `?audience=${workspace.audience}&source=bills` : ""}`;
   const savedBillQuery = workspace
     ? `?audience=${workspace.audience}&source=bills`
@@ -157,6 +157,12 @@ export function LocalBillSummary() {
         `ปรับสเกล ${calibrationFactor.toFixed(3)} เท่า จากค่าเฉลี่ยบิล ${formatNumber(averageBillMonthlyKwh ?? 0)} kWh/เดือน`,
         "รูปแบบเวลาการใช้ไฟยังมาจาก Load Profile เดิม; การปรับเทียบนี้ใช้ค่าเฉลี่ยบิลต่อเดือน",
       ],
+      calibration: {
+        appliedAt: new Date().toISOString(),
+        factor: calibrationFactor,
+        billMonthlyKwh: averageBillMonthlyKwh ?? 0,
+        profileMonthlyKwhBefore: estimatedProfileMonthlyKwh ?? 0,
+      },
       persist: false,
     });
     const result = await persistLocalLoadProfile(nextSnapshot);
@@ -318,11 +324,11 @@ export function LocalBillSummary() {
                   </div>
                   <button
                     className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:pointer-events-none disabled:opacity-50"
-                    disabled={applyStatus === "saving" || isCalibrated}
+                    disabled={applyStatus === "saving" || Math.abs(calibrationFactor - 1) < 0.005}
                     onClick={() => void applyBillCalibration()}
                     type="button"
                   >
-                    {isCalibrated ? "ปรับเทียบกับบิลแล้ว" : applyStatus === "saving" ? "กำลังบันทึก..." : "ยืนยันใช้บิลปรับสเกล"}
+                    {applyStatus === "saving" ? "กำลังบันทึก..." : isCalibrated ? "ปรับเทียบใหม่ตามบิลล่าสุด" : "ยืนยันใช้บิลปรับสเกล"}
                   </button>
                 </div>
                 <div className="mt-3 grid gap-3 sm:grid-cols-3">
@@ -330,7 +336,7 @@ export function LocalBillSummary() {
                   <Metric icon={ReceiptText} label="เฉลี่ยจากบิล" value={`${formatNumber(averageBillMonthlyKwh)} kWh/เดือน`} />
                   <Metric icon={BarChart3} label="ตัวคูณที่ใช้" value={`${formatNumber(calibrationFactor)} เท่า`} />
                 </div>
-                <p className="mt-3 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : "Solar และ Battery จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
+                <p className="mt-3 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : isCalibrated ? `ปรับเทียบล่าสุด ${formatDateTime(snapshot?.calibration?.appliedAt ?? "")}; ปรับใหม่ได้เมื่อข้อมูลบิลเปลี่ยน` : "Solar และ Battery จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
               </div>
             ) : null}
           </section>

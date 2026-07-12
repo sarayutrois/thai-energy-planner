@@ -63,6 +63,59 @@ const presets = [
   { name: "เครื่องชาร์จรถยนต์ไฟฟ้า", category: "EV", powerW: 7400, dutyCycle: 1, start: "22:00", end: "02:00" },
 ] as const;
 
+type ApplianceSeed = {
+  name: string;
+  category: string;
+  powerW: number;
+  dutyCycle: number;
+  start: string;
+  end: string;
+  quantity?: number;
+  daysOfWeek?: number[];
+  coolingCapacityBtu?: number;
+  compressorType?: "inverter" | "fixed_speed";
+};
+
+const additionalPresets: ApplianceSeed[] = [
+  { name: "หม้อหุงข้าว", category: "ครัว", powerW: 700, dutyCycle: 0.75, start: "17:30", end: "18:30" },
+  { name: "ไมโครเวฟ", category: "ครัว", powerW: 1200, dutyCycle: 0.5, start: "18:00", end: "18:30" },
+  { name: "ปั๊มน้ำ", category: "ปั๊มน้ำ", powerW: 370, dutyCycle: 0.4, start: "06:00", end: "20:00" },
+  { name: "พัดลม", category: "เครื่องใช้ไฟฟ้าภายในบ้าน", powerW: 55, dutyCycle: 1, start: "18:00", end: "06:00" },
+  { name: "เครื่องอบผ้า", category: "เครื่องซักผ้า", powerW: 2500, dutyCycle: 0.75, start: "10:00", end: "11:30", daysOfWeek: [6, 0] },
+  { name: "เครื่องล้างจาน", category: "ครัว", powerW: 1300, dutyCycle: 0.7, start: "20:00", end: "21:00" },
+];
+const allPresets: ApplianceSeed[] = [...presets, ...additionalPresets];
+
+const homeStarterSets: Array<{ id: "compact_home" | "family_home"; label: string; description: string; items: ApplianceSeed[] }> = [
+  {
+    id: "compact_home",
+    label: "บ้านเล็ก 1 ห้องนอน",
+    description: "แอร์ 1 เครื่อง ตู้เย็น ทีวี ไฟ และเครื่องครัวพื้นฐาน",
+    items: [
+      { name: "เครื่องปรับอากาศ Inverter 12,000 BTU", category: "เครื่องปรับอากาศ", coolingCapacityBtu: 12000, compressorType: "inverter", powerW: 1100, dutyCycle: 0.65, start: "18:00", end: "06:00" },
+      { name: "ตู้เย็น", category: "ตู้เย็น", powerW: 120, dutyCycle: 0.35, start: "00:00", end: "00:00" },
+      { name: "โทรทัศน์", category: "เครื่องใช้ไฟฟ้าภายในบ้าน", powerW: 100, dutyCycle: 1, start: "18:00", end: "22:00" },
+      { name: "ไฟส่องสว่าง LED", category: "แสงสว่าง", powerW: 12, quantity: 8, dutyCycle: 1, start: "18:00", end: "23:00" },
+      { name: "หม้อหุงข้าว", category: "ครัว", powerW: 700, dutyCycle: 0.75, start: "17:30", end: "18:30" },
+      { name: "เครื่องซักผ้า", category: "เครื่องซักผ้า", powerW: 500, dutyCycle: 1, start: "10:00", end: "11:00", daysOfWeek: [6, 0] },
+    ],
+  },
+  {
+    id: "family_home",
+    label: "บ้านครอบครัว 2 ห้องนอน",
+    description: "แอร์ 2 เครื่อง พร้อมปั๊มน้ำ เครื่องทำน้ำอุ่น และเครื่องใช้ทั่วไป",
+    items: [
+      { name: "เครื่องปรับอากาศ Inverter 9,000 BTU", category: "เครื่องปรับอากาศ", coolingCapacityBtu: 9000, compressorType: "inverter", powerW: 800, dutyCycle: 0.65, start: "18:00", end: "06:00" },
+      { name: "เครื่องปรับอากาศ Inverter 18,000 BTU", category: "เครื่องปรับอากาศ", coolingCapacityBtu: 18000, compressorType: "inverter", powerW: 1700, dutyCycle: 0.65, start: "18:00", end: "06:00" },
+      { name: "ตู้เย็น", category: "ตู้เย็น", powerW: 120, dutyCycle: 0.35, start: "00:00", end: "00:00" },
+      { name: "ไฟส่องสว่าง LED", category: "แสงสว่าง", powerW: 12, quantity: 14, dutyCycle: 1, start: "18:00", end: "23:00" },
+      { name: "โทรทัศน์", category: "เครื่องใช้ไฟฟ้าภายในบ้าน", powerW: 100, quantity: 2, dutyCycle: 1, start: "18:00", end: "22:00" },
+      { name: "เครื่องทำน้ำอุ่น", category: "เครื่องทำน้ำอุ่น", powerW: 3500, dutyCycle: 1, start: "06:30", end: "07:00" },
+      { name: "ปั๊มน้ำ", category: "ปั๊มน้ำ", powerW: 370, dutyCycle: 0.4, start: "06:00", end: "20:00" },
+    ],
+  },
+];
+
 type Draft = {
   appliances: ApplianceInput[];
   intervalMinutes: 15 | 30 | 60;
@@ -81,6 +134,33 @@ function createDailySchedules(item: ApplianceInput): ApplianceScheduleInput[] {
 function scheduleForDay(item: ApplianceInput, day: number): ApplianceScheduleInput | undefined {
   const sourceSchedules = item.schedules?.length ? item.schedules : [item.schedule];
   return sourceSchedules.find((schedule) => schedule.daysOfWeek.includes(day));
+}
+
+function applianceFromSeed(seed: ApplianceSeed): ApplianceInput {
+  const isAirConditioner = seed.coolingCapacityBtu !== undefined;
+  return {
+    name: seed.name,
+    category: seed.category,
+    power: seed.powerW,
+    powerUnit: "W",
+    quantity: seed.quantity ?? 1,
+    dutyCycle: seed.dutyCycle,
+    applianceKind: isAirConditioner ? "air_conditioner" : "other",
+    ...(isAirConditioner ? {
+      coolingCapacityBtu: seed.coolingCapacityBtu,
+      compressorType: seed.compressorType ?? "inverter",
+    } : {}),
+    powerSource: "catalog",
+    notes: "ค่ามาตรฐานเริ่มต้น กรุณาตรวจฉลากเครื่องจริง",
+    schedule: {
+      startTime: seed.start,
+      endTime: seed.end,
+      daysOfWeek: seed.daysOfWeek ?? [0, 1, 2, 3, 4, 5, 6],
+      workingDayOnly: false,
+      holidayOnly: false,
+      seasonalMonths: [],
+    },
+  };
 }
 
 export function ApplianceLoadBuilder({
@@ -187,27 +267,35 @@ export function ApplianceLoadBuilder({
     setSaveStatus("idle");
   }
 
+  function copyDaySchedule(
+    index: number,
+    sourceDay: number,
+    targetDays: number[],
+  ) {
+    setAppliances((current) => current.map((item, itemIndex) => {
+      if (itemIndex !== index) return item;
+      const source = scheduleForDay(item, sourceDay)
+        ?? item.schedules?.[0]
+        ?? item.schedule;
+      const schedules = createDailySchedules(item)
+        .filter((schedule) => !targetDays.includes(schedule.daysOfWeek[0] ?? -1));
+      for (const day of targetDays) schedules.push({ ...source, daysOfWeek: [day] });
+      return { ...item, schedules };
+    }));
+    setSaveStatus("idle");
+  }
+
   function addPreset(presetName: string) {
-    const preset = presets.find((item) => item.name === presetName);
+    const preset = allPresets.find((item) => item.name === presetName);
     if (!preset) return;
-    setAppliances((current) => [...current, {
-      name: preset.name,
-      category: preset.category,
-      power: preset.powerW,
-      powerUnit: "W",
-      quantity: 1,
-      dutyCycle: preset.dutyCycle,
-      ...(preset.category === "เครื่องปรับอากาศ"
-        ? {
-            applianceKind: "air_conditioner" as const,
-            coolingCapacityBtu: 9000,
-            compressorType: "inverter" as const,
-            powerSource: "catalog" as const,
-          }
-        : { applianceKind: "other" as const, powerSource: "catalog" as const }),
-      notes: "ค่ามาตรฐานเริ่มต้น กรุณาตรวจฉลากเครื่องจริง",
-      schedule: { startTime: preset.start, endTime: preset.end, daysOfWeek: [0, 1, 2, 3, 4, 5, 6], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
-    }]);
+    setAppliances((current) => [...current, applianceFromSeed(preset)]);
+  }
+
+  function addHomeStarterSet(id: "compact_home" | "family_home") {
+    const starterSet = homeStarterSets.find((item) => item.id === id);
+    if (!starterSet) return;
+    setAppliances((current) => [...current, ...starterSet.items.map(applianceFromSeed)]);
+    setSaveStatus("idle");
   }
 
   function addCustom() {
@@ -280,10 +368,21 @@ export function ApplianceLoadBuilder({
               รายการสำเร็จรูป
               <select className="h-10 min-w-64 rounded-md border border-input bg-background px-3 text-sm" defaultValue="" onChange={(event) => { addPreset(event.target.value); event.currentTarget.value = ""; }}>
                 <option value="">เลือกเครื่องใช้ไฟฟ้า</option>
-                {presets.map((preset) => <option key={preset.name} value={preset.name}>{preset.name} · {preset.powerW.toLocaleString("th-TH")} W</option>)}
+                {allPresets.map((preset) => <option key={preset.name} value={preset.name}>{preset.name} · {preset.powerW.toLocaleString("th-TH")} W</option>)}
               </select>
             </label>
             <Button className="self-end" variant="outline" onClick={addCustom}><Plus className="h-4 w-4" />เพิ่มเอง</Button>
+          </div>
+        </div>
+        <div className="mt-4 rounded-md border border-dashed border-primary/40 bg-primary/5 p-3">
+          <p className="text-sm font-semibold">เริ่มจากบ้านตัวอย่าง</p>
+          <p className="mt-1 text-xs text-muted-foreground">เพิ่มรายการพื้นฐานให้ครบก่อน แล้วแก้จำนวน กำลังไฟ และเวลาให้ตรงบ้านจริง</p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {homeStarterSets.map((starterSet) => (
+              <Button key={starterSet.id} variant="outline" className="h-auto min-h-10 flex-col items-start px-3 py-2 text-left" onClick={() => addHomeStarterSet(starterSet.id)}>
+                <span>{starterSet.label}</span><span className="text-xs font-normal text-muted-foreground">{starterSet.description}</span>
+              </Button>
+            ))}
           </div>
         </div>
 
@@ -319,9 +418,15 @@ export function ApplianceLoadBuilder({
                   </div>
                 ) : null}
                 <div className="mt-4 rounded-md border border-border bg-muted/20 p-3">
-                  <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
-                    <p className="text-sm font-semibold">ตั้งเวลาแยกตามวัน</p>
-                    <p className="text-xs text-muted-foreground">เลือกแต่ละวัน แล้วกำหนดเวลาเริ่ม–หยุดได้ต่างกัน</p>
+                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                    <div>
+                      <p className="text-sm font-semibold">ตั้งเวลาแยกตามวัน</p>
+                      <p className="text-xs text-muted-foreground">กด “เปิดใช้” ที่วันนั้นก่อน จึงแก้เวลาเริ่ม–หยุดได้</p>
+                    </div>
+                    <div className="flex flex-wrap gap-2">
+                      <Button className="h-8 px-3 text-xs" variant="outline" onClick={() => copyDaySchedule(index, 1, [6, 0])}>คัดลอก จ.–ศ. ไป ส.–อา.</Button>
+                      <Button className="h-8 px-3 text-xs" variant="outline" onClick={() => copyDaySchedule(index, 1, days.map((day) => day.value))}>เปิดใช้ทุกวัน</Button>
+                    </div>
                   </div>
                   <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
                     {days.map((day) => {
@@ -330,12 +435,13 @@ export function ApplianceLoadBuilder({
                       return (
                         <div key={day.value} className={`grid grid-cols-[auto_1fr_1fr] items-end gap-2 rounded-md border p-2 ${active ? "border-primary/40 bg-background" : "border-border bg-muted/40"}`}>
                           <button
+                            aria-label={`${day.label}: ${active ? "กำลังใช้งาน กดเพื่อปิด" : "ปิดอยู่ กดเพื่อเปิดใช้งาน"}`}
                             aria-pressed={active}
-                            className={`h-10 rounded-md px-2 text-xs font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                            className={`flex h-10 min-w-12 flex-col items-center justify-center rounded-md px-2 text-xs font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
                             onClick={() => updateDaySchedule(index, day.value, active ? null : {})}
                             type="button"
                           >
-                            {day.label}
+                            <span>{day.label}</span><span className="text-[10px] font-normal">{active ? "ใช้งาน" : "เปิดใช้"}</span>
                           </button>
                           <TimeField
                             label="เริ่ม"

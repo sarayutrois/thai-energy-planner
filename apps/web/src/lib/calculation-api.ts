@@ -103,6 +103,8 @@ export type EstimateApiPayload = {
 export const solarAnalyzeRequestSchema = z
   .object({
     province: z.string().min(1).default("Bangkok"),
+    latitude: z.number().min(-90).max(90).optional(),
+    longitude: z.number().min(-180).max(180).optional(),
     customerSegment: z.enum(["residential", "small_business"]).optional(),
     profile: solarProfileSchema.default("evening_home"),
     modelMode: modelModeSchema.default("xhigh"),
@@ -279,7 +281,21 @@ export function runEstimateApiCalculation(request: EstimateApiRequest): Estimate
   };
 }
 
-export function runSolarAnalyzeApiCalculation(request: SolarAnalyzeApiRequest): SolarAnalyzeApiPayload {
+export type SolarResourceOverride = {
+  monthlySpecificYieldKwhPerKwp: number[];
+  source: {
+    status: "published";
+    sourceUrl: string;
+    authority: string;
+    notes: string;
+    verifiedAt: string;
+  };
+};
+
+export function runSolarAnalyzeApiCalculation(
+  request: SolarAnalyzeApiRequest,
+  solarResource?: SolarResourceOverride,
+): SolarAnalyzeApiPayload {
   const authority = inferThaiAuthorityFromProvince(request.province);
   const customerSegment = request.customerSegment ?? (request.profile === "daytime_shop" ? "small_business" : "residential");
   const demoInput = createDemoSolarInput(request.profile as DemoSolarProfileKey, buildSolarOverrides(request));
@@ -301,6 +317,13 @@ export function runSolarAnalyzeApiCalculation(request: SolarAnalyzeApiRequest): 
     ...(request.roofAzimuth === undefined ? {} : { roofAzimuth: request.roofAzimuth }),
     ...(request.roofTilt === undefined ? {} : { roofTilt: request.roofTilt })
   };
+  if (solarResource) {
+    demoInput.solarAssumptions = {
+      ...demoInput.solarAssumptions,
+      monthlySpecificYieldKwhPerKwp: solarResource.monthlySpecificYieldKwhPerKwp,
+      yieldSource: solarResource.source,
+    };
+  }
 
   const scaleFactors: number[] | undefined = (() => {
     if (request.monthlyBills && request.monthlyBills.length > 0) {
@@ -343,7 +366,14 @@ export function runSolarAnalyzeApiCalculation(request: SolarAnalyzeApiRequest): 
       uploadedSolarIntervalCount: request.solarProfile?.length ?? 0,
       tariffVersionIds: analysis.billComparison.calculationTrace.tariffVersionIds
     },
-    warnings: request.loadIntervals ? [] : ["No uploaded load intervals were provided; the API used a sample screening profile."]
+    warnings: [
+      ...(request.loadIntervals ? [] : ["No uploaded load intervals were provided; the API used a sample screening profile."]),
+      ...(solarResource
+        ? []
+        : request.latitude !== undefined && request.longitude !== undefined
+          ? ["PVGIS site data was unavailable, so the calculation used the screening yield profile instead."]
+          : ["Solar yield is using the screening profile. Add latitude and longitude to use PVGIS site data."]),
+    ]
   };
 }
 

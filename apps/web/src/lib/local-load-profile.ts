@@ -28,6 +28,12 @@ export type LocalLoadProfileSnapshot = {
   rows: LoadIntervalInput[];
   canonicalProfile?: CanonicalLoadProfile;
   serverLoadProfileId?: string;
+  calibration?: {
+    appliedAt: string;
+    factor: number;
+    billMonthlyKwh: number;
+    profileMonthlyKwhBefore: number;
+  };
 };
 
 export type LoadProfilePersistenceResult =
@@ -42,6 +48,7 @@ export function saveLocalLoadProfileSnapshot(input: {
   rows: LoadIntervalInput[];
   sourceKind?: LoadProfileSourceKind;
   warnings?: string[];
+  calibration?: LocalLoadProfileSnapshot["calibration"];
   persist?: boolean;
 }): LocalLoadProfileSnapshot {
   const existing = readLocalLoadProfileSnapshot();
@@ -65,6 +72,7 @@ export function saveLocalLoadProfileSnapshot(input: {
       ...input,
       generatedAt: now,
     }),
+    ...(input.calibration === undefined ? {} : { calibration: input.calibration }),
   };
 
   window.localStorage.setItem(

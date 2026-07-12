@@ -2557,7 +2557,10 @@ function solarLossFactor(assumptions: SolarAssumptions) {
 }
 
 function solarPerformanceFactor(assumptions: SolarAssumptions) {
-  return solarLossFactor(assumptions).mul(roofOrientationFactor(assumptions));
+  const orientationFactor = assumptions.yieldSource.authority === "PVGIS (European Commission)"
+    ? new Decimal(1)
+    : roofOrientationFactor(assumptions);
+  return solarLossFactor(assumptions).mul(orientationFactor);
 }
 
 function roofOrientationFactor(assumptions: SolarAssumptions) {

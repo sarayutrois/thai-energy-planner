@@ -36,6 +36,8 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
         method: "POST", signal: controller.signal, headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           province: settings.province, profile: settings.profile, modelMode: settings.modelMode,
+          ...(settings.latitude === undefined ? {} : { latitude: settings.latitude }),
+          ...(settings.longitude === undefined ? {} : { longitude: settings.longitude }),
           billDate: profileSnapshot.canonicalProfile?.period.startInclusive.slice(0, 10) ?? "2026-07-01",
           voltageLevel: "low_voltage", customerSegment: settings.profile === "daytime_shop" ? "small_business" : "residential",
           systemSizeKwp: settings.systemSizeKwp, roofAreaSqm: settings.roofAreaSqm, roofAzimuth: settings.roofAzimuth, roofTilt: settings.roofTilt,

@@ -23,6 +23,8 @@ export type SolarDemoSettings = {
   roofAzimuth: number;
   roofTilt: number;
   province: string;
+  latitude?: number | undefined;
+  longitude?: number | undefined;
   systemLossPercent: number;
   shadingLossPercent: number;
   degradationPercentPerYear: number;
@@ -79,6 +81,8 @@ export function getSolarDemo(params: SolarSearchParams): {
     roofAzimuth: getNumberParam(params.roofAzimuth, demoInput.solarAssumptions.roofAzimuth ?? 180, 0, "Roof azimuth", validationMessages),
     roofTilt: getNumberParam(params.roofTilt, demoInput.solarAssumptions.roofTilt ?? 12, 0, "Roof tilt", validationMessages),
     province: getSingleParam(params.province) ?? "Bangkok",
+    latitude: getOptionalNumberParam(params.latitude, -90, 90, "Latitude", validationMessages),
+    longitude: getOptionalNumberParam(params.longitude, -180, 180, "Longitude", validationMessages),
     systemLossPercent: getNumberParam(params.systemLossPercent, demoInput.solarAssumptions.systemLossPercent, 0, "System loss", validationMessages),
     shadingLossPercent: getNumberParam(params.shadingLossPercent, demoInput.solarAssumptions.shadingLossPercent, 0, "Shading loss", validationMessages),
     degradationPercentPerYear: getNumberParam(
@@ -123,6 +127,8 @@ export function getSolarDemo(params: SolarSearchParams): {
   input.solarAssumptions = {
     ...input.solarAssumptions,
     province: settings.province,
+    ...(settings.latitude === undefined ? {} : { latitude: settings.latitude }),
+    ...(settings.longitude === undefined ? {} : { longitude: settings.longitude }),
     roofAreaSqm: settings.roofAreaSqm,
     roofAzimuth: settings.roofAzimuth,
     roofTilt: settings.roofTilt
@@ -131,6 +137,8 @@ export function getSolarDemo(params: SolarSearchParams): {
     profile: settings.profile,
     modelMode: settings.modelMode,
     province: settings.province,
+    ...(settings.latitude === undefined ? {} : { latitude: String(settings.latitude) }),
+    ...(settings.longitude === undefined ? {} : { longitude: String(settings.longitude) }),
     billDate: "2026-07-01",
     voltageLevel: "low_voltage",
     customerSegment: settings.profile === "daytime_shop" ? "small_business" : "residential",
@@ -238,6 +246,21 @@ function getNumberParam(
   if (Number.isFinite(parsed) && parsed >= min) return parsed;
   validationMessages.push(`${label} must be greater than or equal to ${min}; the default value was used.`);
   return fallback;
+}
+
+function getOptionalNumberParam(
+  value: string | string[] | undefined,
+  min: number,
+  max: number,
+  label: string,
+  validationMessages: string[],
+) {
+  const raw = getSingleParam(value);
+  if (raw === undefined || raw === "") return undefined;
+  const parsed = Number(raw);
+  if (Number.isFinite(parsed) && parsed >= min && parsed <= max) return parsed;
+  validationMessages.push(`${label} must be between ${min} and ${max}; site data was not requested.`);
+  return undefined;
 }
 
 function getBooleanParam(value: string | string[] | undefined, fallback: boolean) {

@@ -119,6 +119,12 @@ export function SolarControls({
           <Field label="Province / area">
             <input name="province" defaultValue={settings.province} className={inputClassName} />
           </Field>
+          <Field label="Latitude (optional, for PVGIS)">
+            <input name="latitude" type="number" min="-90" max="90" step="0.0001" defaultValue={settings.latitude ?? ""} placeholder="เช่น 13.7563" className={inputClassName} />
+          </Field>
+          <Field label="Longitude (optional, for PVGIS)">
+            <input name="longitude" type="number" min="-180" max="180" step="0.0001" defaultValue={settings.longitude ?? ""} placeholder="เช่น 100.5018" className={inputClassName} />
+          </Field>
           <Field label="Solar size (kWp)">
             <input name="systemSizeKwp" type="number" min="0.1" step="0.1" defaultValue={settings.systemSizeKwp} className={inputClassName} />
           </Field>
