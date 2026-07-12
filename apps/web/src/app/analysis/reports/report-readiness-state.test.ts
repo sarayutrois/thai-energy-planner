@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getReportReadinessStatus } from "./report-readiness-state";
+import { canExportCurrentReport, getReportReadinessStatus } from "./report-readiness-state";
 
 describe("report readiness", () => {
   it("marks an empty workspace as no data", () => {
@@ -14,5 +14,12 @@ describe("report readiness", () => {
     const complete = { hasBills: true, hasLoadProfile: true, hasScenario: true, hasSolar: true, hasTariffTrace: true, hasVerifiedResult: true };
     expect(getReportReadinessStatus({ ...complete, billMonthCount: 3 })).toBe("low_confidence");
     expect(getReportReadinessStatus({ ...complete, billMonthCount: 6 })).toBe("ready");
+  });
+
+  it("keeps export disabled until every prerequisite is present", () => {
+    expect(canExportCurrentReport("no_data")).toBe(false);
+    expect(canExportCurrentReport("incomplete")).toBe(false);
+    expect(canExportCurrentReport("low_confidence")).toBe(true);
+    expect(canExportCurrentReport("ready")).toBe(true);
   });
 });

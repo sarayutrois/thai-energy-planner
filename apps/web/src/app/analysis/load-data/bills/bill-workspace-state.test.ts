@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { getStoredWorkspaceMode, isUserWorkspace } from "./bill-workspace-state";
+import { completedBillInputs, getStoredWorkspaceMode, isUserWorkspace } from "./bill-workspace-state";
 
 describe("bill workspace source state", () => {
   const row = { id: "1", month: "2026-01", energyKwh: "465", totalCostThb: "2038", authority: "PEA" as const, meterMode: "normal" as const };
@@ -16,5 +16,13 @@ describe("bill workspace source state", () => {
     expect(getStoredWorkspaceMode({ audience: "home", mode: "sample", rows: [row] }, "home")).toBe("sample");
     expect(isUserWorkspace({ audience: "home", mode: "sample", rows: [row] })).toBe(false);
     expect(isUserWorkspace({ audience: "home", mode: "user", rows: [row], updatedAt: "2026-01-01" })).toBe(true);
+  });
+
+  it("does not count blank or zero-value rows as bill data", () => {
+    expect(completedBillInputs([
+      { month: "2026-01", energyKwh: 0, totalCostThb: 0 },
+      { month: "", energyKwh: 500, totalCostThb: 2200 },
+    ])).toEqual([]);
+    expect(completedBillInputs([{ month: "2026-01", energyKwh: 500, totalCostThb: 2200 }])).toHaveLength(1);
   });
 });

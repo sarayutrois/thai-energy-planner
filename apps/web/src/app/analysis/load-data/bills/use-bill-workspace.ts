@@ -39,11 +39,18 @@ export type EditableBillRow = {
 };
 
 export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: AnalysisAudience) {
-  const [workspace, setWorkspace] = useState(() => loadStoredWorkspace(initialBills, audience));
+  const [workspace, setWorkspace] = useState(() => createInitialWorkspace(initialBills));
+  const [hasHydrated, setHasHydrated] = useState(false);
   const { mode, rows } = workspace;
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
 
+  useEffect(() => {
+    setWorkspace(loadStoredWorkspace(initialBills, audience));
+    setHasHydrated(true);
+  }, [audience, initialBills]);
+
   useDebouncedEffect(() => {
+    if (!hasHydrated) return;
     if (mode === "empty") {
       window.localStorage.removeItem(billWorkspaceStorageKey);
       setSaveStatus("ยังไม่มีข้อมูลที่บันทึกไว้");
@@ -57,7 +64,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
     };
     window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
     setSaveStatus(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
-  }, [audience, mode, rows], 500);
+  }, [audience, hasHydrated, mode, rows], 500);
 
   function updateRow(id: string, patch: Partial<EditableBillRow>) {
     setWorkspace((current) => {
@@ -238,7 +245,7 @@ export function toBillInput(row: EditableBillRow): MonthlyBillInput {
 }
 
 function loadStoredWorkspace(initialBills: MonthlyBillInput[], audience: AnalysisAudience): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
-  if (typeof window === "undefined") return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
+  if (typeof window === "undefined") return createInitialWorkspace(initialBills);
 
   try {
     const raw = window.localStorage.getItem(billWorkspaceStorageKey);
@@ -249,6 +256,13 @@ function loadStoredWorkspace(initialBills: MonthlyBillInput[], audience: Analysi
   } catch {
     return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
   }
+}
+
+function createInitialWorkspace(initialBills: MonthlyBillInput[]): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
+  return {
+    mode: initialBills.length > 0 ? "user" : "empty",
+    rows: initialBills.map(toEditableRow),
+  };
 }
 
 function emptyRow(): EditableBillRow {

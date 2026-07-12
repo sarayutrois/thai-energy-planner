@@ -15,3 +15,7 @@ export function getReportReadinessStatus(input: ReportReadinessInput): ReportRea
   if (!input.hasBills || !input.hasLoadProfile || !input.hasScenario || !input.hasSolar || !input.hasTariffTrace || !input.hasVerifiedResult) return "incomplete";
   return input.billMonthCount < 6 ? "low_confidence" : "ready";
 }
+
+export function canExportCurrentReport(status: ReportReadinessStatus) {
+  return status === "ready" || status === "low_confidence";
+}

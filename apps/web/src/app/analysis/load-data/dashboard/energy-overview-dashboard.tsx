@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import { readLocalLoadProfileSnapshot, type LocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import { SampleBillNotice } from "@/components/sample-bill-notice";
 
 export function EnergyOverviewDashboard() {
   const [profile, setProfile] = useState<LocalLoadProfileSnapshot | null>(null);
@@ -20,6 +21,7 @@ export function EnergyOverviewDashboard() {
   const sourceQuality = profile?.canonicalProfile?.quality.level === "measured" ? "สูง · ข้อมูลวัดจริง" : profile?.canonicalProfile?.quality.level === "modeled" ? "ปานกลาง · รูปแบบจำลอง" : profile ? "ต่ำ · ค่าประมาณ" : "ยังไม่มีข้อมูล";
 
   return <div className="mt-6 grid gap-5">
+    <SampleBillNotice />
     <section className="rounded-xl border border-border bg-card p-5"><div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between"><div><h2 className="text-xl font-semibold">ภาพรวมข้อมูลการใช้ไฟ</h2><p className="mt-1 text-sm leading-6 text-muted-foreground">ตัวเลขจากบิลจะมีความสำคัญเหนือกว่า Load Profile ที่สร้างจากรายการเครื่องใช้ไฟฟ้า</p></div><Badge variant={profile ? "success" : "outline"}>{sourceQuality}</Badge></div>
       <div className="mt-5 grid gap-3 sm:grid-cols-2 lg:grid-cols-4"><Metric icon={<Zap />} label="ใช้ไฟต่อเดือน" value={billMonthlyKwh ? `${format(billMonthlyKwh)} kWh` : profileMonthlyKwh ? `${format(profileMonthlyKwh)} kWh*` : "ยังไม่มีข้อมูล"} /><Metric icon={<ReceiptText />} label="ค่าไฟต่อเดือน" value={billMonthlyCost ? `${format(billMonthlyCost)} บาท` : "กรุณาเพิ่มบิล"} /><Metric icon={<BarChart3 />} label="Peak Load" value={load ? `${format(load.peakDemandKw)} kW` : "ยังไม่มีข้อมูล"} /><Metric icon={<SunMedium />} label="พร้อมวิเคราะห์ Solar" value={profile ? "พร้อม" : "ต้องมี Load Profile"} /></div>
       {profileMonthlyKwh && !billMonthlyKwh ? <p className="mt-4 text-xs text-muted-foreground">* ค่าประมาณจาก Load Profile ที่ผู้ใช้สร้าง ยังไม่ได้ปรับเทียบกับบิล</p> : null}

@@ -12,6 +12,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readLocalLoadProfileSnapshot, type LocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
+import { LocalBillResultContext } from "@/components/local-bill-result-context";
+import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 
 type SolarAnalyzeResponse =
   | { ok: true; analysis: SolarAnalysisResult; trace: { authority: "PEA" | "MEA"; customerSegment: "residential" | "small_business"; billDate: string; inputIntervalCount: number; uploadedSolarIntervalCount: number; tariffVersionIds: string[] }; warnings: string[] }
@@ -78,6 +80,7 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
   );
 
   const dataStatus = getSolarDataStatus(snapshot, readSavedBills().length > 0);
+  const reportDraft = payload ? buildSolarRuntimeReportDraft(payload.analysis, payload.trace, snapshot) : undefined;
 
   return (
     <Card className="border-primary/40 bg-primary/5">
@@ -92,8 +95,9 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
         {isLoading ? <div className="rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">กำลังคำนวณจากข้อมูลการใช้ไฟที่เลือก…</div> : null}
         {error ? <div className="rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">{error}</div> : null}
         {payload ? <RuntimeMetrics analysis={payload.analysis} trace={payload.trace} snapshot={snapshot} hasBills={readSavedBills().length > 0} /> : null}
-        {payload?.warnings.length ? <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">{payload.warnings.map((warning) => <p key={warning}>{warning}</p>)}</div> : null}
+        {payload?.warnings.length ? <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">{payload.warnings.map((warning) => <p key={warning}>{solarWarningCopy(warning)}</p>)}</div> : null}
         <div className="flex flex-wrap gap-2"><Button disabled={isLoading} onClick={() => void runAnalysis(snapshot)} variant="outline"><RefreshCw className="h-4 w-4" />{isLoading ? "กำลังคำนวณ..." : "คำนวณผล"}</Button><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted" href="/analysis/load-data">แก้ไขข้อมูลการใช้ไฟ</a><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted" href="/analysis/solar/config">แก้ไขข้อมูลสำหรับประเมิน Solar</a></div>
+        <LocalBillResultContext enabled={Boolean(reportDraft && readSavedBills().length > 0)} moduleName="Solar" reportDraft={reportDraft} />
       </CardContent>
     </Card>
   );
@@ -113,7 +117,7 @@ function RuntimeMetrics({ analysis, trace, snapshot, hasBills }: { analysis: Sol
     <Metric label="ระยะคืนทุน" value={analysis.financial.simplePaybackYears ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี` : "ไม่สามารถคืนทุนจากสมมติฐานนี้"} />
     <Metric label="สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่" value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`} />
     <Metric label="ช่วงข้อมูลที่ใช้" value={`${trace.inputIntervalCount.toLocaleString("th-TH")} ช่วง`} />
-  </div><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3><div className="mt-3 grid gap-3 md:grid-cols-3"><Info label="ค่าไฟก่อนติดตั้ง" value={`${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ค่าไฟหลังติดตั้ง" value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ประหยัดรายปี" value={`${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`} /></div></section><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3><div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Info label="ข้อมูลการใช้ไฟ" value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`} /><Info label="ข้อมูลจากบิล" value={hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"} /><Info label="อัตราค่าไฟ" value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`} /><Info label="ข้อมูลแสงอาทิตย์" value={`${analysis.solarProfile.source.authority} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`} /></div></section></>;
+  </div><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3><div className="mt-3 grid gap-3 md:grid-cols-3"><Info label="ค่าไฟก่อนติดตั้ง" value={`${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ค่าไฟหลังติดตั้ง" value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`} /><Info label="ประหยัดรายปี" value={`${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`} /></div></section><section className="rounded-md border border-border bg-background p-4 text-sm"><h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3><div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4"><Info label="ข้อมูลการใช้ไฟ" value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`} /><Info label="ข้อมูลจากบิล" value={hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"} /><Info label="อัตราค่าไฟ" value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`} /><Info label="ข้อมูลแสงอาทิตย์" value={`${solarSourceLabel(analysis.solarProfile.source.authority)} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`} /></div></section></>;
 }
 
 function Metric({ label, value }: { label: string; value: string }) { return <div className="rounded-md border border-border bg-card p-4"><p className="text-xs font-medium text-muted-foreground">{label}</p><p className="mt-2 text-sm font-semibold">{value}</p></div>; }
@@ -146,6 +150,60 @@ function readSavedBillAuthority(): "PEA" | "MEA" | undefined {
   } catch { return undefined; }
 }
 function sourceStatus(status: "demo" | "draft" | "verified" | "published") { return status === "published" || status === "verified" ? "ข้อมูลอ้างอิง" : status === "draft" ? "ข้อมูลรอตรวจสอบ" : "ค่ามาตรฐานสำหรับประมาณการ"; }
+
+function solarSourceLabel(authority: string) {
+  return authority.toLowerCase().includes("demo") ? "ข้อมูลแสงอาทิตย์มาตรฐานของระบบ" : authority;
+}
+
+function solarWarningCopy(warning: string) {
+  if (warning.includes("No uploaded load intervals")) return "ยังไม่มีข้อมูลการใช้ไฟรายช่วงเวลา ระบบจึงใช้รูปแบบการใช้ไฟมาตรฐานสำหรับการประเมินเบื้องต้น";
+  if (warning.includes("PVGIS site data was unavailable")) return "ไม่สามารถใช้ข้อมูลแสงอาทิตย์ตามตำแหน่งที่ระบุได้ จึงใช้ค่าประมาณแสงอาทิตย์มาตรฐานแทน";
+  if (warning.includes("Solar yield is using")) return "ขณะนี้ใช้ค่าประมาณแสงอาทิตย์มาตรฐาน ความแม่นยำจะเพิ่มขึ้นเมื่อระบุตำแหน่งติดตั้ง";
+  if (warning.includes("Factory/large-building tariffs")) return "อัตราค่าไฟสำหรับโรงงานหรืออาคารขนาดใหญ่ยังไม่รองรับ ผลนี้จึงใช้อัตราธุรกิจขนาดเล็กเป็นค่าประมาณ";
+  return warning;
+}
+
+function buildSolarRuntimeReportDraft(
+  analysis: SolarAnalysisResult,
+  trace: Extract<SolarAnalyzeResponse, { ok: true }>["trace"],
+  snapshot: LocalLoadProfileSnapshot,
+): LocalAnalysisReportDraft {
+  const comparison = analysis.billComparison;
+  return {
+    module: "solar",
+    moduleLabel: "Solar",
+    title: "รายงานประเมิน Solar จาก Load Profile",
+    summary: `ประเมินจาก ${snapshot.sourceName} โดยใช้ระบบขนาด ${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`,
+    metrics: [
+      { label: "ค่าไฟก่อนติดตั้ง", value: `${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน` },
+      { label: "ค่าไฟหลังติดตั้ง", value: `${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน` },
+      { label: "ประหยัดโดยประมาณ", value: `${formatNumber(comparison.netAnnualBenefit)} บาท/ปี` },
+      { label: "ระยะเวลาคืนทุน", value: analysis.financial.simplePaybackYears ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี` : "ยังไม่คืนทุนในสมมติฐานนี้" },
+    ],
+    assumptions: [
+      { label: "Load Profile", value: snapshot.sourceName },
+      { label: "จำนวนช่วงข้อมูล", value: trace.inputIntervalCount.toLocaleString("th-TH") },
+      { label: "ขนาดระบบ", value: `${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp` },
+      { label: "การไฟฟ้า", value: trace.authority },
+    ],
+    resultRows: [{
+      monthlyBillBeforeThb: roundReportNumber(comparison.bestWithoutSolar.monthlyBillThb),
+      monthlyBillAfterThb: roundReportNumber(comparison.bestWithSolar.monthlyBillThb),
+      annualBenefitThb: roundReportNumber(comparison.netAnnualBenefit),
+      systemSizeKwp: roundReportNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp),
+    }],
+    recommendations: analysis.recommendations.map((item) => ({
+      title: item.title,
+      description: item.explanation,
+      nextAction: item.nextAction,
+    })),
+    references: [{ label: "อัตราค่าไฟอ้างอิง", value: `${trace.authority} · วันที่ ${trace.billDate}` }],
+  };
+}
+
+function roundReportNumber(value: number) {
+  return Number(value.toFixed(2));
+}
 
 function getSolarDecision({ analysis, snapshot, hasBills }: { analysis: SolarAnalysisResult; snapshot: LocalLoadProfileSnapshot; hasBills: boolean }) {
   const recommended = analysis.sizing.recommended;

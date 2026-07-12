@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisStartHref, type AnalysisAudience } from "@/lib/analysis-start";
 import { billReportStorageKey, billWorkspaceStorageKey, localBillReportId, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
 import { useBillWorkspace, toBillInput, type EditableBillRow } from "./use-bill-workspace";
+import { completedBillInputs } from "./bill-workspace-state";
 import { AiScannerButton } from "./ai-scanner-button";
 import { LocalDataBackupControls } from "@/components/local-data-backup-controls";
 
@@ -56,18 +57,19 @@ export function GuidedBillWorkspace({
 
   const bills = useMemo(() => rows.map(toBillInput), [rows]);
   const validation = useMemo(() => validateMonthlyBills(bills), [bills]);
-  const summary = useMemo(() => summarizeBills(validation.bills), [validation.bills]);
-  const hasBillData = validation.bills.length > 0;
+  const completedBills = useMemo(() => completedBillInputs(validation.bills), [validation.bills]);
+  const summary = useMemo(() => summarizeBills(completedBills), [completedBills]);
+  const hasBillData = completedBills.length > 0;
   const dataQuality = useMemo(
     () =>
       estimateDataQuality({
         source: "bill",
         intervalMonths: 0,
-        hasTwelveMonthBills: validation.bills.length >= 12
+        hasTwelveMonthBills: completedBills.length >= 12
       }),
-    [validation.bills.length]
+    [completedBills.length]
   );
-  const recommendations = useMemo(() => (hasBillData ? buildBillRecommendations(validation.bills, summary) : []), [hasBillData, summary, validation.bills]);
+  const recommendations = useMemo(() => (hasBillData ? buildBillRecommendations(completedBills, summary) : []), [completedBills, hasBillData, summary]);
   const averageMonthlyKwh = useMemo(
     () => (summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0),
     [summary.totalKwh, summary.monthCount]
@@ -83,10 +85,10 @@ export function GuidedBillWorkspace({
       sourceEnd: "22:00",
       targetWindow: "22:00-06:00",
       monthlyKwh: String(round(averageMonthlyKwh, 2)),
-      billMonthCount: String(validation.bills.length),
+      billMonthCount: String(completedBills.length),
     });
     return `/analysis/scenarios/results?${params.toString()}`;
-  }, [audience, averageMonthlyKwh, validation.bills.length]);
+  }, [audience, averageMonthlyKwh, completedBills.length]);
   const solarHref = `/analysis/solar?audience=${audience}&source=bills&profile=${audienceProfile[audience]}`;
 
   function createLocalReport() {
@@ -115,7 +117,7 @@ export function GuidedBillWorkspace({
         description: item.description,
         badge: item.badge
       })),
-      rows: validation.bills.map((bill) => ({
+      rows: completedBills.map((bill) => ({
         month: sanitizeMonth(bill.month),
         energyKwh: bill.energyKwh,
         totalCostThb: bill.totalCostThb,
@@ -357,7 +359,7 @@ export function GuidedBillWorkspace({
         <Metric label="หน่วยรวม" value={hasBillData ? `${formatNumber(summary.totalKwh)} kWh` : "N/A"} />
         <Metric label="ค่าไฟรวม" value={hasBillData ? `${formatNumber(summary.totalCostThb)} บาท` : "N/A"} />
         <Metric label="เฉลี่ยต่อเดือน" value={hasBillData ? `${formatNumber(summary.totalCostThb / summary.monthCount)} บาท` : "N/A"} />
-        <Metric label="คุณภาพข้อมูล" value={hasBillData ? `${dataQuality.labelTh} (${dataQuality.score})` : "ยังไม่มีข้อมูล"} />
+        <Metric label="คุณภาพข้อมูล" value={mode === "sample" ? "ข้อมูลตัวอย่าง" : hasBillData ? `${dataQuality.labelTh} (${dataQuality.score})` : "ยังไม่มีข้อมูล"} />
       </div>
 
       {hasBillData ? <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
@@ -383,7 +385,7 @@ export function GuidedBillWorkspace({
             <CardTitle>ไปต่อหลังกรอกบิล</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
-            {mode === "user" && validation.canSave && validation.bills.length > 0 ? (
+            {mode === "user" && validation.canSave && completedBills.length > 0 ? (
               <button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring" onClick={proceedToLoadComparison} type="button">
                 บันทึกบิลแล้วไปเทียบ Load Profile
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
@@ -395,7 +397,7 @@ export function GuidedBillWorkspace({
             )}
             <button
               className="inline-flex min-h-10 items-center justify-center gap-2 rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring disabled:pointer-events-none disabled:opacity-50"
-              disabled={mode !== "user" || !validation.canSave || validation.bills.length === 0}
+              disabled={mode !== "user" || !validation.canSave || completedBills.length === 0}
               onClick={createLocalReport}
               type="button"
             >
@@ -404,7 +406,7 @@ export function GuidedBillWorkspace({
             </button>
             <NextLink href={scenarioHref} label="เทียบ Normal / TOU" description="ใช้ข้อมูลบิลที่บันทึกไว้เพื่อประเมินค่าไฟ TOU และการย้ายโหลดเบื้องต้น" />
             <NextLink href={solarHref} label="ลอง Solar" description="ใช้ profile ที่เหมาะกับประเภทผู้ใช้ที่เลือกไว้ แล้วประเมินคืนทุนเบื้องต้น" />
-            <NextLink href={buildAnalysisStartHref("/analysis/load-data/import", audience, "interval")} label="มีไฟล์ละเอียดแล้ว" description="อัปโหลด load profile เพื่อเพิ่มความแม่นยำของ TOU, Solar, Battery และ EV" />
+            <NextLink href={buildAnalysisStartHref("/analysis/load-data/import", audience, "interval")} label="มีไฟล์ละเอียดแล้ว" description="อัปโหลด Load Profile เพื่อเพิ่มความแม่นยำของ TOU และ Solar" />
           </CardContent>
         </Card>
       </div> : null}
@@ -444,7 +446,7 @@ function buildBillRecommendations(bills: MonthlyBillInput[], summary: ReturnType
       description:
         bills.length >= 12
           ? "มีข้อมูลครบปีพอจะดูช่วงหน้าร้อน/หน้าฝนและค่าไฟเฉลี่ยรายปีได้ดีขึ้น"
-          : "ตอนนี้ใช้ดูภาพรวมเบื้องต้นได้ แต่ถ้าจะตัดสินใจลงทุน Solar หรือ Battery ควรมีบิลย้อนหลังมากขึ้น",
+          : "ตอนนี้ใช้ดูภาพรวมเบื้องต้นได้ แต่ถ้าจะตัดสินใจลงทุน Solar ควรมีบิลย้อนหลังมากขึ้น",
       badge: `${bills.length} เดือน`,
       tone: bills.length >= 12 ? "success" : "warning"
     },

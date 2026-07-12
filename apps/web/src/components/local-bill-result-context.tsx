@@ -54,7 +54,7 @@ export function LocalBillResultContext({
         </CardHeader>
         <CardContent className="grid gap-3">
           <p className="text-sm leading-6 text-muted-foreground">
-            ผลลัพธ์นี้ถูกเปิดจาก saved bills แต่ข้อมูลใน browser อาจถูกลบหรือเสียรูปแบบแล้ว
+            ผลลัพธ์นี้เริ่มจากบิลที่บันทึกไว้ แต่ข้อมูลในอุปกรณ์อาจถูกลบหรือเสียรูปแบบแล้ว
           </p>
           <ActionLink href="/analysis/load-data/bills" label="กลับไปเพิ่มบิล" />
         </CardContent>
@@ -68,12 +68,12 @@ export function LocalBillResultContext({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ReceiptText aria-hidden="true" className="h-5 w-5 text-primary" />
-            ยังไม่พบ saved bills ใน browser นี้
+            ยังไม่พบบิลที่บันทึกไว้ในอุปกรณ์นี้
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-3">
           <p className="text-sm leading-6 text-muted-foreground">
-            ลิงก์นี้ถูกตั้งให้เริ่มจากบิล แต่ยังไม่มี snapshot ที่ใช้แสดงบริบทของผล {moduleName}
+            หน้านี้ถูกตั้งให้เริ่มจากบิล แต่ยังไม่มีข้อมูลบิลที่ใช้ยืนยันบริบทของผล {moduleName}
           </p>
           <ActionLink href="/analysis/load-data/bills" label="เพิ่มบิลก่อน" />
         </CardContent>
@@ -88,10 +88,10 @@ export function LocalBillResultContext({
           <div>
             <CardTitle className="flex items-center gap-2">
               <ReceiptText aria-hidden="true" className="h-5 w-5 text-primary" />
-              ผล {moduleName} นี้เริ่มจาก saved bills
+              ผล {moduleName} นี้ใช้บิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              ใช้บิล {snapshot.monthCount} เดือนใน browser นี้เป็นจุดตั้งต้น ผลคำนวณอิง tariff snapshot และ screening profile ของแต่ละโมดูล
+              ใช้บิล {snapshot.monthCount} เดือนในอุปกรณ์นี้ร่วมกับ Load Profile และอัตราค่าไฟที่ระบุแหล่งอ้างอิงได้
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -121,17 +121,17 @@ export function LocalBillResultContext({
                   sourcePath: `${window.location.pathname}${window.location.search}`
                 });
                 setSavedReportId(report.id);
-                setSyncStatus("บันทึก local แล้ว กำลัง sync database...");
+                setSyncStatus("บันทึกในอุปกรณ์แล้ว กำลังส่งข้อมูลไปยังบัญชี...");
                 void persistLocalAnalysisReport(report)
                   .then((persistedReport) => {
                     setSyncStatus(
                       persistedReport.serverGeneratedReportId
-                        ? "บันทึกลง database แล้ว"
-                        : "บันทึก local แล้ว แต่ database ยังไม่พร้อม"
+                        ? "บันทึกลงบัญชีแล้ว"
+                        : "บันทึกในอุปกรณ์แล้ว แต่ยังส่งไปยังบัญชีไม่ได้"
                     );
                   })
                   .catch(() => {
-                    setSyncStatus("บันทึก local แล้ว แต่ database ยังไม่พร้อม");
+                    setSyncStatus("บันทึกในอุปกรณ์แล้ว แต่ยังส่งไปยังบัญชีไม่ได้");
                   });
               }}
               type="button"

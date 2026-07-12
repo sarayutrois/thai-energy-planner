@@ -5,6 +5,7 @@ import { Check, History, RefreshCw } from "lucide-react";
 import {
   createScenarioInputFromCanonicalLoadProfile,
   runScenarioComparison,
+  type ScenarioComparisonResult,
 } from "@thai-energy-planner/calculation-engine";
 import { getOfficialThaiTariffPair } from "@thai-energy-planner/tariff-engine";
 import type {
@@ -23,6 +24,9 @@ import {
 } from "@/lib/local-load-profile";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import { ScenarioView } from "./scenario-view";
+import { LocalBillResultContext } from "@/components/local-bill-result-context";
+import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
+import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 
 export function CanonicalScenarioPanel() {
   const [snapshot, setSnapshot] = useState<LocalLoadProfileSnapshot | null>(null);
@@ -35,6 +39,7 @@ export function CanonicalScenarioPanel() {
     "residential" | "small_business"
   >("residential");
   const [showHistory, setShowHistory] = useState(false);
+  const [hasBillContext, setHasBillContext] = useState(false);
 
   function refreshProfiles() {
     setProfiles(listDistinctLocalLoadProfileSnapshots());
@@ -43,6 +48,7 @@ export function CanonicalScenarioPanel() {
 
   useEffect(() => {
     refreshProfiles();
+    setHasBillContext(Boolean(readLocalBillReportSnapshot()));
     void authenticatedFetch("/api/load-profiles")
       .then(async (response) => {
         if (!response.ok) return null;
@@ -84,10 +90,12 @@ export function CanonicalScenarioPanel() {
     } catch (caught) {
       return {
         error:
-          caught instanceof Error ? caught.message : "Unable to run Scenario.",
+          caught instanceof Error ? caught.message : "ไม่สามารถคำนวณผลเปรียบเทียบได้",
       };
     }
   }, [authority, customerSegment, profile]);
+  const comparison = result && !("error" in result) ? result : null;
+  const reportDraft = comparison && profile ? buildScenarioReportDraft(comparison, profile) : undefined;
 
   if (!profile || !activeSnapshot) {
     return (
@@ -131,7 +139,7 @@ export function CanonicalScenarioPanel() {
                 <option value="">เลือกโปรไฟล์ในบัญชี</option>
                 {accountProfiles.map((item) => (
                   <option key={item.id} value={item.id}>
-                    {item.name} · {item.intervalCount.toLocaleString("th-TH")} intervals
+                    {item.name} · {item.intervalCount.toLocaleString("th-TH")} ช่วงข้อมูล
                   </option>
                 ))}
               </select>
@@ -147,12 +155,12 @@ export function CanonicalScenarioPanel() {
       <CardHeader>
         <div className="flex flex-wrap items-start justify-between gap-3">
           <div>
-            <CardTitle>Scenario from saved Load Profile</CardTitle>
+            <CardTitle>เปรียบเทียบจาก Load Profile ที่บันทึกไว้</CardTitle>
             <p className="mt-2 text-sm text-muted-foreground">
-              ใช้ “{profile.name}” จาก {profile.source.kind} โดยไม่มีข้อมูลตัวอย่างปะปน
+              ใช้ “{profile.name}” จาก {profileSourceLabel(profile.source.kind)} โดยไม่มีข้อมูลตัวอย่างปะปน
             </p>
           </div>
-          <Badge variant="success">Canonical Profile</Badge>
+          <Badge variant="success">ข้อมูลพร้อมคำนวณ</Badge>
         </div>
       </CardHeader>
       <CardContent className="grid gap-5">
@@ -172,7 +180,7 @@ export function CanonicalScenarioPanel() {
         </section>
         <div className="flex flex-wrap gap-3">
           <label className="grid gap-1 text-sm font-medium">
-            Authority
+            การไฟฟ้า
             <select
               className="h-10 rounded-md border border-input bg-background px-3"
               value={authority}
@@ -185,7 +193,7 @@ export function CanonicalScenarioPanel() {
             </select>
           </label>
           <label className="grid gap-1 text-sm font-medium">
-            Customer segment
+            ประเภทผู้ใช้
             <select
               className="h-10 rounded-md border border-input bg-background px-3"
               value={customerSegment}
@@ -195,8 +203,8 @@ export function CanonicalScenarioPanel() {
                 )
               }
             >
-              <option value="residential">Residential</option>
-              <option value="small_business">Small business</option>
+              <option value="residential">บ้านพักอาศัย</option>
+              <option value="small_business">ธุรกิจขนาดเล็ก</option>
             </select>
           </label>
         </div>
@@ -206,7 +214,57 @@ export function CanonicalScenarioPanel() {
         {result && !("error" in result) ? (
           <ScenarioView comparison={result} />
         ) : null}
+        <LocalBillResultContext enabled={Boolean(reportDraft && hasBillContext)} moduleName="Normal / TOU" reportDraft={reportDraft} />
       </CardContent>
     </Card>
   );
+}
+
+function buildScenarioReportDraft(result: ScenarioComparisonResult, profile: CanonicalLoadProfile): LocalAnalysisReportDraft {
+  const best = result.bestScenario;
+  return {
+    module: "scenario",
+    moduleLabel: "Normal / TOU",
+    title: "รายงานเปรียบเทียบค่าไฟ Normal / TOU",
+    summary: `ผลเปรียบเทียบจาก ${profile.name} พบว่าแผนที่เหมาะสมที่สุดในข้อมูลชุดนี้คือ ${best.name}`,
+    metrics: [
+      { label: "ค่าไฟฐานต่อเดือน", value: `${formatNumber(result.baseline.monthlyEstimatedBill)} บาท/เดือน` },
+      { label: "ค่าไฟแผนที่เหมาะสม", value: `${formatNumber(best.monthlyEstimatedBill)} บาท/เดือน` },
+      { label: "ประหยัดโดยประมาณ", value: `${formatNumber(best.savingsAnnual)} บาท/ปี` },
+    ],
+    assumptions: [
+      { label: "Load Profile", value: profile.name },
+      { label: "จำนวนช่วงข้อมูล", value: profile.intervals.length.toLocaleString("th-TH") },
+      { label: "อัตราค่าไฟ", value: best.calculationTrace.tariffVersionLabel },
+    ],
+    resultRows: [result.baseline, ...result.scenarios].map((row) => ({
+      plan: row.name,
+      monthlyBillThb: roundReportNumber(row.monthlyEstimatedBill),
+      annualBillThb: roundReportNumber(row.annualEstimatedBill),
+      annualSavingsThb: roundReportNumber(row.savingsAnnual),
+      peakKwh: roundReportNumber(row.peakKwh),
+      offPeakKwh: roundReportNumber(row.offPeakKwh),
+    })),
+    recommendations: result.recommendations.map((item) => ({
+      title: item.title,
+      description: item.explanation,
+      nextAction: item.nextAction,
+    })),
+    references: [{ label: "รุ่นอัตราค่าไฟที่ใช้", value: best.calculationTrace.tariffVersionLabel }],
+  };
+}
+
+function profileSourceLabel(kind: string) {
+  if (kind === "meter") return "ข้อมูลมิเตอร์";
+  if (kind === "appliance") return "รายการเครื่องใช้ไฟฟ้า";
+  if (kind === "csv") return "ไฟล์ที่นำเข้า";
+  return "ข้อมูลที่ผู้ใช้บันทึก";
+}
+
+function formatNumber(value: number) {
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+}
+
+function roundReportNumber(value: number) {
+  return Number(value.toFixed(2));
 }

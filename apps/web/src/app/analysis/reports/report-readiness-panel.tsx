@@ -8,7 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import { readLocalAnalysisReports } from "@/lib/local-analysis-report";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
-import { getReportReadinessStatus, type ReportReadinessInput } from "./report-readiness-state";
+import { canExportCurrentReport, getReportReadinessStatus, type ReportReadinessInput } from "./report-readiness-state";
+import { SampleBillNotice } from "@/components/sample-bill-notice";
 
 const emptyReadiness: ReportReadinessInput = { hasBills: false, billMonthCount: 0, hasLoadProfile: false, hasScenario: false, hasSolar: false, hasTariffTrace: false, hasVerifiedResult: false };
 
@@ -56,10 +57,10 @@ export function ReportReadinessPanel() {
     { label: "Tariff version และผลที่ตรวจสอบได้", done: readiness.hasTariffTrace && readiness.hasVerifiedResult, missing: "บันทึกผล Scenario หรือ Solar ที่มี tariff trace" }
   ];
   const missing = checks.filter((item) => !item.done).map((item) => item.missing);
-  const canExport = readiness.hasVerifiedResult;
+  const canExport = canExportCurrentReport(status);
   const exportReason = canExport ? "เลือกเปิดรายงานที่บันทึกไว้เพื่อ export" : missing[0] ?? "ยังไม่มีรายงานที่บันทึกไว้";
 
-  return <Card>
+  return <><SampleBillNotice /><Card>
     <CardHeader>
       <CardTitle className="flex items-center gap-2"><FileWarning aria-hidden="true" className="h-5 w-5 text-primary" />สถานะรายงานปัจจุบัน</CardTitle>
     </CardHeader>
@@ -72,5 +73,5 @@ export function ReportReadinessPanel() {
       {status === "incomplete" ? <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm"><p className="font-medium">รายงานที่สร้างตอนนี้จะมีเฉพาะข้อมูลที่บันทึกไว้</p><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">{missing.map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
       <div><p className="mb-2 text-xs text-muted-foreground">{canExport ? "Export ใช้ได้กับรายงานที่บันทึกแล้วเท่านั้น" : `ยัง export ไม่ได้: ${exportReason}`}</p><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!canExport}><Download className="h-4 w-4" />CSV</Button><Button size="sm" variant="outline" disabled={!canExport}><Download className="h-4 w-4" />JSON</Button><Button size="sm" variant="outline" disabled={!canExport}><Download className="h-4 w-4" />PDF</Button><Button size="sm" variant="outline" disabled={!canExport}><Printer className="h-4 w-4" />Print</Button></div></div>
     </CardContent>
-  </Card>;
+  </Card></>;
 }

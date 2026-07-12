@@ -97,7 +97,9 @@ describe("calculation API helpers", () => {
     const payload = runSolarAnalyzeApiCalculation(request);
 
     expect(payload.trace.inputIntervalCount).toBe(4);
-    expect(payload.warnings).toEqual([]);
+    expect(payload.warnings).toContain(
+      "Solar yield is using the screening profile. Add latitude and longitude to use PVGIS site data.",
+    );
     expect(payload.analysis.selfConsumption.totalLoadKwh).toBeCloseTo(1752, 6);
   });
 });

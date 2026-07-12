@@ -23,3 +23,9 @@ export function getStoredWorkspaceMode(input: Partial<StoredBillWorkspace> | nul
 export function isUserWorkspace(input: Partial<StoredBillWorkspace> | null): input is StoredBillWorkspace {
   return input?.mode === "user" && Array.isArray(input.rows) && input.rows.length > 0;
 }
+
+export function completedBillInputs(bills: MonthlyBillInput[]) {
+  return bills.filter(
+    (bill) => /^\d{4}-(0[1-9]|1[0-2])$/.test(bill.month) && bill.energyKwh > 0 && bill.totalCostThb > 0,
+  );
+}

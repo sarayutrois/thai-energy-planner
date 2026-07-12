@@ -348,7 +348,7 @@ export function LocalBillSummary() {
                   <Metric icon={BarChart3} label="ตัวคูณที่ใช้" value={`${formatNumber(calibrationFactor)} เท่า`} />
                 </div>
                 <p className="mt-3 text-xs text-muted-foreground">{calibrationReliability.explanation}</p>
-                <p className="mt-1 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : isCalibrated ? `ปรับเทียบล่าสุด ${formatDateTime(snapshot?.calibration?.appliedAt ?? "")}; ปรับใหม่ได้เมื่อข้อมูลบิลเปลี่ยน` : "Solar และ Battery จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
+                <p className="mt-1 text-xs text-muted-foreground">{applyStatus === "saved" ? "บันทึก Profile ที่ปรับเทียบแล้วในบัญชีเรียบร้อย" : applyStatus === "local_only" ? "บันทึก Profile ที่ปรับเทียบแล้วในอุปกรณ์นี้" : isCalibrated ? `ปรับเทียบล่าสุด ${formatDateTime(snapshot?.calibration?.appliedAt ?? "")}; ปรับใหม่ได้เมื่อข้อมูลบิลเปลี่ยน` : "ผลเปรียบเทียบค่าไฟและ Solar จะใช้ Profile ที่ปรับเทียบแล้วหลังคุณยืนยัน"}</p>
               </div>
             ) : null}
           </section>
@@ -461,7 +461,7 @@ function getCalibrationReliability(input: {
     return {
       label: "รอยืนยันการปรับเทียบ",
       variant: "outline" as const,
-      explanation: "ยังไม่ได้ยืนยันให้ใช้บิลปรับสเกล ผล Solar และ Battery ยังอ้างอิง Load Profile เดิม",
+      explanation: "ยังไม่ได้ยืนยันให้ใช้บิลปรับสเกล ผลเปรียบเทียบค่าไฟและ Solar ยังอ้างอิง Load Profile เดิม",
     };
   }
   if (input.billMonthCount >= 3 && (input.unexplainedPercent ?? 100) <= 15) {

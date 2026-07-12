@@ -61,7 +61,6 @@ const presets = [
   { name: "โทรทัศน์", category: "เครื่องใช้ไฟฟ้าภายในบ้าน", powerW: 100, dutyCycle: 1, start: "18:00", end: "22:00" },
   { name: "ไฟส่องสว่าง LED", category: "แสงสว่าง", powerW: 12, dutyCycle: 1, start: "18:00", end: "23:00" },
   { name: "คอมพิวเตอร์ตั้งโต๊ะ", category: "สำนักงาน", powerW: 250, dutyCycle: 1, start: "09:00", end: "17:00" },
-  { name: "เครื่องชาร์จรถยนต์ไฟฟ้า", category: "EV", powerW: 7400, dutyCycle: 1, start: "22:00", end: "02:00" },
 ] as const;
 
 type ApplianceSeed = {
@@ -132,12 +131,6 @@ const homeStarterSets: Array<{ id: string; label: string; description: string; i
     label: "บ้านที่มีเครื่องปรับอากาศหลายเครื่อง",
     description: "ตัวอย่างแอร์ 2 เครื่อง พร้อมตู้เย็นและไฟส่องสว่าง",
     items: [presets[0], { ...presets[0], name: "เครื่องปรับอากาศ Inverter 18,000 BTU", powerW: 1700 }, presets[1], presets[5]],
-  },
-  {
-    id: "ev_home",
-    label: "บ้านที่มีรถยนต์ไฟฟ้า",
-    description: "ตัวอย่างบ้านพร้อมเครื่องชาร์จรถยนต์ไฟฟ้า",
-    items: [presets[0], presets[1], presets[5], presets[7]],
   },
 ];
 
@@ -411,7 +404,7 @@ export function ApplianceLoadBuilder({
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/35 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">ขั้นตอนที่ 1 จาก 4 · สร้าง Load Profile</p>
-          <p className="mt-1 text-xs text-muted-foreground">ข้อมูลหน้านี้จะใช้ต่อใน Solar, Battery และการประมาณค่าไฟ</p>
+          <p className="mt-1 text-xs text-muted-foreground">ข้อมูลหน้านี้จะใช้ต่อในการเปรียบเทียบค่าไฟ ประเมิน Solar และจัดทำรายงาน</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Save className="h-4 w-4" />{autoSaveLabel}</div>
       </div>
