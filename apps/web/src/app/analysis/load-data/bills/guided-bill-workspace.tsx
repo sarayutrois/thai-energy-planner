@@ -9,9 +9,10 @@ import { estimateDataQuality, summarizeBills, validateMonthlyBills } from "@thai
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { buildAnalysisStartHref, type AnalysisAudience } from "@/lib/analysis-start";
-import { billReportStorageKey, localBillReportId, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
+import { billReportStorageKey, billWorkspaceStorageKey, localBillReportId, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
 import { useBillWorkspace, toBillInput, type EditableBillRow } from "./use-bill-workspace";
 import { AiScannerButton } from "./ai-scanner-button";
+import { LocalDataBackupControls } from "@/components/local-data-backup-controls";
 
 const audienceProfile: Record<AnalysisAudience, string> = {
   home: "evening_home",
@@ -123,6 +124,15 @@ export function GuidedBillWorkspace({
     router.push(`/analysis/reports/${localBillReportId}`);
   }
 
+  function proceedToLoadComparison() {
+    window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify({
+      audience,
+      rows,
+      updatedAt: new Date().toISOString(),
+    }));
+    router.push("/analysis/load-data/dashboard");
+  }
+
   return (
     <div className="mt-6 grid gap-5">
       <Card>
@@ -187,6 +197,7 @@ export function GuidedBillWorkspace({
                   });
                 }} 
               />
+              <LocalDataBackupControls />
               <input
                 accept="application/json,text/csv,.json,.csv"
                 className="hidden"
@@ -353,11 +364,10 @@ export function GuidedBillWorkspace({
           </CardHeader>
           <CardContent className="grid gap-3">
             {validation.canSave && validation.bills.length > 0 ? (
-              <NextLink
-                href="/analysis/load-data/dashboard"
-                label="เปรียบเทียบกับ Load Profile"
-                description="ตรวจสอบหน่วยไฟจากบิลกับ Load Profile ที่บันทึกจากรายการเครื่องใช้ไฟฟ้า"
-              />
+              <button className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring" onClick={proceedToLoadComparison} type="button">
+                บันทึกบิลแล้วไปเทียบ Load Profile
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </button>
             ) : (
               <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">
                 กรอกเดือนและหน่วยไฟให้ครบอย่างน้อย 1 บิล แล้วจึงเปรียบเทียบกับ Load Profile ได้
