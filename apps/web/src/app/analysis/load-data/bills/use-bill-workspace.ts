@@ -1,11 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { type AnalysisAudience } from "@/lib/analysis-start";
-import { billWorkspaceStorageKey, type BillWorkspaceMode, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
+import { billReportStorageKey, billWorkspaceStorageKey, type BillWorkspaceMode, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import { parseBillCsv } from "@/lib/csv-parser";
 import { exportToCsv } from "@thai-energy-planner/report-engine";
 import { downloadJsonFile, downloadTextFile } from "@/lib/file-download";
 import { getStoredWorkspaceMode, sampleHomeBills } from "./bill-workspace-state";
+import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 
 function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: number) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
@@ -63,6 +64,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
       updatedAt: new Date().toISOString()
     };
     window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
+    window.localStorage.removeItem(billReportStorageKey);
     setSaveStatus(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
   }, [audience, hasHydrated, mode, rows], 500);
 
@@ -118,7 +120,9 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
   }
 
   function loadExample() {
-    setWorkspace({ mode: "sample", rows: sampleHomeBills.map(toEditableRow) });
+    const sampleRows = sampleHomeBills.map(toEditableRow);
+    setWorkspace({ mode: "sample", rows: sampleRows });
+    persistWorkspace(audience, "sample", sampleRows);
   }
 
   function resetWorkspace() {
@@ -248,9 +252,8 @@ function loadStoredWorkspace(initialBills: MonthlyBillInput[], audience: Analysi
   if (typeof window === "undefined") return createInitialWorkspace(initialBills);
 
   try {
-    const raw = window.localStorage.getItem(billWorkspaceStorageKey);
-    if (!raw) return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
-    const parsed = JSON.parse(raw) as Partial<StoredBillWorkspace>;
+    const parsed = readStoredBillWorkspace();
+    if (!parsed) return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
     const mode = getStoredWorkspaceMode(parsed, audience);
     return { mode, rows: mode === "empty" ? [] : parsed.rows!.map(sanitizeRow) };
   } catch {
@@ -263,6 +266,16 @@ function createInitialWorkspace(initialBills: MonthlyBillInput[]): { mode: BillW
     mode: initialBills.length > 0 ? "user" : "empty",
     rows: initialBills.map(toEditableRow),
   };
+}
+
+function persistWorkspace(audience: AnalysisAudience, mode: BillWorkspaceMode, rows: EditableBillRow[]) {
+  window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify({
+    audience,
+    mode,
+    rows,
+    updatedAt: new Date().toISOString(),
+  } satisfies StoredBillWorkspace));
+  window.localStorage.removeItem(billReportStorageKey);
 }
 
 function emptyRow(): EditableBillRow {

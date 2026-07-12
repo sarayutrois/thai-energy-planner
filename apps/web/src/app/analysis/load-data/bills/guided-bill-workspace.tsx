@@ -136,6 +136,7 @@ export function GuidedBillWorkspace({
       rows,
       updatedAt: new Date().toISOString(),
     }));
+    window.localStorage.removeItem(billReportStorageKey);
     router.push("/analysis/load-data/dashboard");
   }
 

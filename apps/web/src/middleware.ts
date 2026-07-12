@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 
 export function middleware(request: NextRequest) {
   const pathname = request.nextUrl.pathname;
+  if (pathname.startsWith("/api/battery/") || pathname.startsWith("/api/ev/")) {
+    return NextResponse.json(
+      { error: "feature_unavailable", message: "ฟีเจอร์นี้กำลังปรับปรุงและยังไม่เปิดให้ใช้งาน" },
+      { status: 404 },
+    );
+  }
   const experimentalModule = experimentalModuleForPath(pathname);
   const alwaysUnavailable = experimentalModule === "battery" || experimentalModule === "ev" || experimentalModule === "ecosystem";
   if (experimentalModule && (alwaysUnavailable || process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES !== "true")) {
@@ -41,6 +47,8 @@ export const config = {
     "/analysis/battery/:path*",
     "/analysis/ev/:path*",
     "/analysis/ecosystem/:path*",
+    "/api/battery/:path*",
+    "/api/ev/:path*",
     "/analysis/scenarios/new/:path*",
     "/analysis/scenarios/compare/:path*",
   ],

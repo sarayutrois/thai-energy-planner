@@ -13,6 +13,8 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   deleteLocalAnalysisReport,
+  getCurrentAnalysisDataset,
+  isLocalAnalysisReportCurrent,
   readLocalAnalysisReport,
 } from "@/lib/local-analysis-report";
 import { solarReadinessCopy } from "@/lib/solar-readiness-copy";
@@ -24,10 +26,13 @@ export function LocalAnalysisReport({ id }: { id: string }) {
     null,
   );
   const [loaded, setLoaded] = useState(false);
+  const [isCurrent, setIsCurrent] = useState(false);
 
   useEffect(() => {
     try {
-      setReport(readLocalAnalysisReport(id));
+      const nextReport = readLocalAnalysisReport(id);
+      setReport(nextReport);
+      setIsCurrent(nextReport ? isLocalAnalysisReportCurrent(nextReport, getCurrentAnalysisDataset()) : false);
     } catch {
       setReport(null);
     } finally {
@@ -91,14 +96,10 @@ export function LocalAnalysisReport({ id }: { id: string }) {
               สร้างเมื่อ {new Date(report.createdAt).toLocaleString("th-TH")} ·{" "}
               {report.moduleLabel}
             </p>
+            <Badge className="mt-3" variant={isCurrent ? "success" : "warning"}>{isCurrent ? "ข้อมูลปัจจุบัน" : "ผลลัพธ์ล้าสมัย"}</Badge>
           </div>
           <div className="flex flex-wrap gap-2 print:hidden">
-            <ReportActions
-              csvRows={report.resultRows}
-              fileBaseName={report.id}
-              jsonData={report}
-              pdfLabel={pdfLabel}
-            />
+            {isCurrent ? <ReportActions csvRows={report.resultRows} fileBaseName={report.id} jsonData={report} pdfLabel={pdfLabel} /> : null}
             <button
               className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
               onClick={() => {
@@ -115,6 +116,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
       </header>
 
       <section className="grid gap-5 py-5">
+        {!isCurrent ? <Card className="border-warning bg-warning/10"><CardHeader><CardTitle className="flex items-center gap-2"><AlertTriangle aria-hidden="true" className="h-5 w-5 text-warning" />ต้องคำนวณผลใหม่ก่อนส่งออก</CardTitle></CardHeader><CardContent><p className="text-sm leading-7 text-warning-foreground">ข้อมูลบิลหรือ Load Profile เปลี่ยนหลังจากสร้างรายงานนี้ จึงปิดการส่งออกเพื่อป้องกันการใช้ตัวเลขที่ไม่ตรงกับข้อมูลปัจจุบัน</p></CardContent></Card> : null}
         {report.disclaimer ? (
           <Card className="border-warning bg-warning/10">
             <CardHeader>

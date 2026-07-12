@@ -2,15 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
+import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 
 export function SampleBillNotice() {
   const [hasSampleBills, setHasSampleBills] = useState(false);
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(billWorkspaceStorageKey);
-      const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
+      const workspace = readStoredBillWorkspace();
       setHasSampleBills(workspace?.mode === "sample");
     } catch {
       setHasSampleBills(false);

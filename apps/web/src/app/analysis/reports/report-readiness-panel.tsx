@@ -1,12 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Download, FileWarning, Printer } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { FileWarning } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
-import { readLocalAnalysisReports } from "@/lib/local-analysis-report";
+import { type LocalAnalysisReportSnapshot } from "@/lib/local-analysis-snapshot";
+import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
+import { getCurrentAnalysisDataset, isLocalAnalysisReportCurrent, readLocalAnalysisReports } from "@/lib/local-analysis-report";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 import { canExportCurrentReport, getReportReadinessStatus, type ReportReadinessInput } from "./report-readiness-state";
 import { SampleBillNotice } from "@/components/sample-bill-notice";
@@ -22,18 +23,26 @@ const labels = {
 
 export function ReportReadinessPanel() {
   const [readiness, setReadiness] = useState<ReportReadinessInput>(emptyReadiness);
+  const [staleModules, setStaleModules] = useState<string[]>([]);
+  const [exportReports, setExportReports] = useState<LocalAnalysisReportSnapshot[]>([]);
+  const [selectedReportId, setSelectedReportId] = useState("");
 
   useEffect(() => {
     try {
-      const rawWorkspace = window.localStorage.getItem(billWorkspaceStorageKey);
-      const workspace = rawWorkspace ? JSON.parse(rawWorkspace) as Partial<StoredBillWorkspace> : null;
+      const workspace = readStoredBillWorkspace();
       const bills = workspace?.mode === "user" ? workspace.rows ?? [] : [];
       const validBills = bills.filter((bill) => /^\d{4}-(0[1-9]|1[0-2])$/.test(bill.month) && Number(bill.energyKwh) > 0 && Number(bill.totalCostThb) > 0);
       const profile = readLocalLoadProfileSnapshot();
       const reports = readLocalAnalysisReports();
-      const hasScenario = reports.some((report) => report.module === "scenario");
-      const hasSolar = reports.some((report) => report.module === "solar");
-      const hasVerifiedResult = reports.length > 0;
+      const currentDataset = getCurrentAnalysisDataset();
+      const currentReports = reports.filter((report) => isLocalAnalysisReportCurrent(report, currentDataset));
+      const staleReports = reports.filter((report) => !isLocalAnalysisReportCurrent(report, currentDataset));
+      const hasScenario = currentReports.some((report) => report.module === "scenario");
+      const hasSolar = currentReports.some((report) => report.module === "solar");
+      const hasVerifiedResult = currentReports.length > 0;
+      setStaleModules([...new Set(staleReports.map((report) => report.moduleLabel))]);
+      setExportReports(currentReports);
+      setSelectedReportId(currentReports[0]?.id ?? "");
       setReadiness({
         hasBills: validBills.length > 0,
         billMonthCount: validBills.length,
@@ -45,6 +54,9 @@ export function ReportReadinessPanel() {
       });
     } catch {
       setReadiness(emptyReadiness);
+      setStaleModules([]);
+      setExportReports([]);
+      setSelectedReportId("");
     }
   }, []);
 
@@ -71,7 +83,8 @@ export function ReportReadinessPanel() {
       </div>
       {status === "no_data" ? <p className="rounded-md border border-dashed border-border p-3 text-sm text-muted-foreground">ยังไม่มีข้อมูลสำหรับสร้างรายงาน เพิ่มบิลหรือ Load Profile ก่อนเริ่มวิเคราะห์</p> : null}
       {status === "incomplete" ? <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm"><p className="font-medium">รายงานที่สร้างตอนนี้จะมีเฉพาะข้อมูลที่บันทึกไว้</p><ul className="mt-2 list-disc space-y-1 pl-5 text-muted-foreground">{missing.map((item) => <li key={item}>{item}</li>)}</ul></div> : null}
-      <div><p className="mb-2 text-xs text-muted-foreground">{canExport ? "Export ใช้ได้กับรายงานที่บันทึกแล้วเท่านั้น" : `ยัง export ไม่ได้: ${exportReason}`}</p><div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={!canExport}><Download className="h-4 w-4" />CSV</Button><Button size="sm" variant="outline" disabled={!canExport}><Download className="h-4 w-4" />JSON</Button><Button size="sm" variant="outline" disabled={!canExport}><Download className="h-4 w-4" />PDF</Button><Button size="sm" variant="outline" disabled={!canExport}><Printer className="h-4 w-4" />Print</Button></div></div>
+      {staleModules.length ? <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6"><p className="font-medium">ผลลัพธ์เดิมไม่ตรงกับข้อมูลปัจจุบัน</p><p className="mt-1 text-muted-foreground">กรุณาคำนวณ {staleModules.join(" และ ")} ใหม่ก่อนสร้างหรือส่งออกรายงาน</p></div> : null}
+      <div>{canExport && selectedReportId ? <div className="grid gap-2"><p className="text-xs text-muted-foreground">เลือกผลวิเคราะห์ที่ใช้ข้อมูลชุดปัจจุบัน แล้วส่งออก CSV, JSON, PDF หรือพิมพ์จากหน้ารายงานนั้น</p>{exportReports.length > 1 ? <label className="grid gap-1 text-sm font-medium">รายงานที่ต้องการส่งออก<select className="h-10 rounded-md border border-input bg-background px-3 text-sm" value={selectedReportId} onChange={(event) => setSelectedReportId(event.target.value)}>{exportReports.map((report) => <option key={report.id} value={report.id}>{report.moduleLabel} · {new Date(report.createdAt).toLocaleString("th-TH")}</option>)}</select></label> : null}<Link className="inline-flex h-10 w-fit items-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90" href={`/analysis/reports/${selectedReportId}`}>เปิดรายงานเพื่อส่งออก</Link></div> : <p className="text-xs text-muted-foreground">ยัง export ไม่ได้: {exportReason}</p>}</div>
     </CardContent>
   </Card></>;
 }

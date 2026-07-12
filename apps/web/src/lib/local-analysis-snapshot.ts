@@ -110,6 +110,11 @@ export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
     averageMonthlyCostThb: number;
     dataQualityLabel: string;
   };
+  sourceDataset?: {
+    fingerprint: string;
+    billFingerprint: string;
+    profileFingerprint: string | null;
+  } | undefined;
   sourceProfile?: {
     id: string;
     name: string;

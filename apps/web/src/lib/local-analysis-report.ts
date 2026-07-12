@@ -9,12 +9,19 @@ import {
 import { calibrateLoadProfileAgainstBills } from "@thai-energy-planner/calculation-engine";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 import { authenticatedFetch } from "@/lib/auth-fetch";
+import { createAnalysisDatasetFingerprint, isCurrentAnalysisDataset, type AnalysisDatasetFingerprint } from "@/lib/local-analysis-dataset";
+import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
 
 const maxStoredReports = 12;
 
 export function readLocalAnalysisReports(): LocalAnalysisReportSnapshot[] {
-  const raw = window.localStorage.getItem(localAnalysisReportsStorageKey);
-  const parsed = raw ? (JSON.parse(raw) as unknown) : [];
+  let parsed: unknown = [];
+  try {
+    const raw = window.localStorage.getItem(localAnalysisReportsStorageKey);
+    parsed = raw ? (JSON.parse(raw) as unknown) : [];
+  } catch {
+    return [];
+  }
   if (!Array.isArray(parsed)) return [];
   return parsed
     .filter(isLocalAnalysisReportSnapshot)
@@ -25,6 +32,22 @@ export function readLocalAnalysisReport(
   id: string,
 ): LocalAnalysisReportSnapshot | null {
   return readLocalAnalysisReports().find((report) => report.id === id) ?? null;
+}
+
+export function getCurrentAnalysisDataset(): AnalysisDatasetFingerprint | null {
+  const billSnapshot = readLocalBillReportSnapshot();
+  if (!billSnapshot) return null;
+  return createAnalysisDatasetFingerprint({
+    billSnapshot,
+    profileSnapshot: readLocalLoadProfileSnapshot(),
+  });
+}
+
+export function isLocalAnalysisReportCurrent(
+  report: LocalAnalysisReportSnapshot,
+  currentDataset = getCurrentAnalysisDataset(),
+) {
+  return isCurrentAnalysisDataset(report.sourceDataset, currentDataset);
 }
 
 export function deleteLocalAnalysisReport(id: string) {
@@ -114,6 +137,10 @@ export function saveLocalAnalysisReport({
       averageMonthlyCostThb: billSnapshot.averageMonthlyCostThb,
       dataQualityLabel: billSnapshot.dataQualityLabel,
     },
+    sourceDataset: createAnalysisDatasetFingerprint({
+      billSnapshot,
+      profileSnapshot: readLocalLoadProfileSnapshot(),
+    }),
     reportAccessToken: crypto.randomUUID(),
     ...(profile === undefined
       ? {}

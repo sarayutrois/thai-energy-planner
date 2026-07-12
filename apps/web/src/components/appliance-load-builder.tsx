@@ -35,8 +35,11 @@ import {
   saveLocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
 import { applianceSourceLabel, storedApplianceWorkspaceMode, type ApplianceWorkspaceMode } from "@/components/appliance-workspace-state";
+import {
+  applianceWorkspaceStorageKey,
+  readStoredApplianceWorkspace,
+} from "@/lib/local-appliance-workspace";
 
-const draftStorageKey = "thai-energy-planner.appliance-workspace.v3";
 const days = [
   { value: 1, label: "จ" },
   { value: 2, label: "อ" },
@@ -203,18 +206,15 @@ export function ApplianceLoadBuilder({
 
   useEffect(() => {
     try {
-      const rawDraft = window.localStorage.getItem(draftStorageKey);
-      if (rawDraft) {
-        const draft = JSON.parse(rawDraft) as Partial<Draft>;
+      const draft = readStoredApplianceWorkspace();
+      if (draft) {
         if (!hasUserEditedBeforeHydration.current) {
-          if (Array.isArray(draft.appliances)) {
-            const storedMode = storedApplianceWorkspaceMode(draft.mode, draft.appliances.length);
-            setAppliances(storedMode === "empty" ? [] : draft.appliances);
-            setMode(storedMode);
-          }
-          if ([15, 30, 60].includes(draft.intervalMinutes ?? 0)) setIntervalMinutes(draft.intervalMinutes!);
-          if (draft.startDate) setStartDate(draft.startDate);
-          if (draft.endDate) setEndDate(draft.endDate);
+          const storedMode = storedApplianceWorkspaceMode(draft.mode, draft.appliances.length);
+          setAppliances(storedMode === "empty" ? [] : draft.appliances);
+          setMode(storedMode);
+          setIntervalMinutes(draft.intervalMinutes);
+          setStartDate(draft.startDate);
+          setEndDate(draft.endDate);
         }
       }
     } catch {
@@ -228,10 +228,10 @@ export function ApplianceLoadBuilder({
     if (!hydrated) return;
     setAutoSaveLabel("กำลังบันทึก...");
     const timer = window.setTimeout(() => {
-      if (mode === "empty") window.localStorage.removeItem(draftStorageKey);
+      if (mode === "empty") window.localStorage.removeItem(applianceWorkspaceStorageKey);
       else {
         const draft: Draft = { mode, appliances, intervalMinutes, startDate, endDate };
-        window.localStorage.setItem(draftStorageKey, JSON.stringify(draft));
+        window.localStorage.setItem(applianceWorkspaceStorageKey, JSON.stringify(draft));
       }
       setAutoSaveLabel(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
     }, 500);

@@ -6,18 +6,25 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   deleteLocalAnalysisReport,
+  getCurrentAnalysisDataset,
+  isLocalAnalysisReportCurrent,
   readLocalAnalysisReports,
 } from "@/lib/local-analysis-report";
 import type { LocalAnalysisReportSnapshot } from "@/lib/local-analysis-snapshot";
 
 export function LocalAnalysisReportCards() {
   const [reports, setReports] = useState<LocalAnalysisReportSnapshot[]>([]);
+  const [currentReportIds, setCurrentReportIds] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     try {
-      setReports(readLocalAnalysisReports());
+      const nextReports = readLocalAnalysisReports();
+      const currentDataset = getCurrentAnalysisDataset();
+      setReports(nextReports);
+      setCurrentReportIds(new Set(nextReports.filter((report) => isLocalAnalysisReportCurrent(report, currentDataset)).map((report) => report.id)));
     } catch {
       setReports([]);
+      setCurrentReportIds(new Set());
     }
   }, []);
 
@@ -42,7 +49,7 @@ export function LocalAnalysisReportCards() {
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
-                <Badge variant="success">Local</Badge>
+                <Badge variant={currentReportIds.has(report.id) ? "success" : "warning"}>{currentReportIds.has(report.id) ? "ข้อมูลปัจจุบัน" : "ผลลัพธ์ล้าสมัย"}</Badge>
                 <Badge variant="outline">{report.moduleLabel}</Badge>
               </div>
             </div>
@@ -64,18 +71,15 @@ export function LocalAnalysisReportCards() {
             </div>
             {report.sourceProfile ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                <p className="font-semibold">
-                  Canonical profile: {report.sourceProfile.name}
-                </p>
+                <p className="font-semibold">Load Profile: {report.sourceProfile.name}</p>
                 <p className="mt-1 text-muted-foreground">
                   {report.sourceProfile.sourceKind} ·{" "}
                   {report.sourceProfile.intervalCount.toLocaleString("th-TH")}{" "}
-                  intervals · {report.sourceProfile.qualityLevel}
+                  ช่วงข้อมูล · {report.sourceProfile.qualityLevel}
                 </p>
                 {report.billCalibration ? (
                   <p className="mt-2 text-muted-foreground">
-                    Bill calibration:{" "}
-                    {report.billCalibration.comparedMonthCount} months, variance{" "}
+                    เปรียบเทียบกับบิล {report.billCalibration.comparedMonthCount} เดือน, ส่วนต่าง{" "}
                     {report.billCalibration.varianceKwh.toLocaleString("th-TH")}{" "}
                     kWh
                   </p>

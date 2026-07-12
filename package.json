@@ -21,7 +21,8 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "export:user-data": "tsx scripts/export-user-data-to-excel.ts",
     "smoke": "node scripts/smoke-test.js",
-    "demo": "playwright test e2e/presentation.spec.ts"
+    "demo": "playwright test e2e/presentation.spec.ts",
+    "test:e2e": "playwright test --config playwright.regression.config.ts"
   },
   "dependencies": {
     "@prisma/client": "^5.22.0"

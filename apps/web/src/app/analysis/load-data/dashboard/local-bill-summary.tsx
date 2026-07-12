@@ -26,10 +26,10 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
-  billWorkspaceStorageKey,
   localBillReportId,
   type StoredBillWorkspace,
 } from "@/lib/local-analysis-snapshot";
+import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import {
   persistLocalLoadProfile,
   readLocalLoadProfileSnapshot,
@@ -55,12 +55,9 @@ export function LocalBillSummary() {
 
   useEffect(() => {
     try {
-      const raw = window.localStorage.getItem(billWorkspaceStorageKey);
-      const parsed = raw
-        ? (JSON.parse(raw) as Partial<StoredBillWorkspace>)
-        : null;
+      const parsed = readStoredBillWorkspace();
       setWorkspace(
-        parsed?.mode === "user" && Array.isArray(parsed.rows)
+        parsed?.mode === "user"
           ? normalizeWorkspace(parsed)
           : null,
       );

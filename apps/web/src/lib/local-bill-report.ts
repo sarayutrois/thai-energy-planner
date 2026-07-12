@@ -1,19 +1,14 @@
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import {
   billReportStorageKey,
-  billWorkspaceStorageKey,
   localBillReportId,
   type LocalBillReportSnapshot,
   type StoredBillWorkspace
 } from "@/lib/local-analysis-snapshot";
+import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 
 export function readLocalBillReportSnapshot(): LocalBillReportSnapshot | null {
-  const raw = window.localStorage.getItem(billReportStorageKey);
-  const parsed = raw ? (JSON.parse(raw) as LocalBillReportSnapshot) : null;
-  if (parsed?.id === localBillReportId) return parsed;
-
-  const workspaceRaw = window.localStorage.getItem(billWorkspaceStorageKey);
-  const workspace = workspaceRaw ? (JSON.parse(workspaceRaw) as Partial<StoredBillWorkspace>) : null;
+  const workspace = readStoredBillWorkspace();
   const generatedSnapshot = workspace?.mode === "user" ? buildSnapshotFromWorkspace(workspace) : null;
   if (generatedSnapshot) {
     window.localStorage.setItem(billReportStorageKey, JSON.stringify(generatedSnapshot));

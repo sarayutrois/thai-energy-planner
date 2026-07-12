@@ -10,7 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { readLocalLoadProfileSnapshot, type LocalLoadProfileSnapshot } from "@/lib/local-load-profile";
-import { billWorkspaceStorageKey, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
+import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
@@ -131,23 +131,15 @@ function getSolarDataStatus(snapshot: LocalLoadProfileSnapshot, hasBills: boolea
   return { label: "ข้อมูลยังไม่เพียงพอ", warning: true };
 }
 function readSavedBills() {
-  try {
-    const raw = window.localStorage.getItem(billWorkspaceStorageKey);
-    const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
-    if (workspace?.mode !== "user") return [];
-    return (workspace?.rows ?? []).map((row) => ({ month: row.month, billThb: Number(row.totalCostThb) })).filter((row): row is { month: string; billThb: number } => /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) && Number.isFinite(row.billThb) && row.billThb > 0).slice(0, 12);
-  } catch { return []; }
+  const workspace = readStoredBillWorkspace();
+  if (workspace?.mode !== "user") return [];
+  return workspace.rows.map((row) => ({ month: row.month, billThb: Number(row.totalCostThb) })).filter((row): row is { month: string; billThb: number } => /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) && Number.isFinite(row.billThb) && row.billThb > 0).slice(0, 12);
 }
 function readSavedBillAuthority(): "PEA" | "MEA" | undefined {
-  try {
-    const raw = window.localStorage.getItem(billWorkspaceStorageKey);
-    const workspace = raw ? JSON.parse(raw) as Partial<StoredBillWorkspace> : null;
-    if (workspace?.mode !== "user") return undefined;
-    const authorities = (workspace?.rows ?? [])
-      .map((row) => row.authority)
-      .filter((authority): authority is "PEA" | "MEA" => authority === "PEA" || authority === "MEA");
-    return authorities.length > 0 && authorities.every((authority) => authority === authorities[0]) ? authorities[0] : undefined;
-  } catch { return undefined; }
+  const workspace = readStoredBillWorkspace();
+  if (workspace?.mode !== "user") return undefined;
+  const authorities = workspace.rows.map((row) => row.authority);
+  return authorities.length > 0 && authorities.every((authority) => authority === authorities[0]) ? authorities[0] : undefined;
 }
 function sourceStatus(status: "demo" | "draft" | "verified" | "published") { return status === "published" || status === "verified" ? "ข้อมูลอ้างอิง" : status === "draft" ? "ข้อมูลรอตรวจสอบ" : "ค่ามาตรฐานสำหรับประมาณการ"; }
 
