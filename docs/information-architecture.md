@@ -6,9 +6,9 @@
 | --- | --- | --- |
 | ภาพรวม | เริ่มวิเคราะห์ | `/analysis/new` |
 | ข้อมูลของฉัน | บิลและรูปแบบการใช้ไฟ | `/analysis/load-data` |
-| การวิเคราะห์ | ค่าไฟและ TOU, Solar, เปรียบเทียบทางเลือก | `/analysis/scenarios`, `/analysis/solar`, `/analysis/scenarios/compare` |
+| การวิเคราะห์ | ค่าไฟและ TOU, Solar | `/analysis/scenarios`, `/analysis/solar` |
 | ผลลัพธ์ | คำแนะนำและรายงาน | `/analysis/reports` |
-| เพิ่มเติม | แบตเตอรี่, รถยนต์ไฟฟ้า, อัตราค่าไฟและสมมติฐาน | `/analysis/battery`, `/analysis/ev`, `/analysis/tariff` |
+| ข้อมูลอ้างอิง | อัตราค่าไฟและสมมติฐาน | `/analysis/tariff` |
 
 เส้นทางหลักของเจ้าของบ้านอยู่ไม่เกินสองระดับจาก navigation: เข้า “ข้อมูลของฉัน” แล้วเลือกบิล/สร้างรูปแบบ/นำเข้า; หรือเริ่มจาก “เริ่มวิเคราะห์” เพื่อให้ระบบแนะนำ route
 
@@ -26,6 +26,12 @@
 | `/analysis/reports` | คำแนะนำและรายงาน | รวมรายงานที่สร้างจากผลวิเคราะห์ |
 
 ไม่มีการเปลี่ยน URL ของ route ที่เปิดใช้อยู่ จึงไม่ต้องมี redirect ใหม่และ deep link เดิมไม่กลายเป็น 404. ชื่อ `tariff-demo` ไม่ถูกใช้ใน navigation; route ภายในนั้นคงไว้เพื่อ compatibility จนกว่าจะมี migration ที่ยืนยันได้
+
+## Legacy และโมดูลที่ยังไม่เปิดใช้
+
+- `/analysis/scenarios/new`, `/analysis/scenarios/compare` และ `/analysis/scenarios/results` redirect ไป `/analysis/scenarios` เพื่อไม่ให้ deep link เปิด UI คนละระบบ
+- `/estimate` redirect ไป `/analysis/new` เพื่อเริ่มจากเป้าหมายและข้อมูลที่ผู้ใช้มี
+- Battery, EV และ ecosystem ยังไม่พร้อมใช้งาน จึงไม่แสดงใน navigation หลัก แม้ route เดิมยังตอบหน้าสถานะเพื่อรองรับ deep link อย่างปลอดภัย
 
 ## Page responsibility matrix
 

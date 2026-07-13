@@ -1007,7 +1007,7 @@ function buildRecommendations(input: {
     recommendations.push({
       type: "future_solar_candidate",
       priority: 3,
-      title: "โหลดกลางวันสูง เหมาะสำหรับวิเคราะห์ Solar ใน Phase 5",
+      title: "โหลดกลางวันสูง เหมาะสำหรับประเมิน Solar เพิ่มเติม",
       explanation: `Daytime energy is ${formatEnergy(input.loadSummary.daytimeKwh)} kWh/month, but this phase does not calculate solar generation.`,
       supportingMetrics: {
         daytimeKwh: input.loadSummary.daytimeKwh,
@@ -1015,9 +1015,9 @@ function buildRecommendations(input: {
       },
       confidence: "medium",
       limitations: [
-        "Phase 4 only flags solar suitability; it does not size or simulate solar.",
+        "ผลเปรียบเทียบนี้บอกความเหมาะสมเบื้องต้นเท่านั้น ยังไม่ใช่การจำลองขนาดระบบหรือผลประหยัดจาก Solar.",
       ],
-      nextAction: "นำโปรไฟล์นี้ไปวิเคราะห์ Solar เมื่อเข้าสู่ Phase 5",
+      nextAction: "ไปที่การประเมิน Solar เพื่อดูขนาดระบบและผลจำลองจากข้อมูลนี้",
     });
   }
 

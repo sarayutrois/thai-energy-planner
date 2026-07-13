@@ -2234,7 +2234,7 @@ export function createDemoSolarInput(
         sourceUrl: null,
         authority: "Thai Energy Planner demo",
         notes:
-          "Synthetic monthly specific yield for Phase 5 demo only; not verified irradiance data.",
+          "ค่าผลผลิตรายเดือนเป็นค่าตัวอย่างสำหรับการประเมินเบื้องต้น ไม่ใช่ข้อมูลรังสีอาทิตย์ที่ตรวจสอบแล้ว.",
       },
     },
     exportPolicy: {

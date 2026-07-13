@@ -40,6 +40,26 @@ test("legacy analysis entry redirects to the start flow", async ({ page }) => {
   await expect(page.getByRole("heading", { name: "เริ่มวิเคราะห์ค่าไฟแบบไม่ต้องรู้เทคนิคก่อน" })).toBeVisible();
 });
 
+
+
+test("legacy deep links redirect into the supported user journeys", async ({ page }) => {
+  for (const path of ["/analysis/scenarios/new", "/analysis/scenarios/compare", "/analysis/scenarios/results"]) {
+    await page.goto(path);
+    await page.waitForURL("**/analysis/scenarios");
+    await expect(page.getByRole("heading", { name: "เปรียบเทียบค่าไฟจากรูปแบบการใช้ไฟของคุณ" })).toBeVisible();
+  }
+
+  await page.goto("/estimate");
+  await page.waitForURL("**/analysis/new");
+  await expect(page.getByRole("heading", { name: "เริ่มวิเคราะห์ค่าไฟแบบไม่ต้องรู้เทคนิคก่อน" })).toBeVisible();
+});
+
+test("solar overview uses the shared decision-first shell", async ({ page }) => {
+  await page.goto("/analysis/solar");
+  await expect(page.getByRole("heading", { name: "จำลองการติดตั้งโซลาร์เซลล์บนหลังคา" })).toBeVisible();
+  await expect(page.getByText("ขั้นตอนที่ 3 จาก 4")).toHaveCount(0);
+});
+
 test("Flow A: user without data sees no fabricated KPI or export", async ({ page }) => {
   await page.goto("/analysis/load-data/bills");
   await expect(page.getByRole("heading", { name: "ยังไม่มีข้อมูลค่าไฟ" })).toBeVisible();
@@ -120,7 +140,7 @@ test("production navigation uses Thai theme label and tariff route", async ({ pa
   await expect(page.getByRole("button", { name: "สลับโหมดสี" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Toggle theme" })).toHaveCount(0);
 
-  const tariffLink = page.getByRole("link", { name: "ค่าไฟ" });
+  const tariffLink = page.locator('header a[href="/analysis/tariff"]');
   await expect(tariffLink).toHaveAttribute("href", "/analysis/tariff");
   await page.goto("/analysis/tariff");
   await expect(page.getByRole("heading", { name: "ตรวจสอบอัตราค่าไฟที่ใช้คำนวณ" })).toBeVisible();

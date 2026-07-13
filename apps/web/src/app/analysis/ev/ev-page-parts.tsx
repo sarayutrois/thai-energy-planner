@@ -34,7 +34,7 @@ export function EvPageShell({
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
-          <Badge>Phase 6</Badge>
+          <Badge>การประเมินรถยนต์ไฟฟ้า</Badge>
           <Badge variant="outline">EV Module</Badge>
           <Badge variant="warning">ค่ามาตรฐานของระบบ (ต้องยืนยันก่อนตัดสินใจ)</Badge>
         </div>

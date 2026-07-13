@@ -50,7 +50,7 @@
 
 ## สถานะรวม
 
-ดำเนินการครบ Phase 0–5 ตามลำดับ โดยไม่แก้ calculation engine, tariff engine หรือ Local Storage schema และไม่มีการ commit/deploy
+ดำเนินการครบ Phase 0–5 ตามลำดับ โดยไม่แก้ Local Storage schema. สถานะเดิมต้องอ่านร่วมกับการตรวจซ้ำด้านล่าง เพราะในเวลานั้นยังไม่ได้ครอบคลุม deep link สาธารณะทุก route
 
 ## การตรวจ flow หลังจบ Phase
 
@@ -58,3 +58,16 @@
 - ปัญหาที่พบ: dashboard ไม่แสดงบิลโหมด `sample` แม้ปุ่ม “ดูตัวอย่างผลลัพธ์” สร้างข้อมูลนั้นสำเร็จ
 - การแก้: dashboard อ่าน workspace โหมด sample ได้เฉพาะเพื่อแสดง flow พร้อม badge และข้อความ “ข้อมูลตัวอย่าง”; checklist และ report readiness ยังคงไม่นับเป็นข้อมูลจริง
 - การทดสอบ: `npm run typecheck` ผ่าน และตรวจ DOM บน browser ว่าแสดงยอดเฉลี่ย 6 เดือนพร้อมสถานะข้อมูลตัวอย่าง
+
+## Recovery — Route migration และ release verification
+
+- สถานะ: เสร็จแล้วสำหรับขอบเขต UX/IA ที่เปิดให้ผู้ใช้ใช้งาน
+- แก้ `/analysis/solar` ให้ใช้ `SolarPageShell` และ `PageHeader` เดียวกับ Solar sub-routes; เอา copy ขั้นตอนเก่าออก
+- ย้าย deep link เก่า `/analysis/scenarios/new`, `/analysis/scenarios/compare`, `/analysis/scenarios/results` ไป `/analysis/scenarios` และย้าย `/estimate` ไป `/analysis/new`
+- ปรับ middleware เพื่อไม่ rewrite scenario deep links ไปหน้า “เร็ว ๆ นี้” ก่อน redirect ทำงาน
+- เอา Battery, EV และเส้นทางเปรียบเทียบเก่าออกจาก navigation หลัก; โมดูลที่ยังไม่พร้อมคงหน้า unavailable สำหรับ deep link เท่านั้น
+- ปรับ metadata หน้าเว็บ, breadcrumb และข้อความ recommendation/demo ที่อาจถูกส่งถึงผู้ใช้ให้เป็นภาษาผลิตภัณฑ์
+- เพิ่ม E2E ครอบคลุม legacy redirects และ Solar shell ใหม่
+- ตรวจ Acceptance Criteria: ไม่มี route หลักหรือ deep link ที่กำหนดเปิด Scenario/Estimate UI เก่า, Solar overview ใช้ shell กลาง, เมนูไม่ชี้ไปฟีเจอร์ที่ยังไม่พร้อม, theme label และ tariff route ยังถูกต้อง
+- การทดสอบ: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e` ผ่านทั้งหมด; E2E 14 tests ผ่าน และตรวจ DOM บน localhost ของ Solar ซ้ำ
+- Release: พร้อม commit และ push หลังตรวจ clean diff; ไม่ได้ deploy ในรอบนี้

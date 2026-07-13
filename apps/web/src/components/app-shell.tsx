@@ -4,7 +4,6 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
-  BarChart3,
   Calculator,
   ChevronRight,
   FileText,
@@ -29,12 +28,9 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
   { label: "การวิเคราะห์", items: [
     { label: "ค่าไฟและ TOU", href: "/analysis/scenarios", icon: Calculator },
     { label: "Solar", href: "/analysis/solar", icon: SunMedium },
-    { label: "เปรียบเทียบทางเลือก", href: "/analysis/scenarios/compare", icon: BarChart3 },
   ] },
   { label: "ผลลัพธ์", items: [{ label: "คำแนะนำและรายงาน", href: "/analysis/reports", icon: FileText }] },
-  { label: "เพิ่มเติม", items: [
-    { label: "แบตเตอรี่", href: "/analysis/battery", icon: Gauge },
-    { label: "รถยนต์ไฟฟ้า", href: "/analysis/ev", icon: Gauge },
+  { label: "ข้อมูลอ้างอิง", items: [
     { label: "อัตราค่าไฟและสมมติฐาน", href: "/analysis/tariff", icon: Calculator },
   ] },
 ];
@@ -47,8 +43,8 @@ const breadcrumbLabels: Array<{ href: string; label: string }> = [
   { href: "/analysis/load-data", label: "ข้อมูลของฉัน" },
   { href: "/analysis/scenarios", label: "ค่าไฟและ TOU" },
   { href: "/analysis/solar", label: "Solar" },
-  { href: "/analysis/battery", label: "Battery" },
-  { href: "/analysis/ecosystem", label: "การวิเคราะห์เพิ่มเติม" },
+  { href: "/analysis/battery", label: "แบตเตอรี่" },
+  { href: "/analysis/ecosystem", label: "ระบบพลังงานรวม" },
   { href: "/analysis/ev", label: "รถยนต์ไฟฟ้า" },
   { href: "/analysis/reports", label: "รายงาน" },
   { href: "/analysis/new", label: "เริ่มวิเคราะห์" },

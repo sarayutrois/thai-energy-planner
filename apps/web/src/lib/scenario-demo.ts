@@ -26,7 +26,7 @@ export const scenarioProfileOptions: Array<{
   {
     value: "daytime_shop",
     label: "ร้านค้าใช้ไฟกลางวัน",
-    description: "โหลดกลางวันสูงและมีสัญญาณสำหรับ Phase 5 Solar analysis",
+    description: "โหลดกลางวันสูง จึงเหมาะสำหรับประเมิน Solar เพิ่มเติม",
   },
 ];
 

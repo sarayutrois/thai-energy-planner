@@ -49,8 +49,6 @@ export const config = {
     "/analysis/ecosystem/:path*",
     "/api/battery/:path*",
     "/api/ev/:path*",
-    "/analysis/scenarios/new/:path*",
-    "/analysis/scenarios/compare/:path*",
   ],
 };
 
@@ -58,7 +56,5 @@ function experimentalModuleForPath(pathname: string) {
   if (pathname.startsWith("/analysis/battery")) return "battery";
   if (pathname.startsWith("/analysis/ev")) return "ev";
   if (pathname.startsWith("/analysis/ecosystem")) return "ecosystem";
-  if (pathname.startsWith("/analysis/scenarios/new")) return "scenario_detail";
-  if (pathname.startsWith("/analysis/scenarios/compare")) return "scenario_detail";
   return null;
 }

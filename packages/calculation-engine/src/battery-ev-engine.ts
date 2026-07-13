@@ -1066,14 +1066,14 @@ export function createDemoPhase6Input(
     assumptions: solarDemo.solarAssumptions,
     startDate: "2026-01-05",
     days: 7,
-    profileName: "Phase 6 demo solar",
+    profileName: "ข้อมูลตัวอย่าง Solar สำหรับการประเมิน",
   });
   const costSource: Phase6SourceMetadata = {
     status: "demo",
     sourceUrl: null,
     authority: "Thai Energy Planner demo",
     notes:
-      "Synthetic equipment cost for Phase 6 demo only; not a market quotation.",
+      "ต้นทุนอุปกรณ์เป็นค่าตัวอย่างสำหรับการประเมินเบื้องต้น ไม่ใช่ใบเสนอราคาในตลาด.",
   };
 
   return {
