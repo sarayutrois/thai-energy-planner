@@ -32,6 +32,13 @@
 - critical advisory ที่ยังปรากฏเมื่อรวม dev dependencies อยู่ใน Vitest UI/dev server ซึ่งไม่ถูก deploy; การอัปเกรด Vitest 4 เป็น major migration แยกต่างหาก
 - ตรวจ Acceptance Criteria หลังเปลี่ยน parser: `npm run format`, `npm run lint`, `npm run typecheck` และ `npm run build` ผ่าน; `npm test` ผ่าน 241 tests; `npm run test:e2e` ผ่าน 17 tests รวม XLSX upload/preview
 
+## Maintenance Phase 5 — Production release
+
+- สถานะ: เสร็จแล้ว
+- Release commit: `85a0e87` ถูก push ไป `origin/staging`
+- Production deployment: `dpl_2QVzFMZJvtMEajpkMZsJjJMMAvG5` พร้อม alias `https://thai-energy-planner-web.vercel.app`
+- ตรวจ Acceptance Criteria หลัง deploy: `/api/health`, `/analysis/new`, `/analysis/load-data`, `/analysis/solar` และ `/analysis/reports` ตอบ 200; Battery/EV/Ecosystem root และ deep link แสดง unavailable boundary; `/api/observability/web-vitals` รับ allow-listed Solar metric และตอบ 204
+
 ## Recovery Phase 1 — Production UI audit
 
 - สถานะ: เสร็จแล้ว
