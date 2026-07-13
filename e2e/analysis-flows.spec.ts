@@ -134,11 +134,31 @@ test("home hero uses the Solar footage with an accessible playback control", asy
     "src",
     "/solarcell.mp4",
   );
+  await expect(video).toHaveAttribute("poster", "/solarcell-poster.jpg");
 
   const toggle = page.getByTestId("hero-video-toggle");
   await expect(toggle).toHaveAttribute("aria-label", "หยุดวิดีโอพื้นหลัง");
   await toggle.click();
   await expect(toggle).toHaveAttribute("aria-label", "เล่นวิดีโอพื้นหลัง");
+});
+
+test.describe("home hero reduced motion", () => {
+  test.use({ reducedMotion: "reduce" });
+
+  test("keeps the Solar poster and manual playback available", async ({
+    page,
+  }) => {
+    await page.goto("/");
+    const video = page.getByTestId("solar-hero-video");
+    await expect(video).toBeVisible();
+    await expect(video).toHaveAttribute("poster", "/solarcell-poster.jpg");
+
+    const toggle = page.getByTestId("hero-video-toggle");
+    await expect(toggle).toBeVisible();
+    await expect(toggle).toHaveAttribute("aria-label", "เล่นวิดีโอพื้นหลัง");
+    await toggle.click();
+    await expect(toggle).toHaveAttribute("aria-label", "หยุดวิดีโอพื้นหลัง");
+  });
 });
 
 test("Flow A: user without data sees no fabricated KPI or export", async ({
