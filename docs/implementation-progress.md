@@ -267,3 +267,14 @@
 - หน้า `/analysis/solar/results` ต้องได้รับการยืนยันจากฟอร์มสมมติฐานก่อน หากเปิดตรงจะกลับไปเริ่มที่หน้าข้อมูลประเมิน
 - ตรวจ Acceptance Criteria: เข้า Solar แล้วไม่เห็นผลลัพธ์ทันที, ผู้ไม่มีข้อมูลไม่เห็น KPI หรือปุ่มเริ่มคำนวณ, ผู้มี Load Profile ต้องกดเริ่มเอง และ Flow บันทึกผล Solar เป็นรายงานยังทำงาน
 - การทดสอบ: `npm run lint`, `npm run typecheck`, targeted E2E กรณีไม่มีข้อมูล + Flow C และ production build ผ่าน
+
+## Visual refinement — Solar footage homepage hero
+
+- สถานะ: เสร็จแล้ว
+- ใช้ `public/solarcell.mp4` เป็นวิดีโอพื้นหลังของ Hero หน้าแรกแบบเต็มพื้นที่ โดยไม่คัดลอกไฟล์ซ้ำ
+- เพิ่ม gradient overlay แยกตามด้านของเนื้อหาเพื่อให้เห็นฟุตเทจแต่หัวเรื่อง CTA และการ์ดตัวอย่างยังอ่านชัดตลอดคลิป
+- วิดีโอเล่นอัตโนมัติแบบปิดเสียง วนซ้ำ และใช้ `playsInline` สำหรับมือถือ พร้อมโหลดเพียง metadata ก่อน
+- เพิ่มปุ่มหยุด/เล่นพร้อม accessible label และสถานะ `aria-pressed` เพื่อให้ผู้ใช้ควบคุมการเคลื่อนไหวได้
+- เมื่อระบบตั้งค่า `prefers-reduced-motion` วิดีโอและปุ่มควบคุมจะถูกซ่อน แล้วใช้พื้นหลังนิ่งสีเข้มแทน
+- ตรวจ Acceptance Criteria: ใช้ไฟล์ `solarcell.mp4` จริง, เนื้อหาทั้ง Hero ยังเข้าถึงได้, มีตัวควบคุมการเล่น และ reduced-motion fallback ทำงาน
+- การทดสอบ: `npm run lint`, `npm run typecheck`, targeted E2E สำหรับแหล่งวิดีโอและปุ่มควบคุม และ production build ผ่าน

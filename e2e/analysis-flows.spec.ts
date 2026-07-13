@@ -124,6 +124,23 @@ test("solar starts with data review and no automatic result", async ({
   await expect(page.getByText("ขั้นตอนที่ 3 จาก 4")).toHaveCount(0);
 });
 
+test("home hero uses the Solar footage with an accessible playback control", async ({
+  page,
+}) => {
+  await page.goto("/");
+  const video = page.getByTestId("solar-hero-video");
+  await expect(video).toHaveCount(1);
+  await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
+    "src",
+    "/solarcell.mp4",
+  );
+
+  const toggle = page.getByTestId("hero-video-toggle");
+  await expect(toggle).toHaveAttribute("aria-label", "หยุดวิดีโอพื้นหลัง");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-label", "เล่นวิดีโอพื้นหลัง");
+});
+
 test("Flow A: user without data sees no fabricated KPI or export", async ({
   page,
 }) => {

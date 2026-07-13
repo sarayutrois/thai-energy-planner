@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
+import { HeroBackgroundVideo } from "@/components/hero-background-video";
 
 const journeys = [
   {
@@ -49,18 +50,25 @@ const workflow = [
 export default function Home() {
   return (
     <main className="min-h-screen bg-background">
-      <section className="relative overflow-hidden border-b border-border/70">
-        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_75%_15%,hsl(var(--primary)/0.12),transparent_38%)]" />
+      <section className="relative isolate overflow-hidden border-b border-white/10 bg-slate-950 text-white">
+        <HeroBackgroundVideo />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,6,23,0.82)_0%,rgba(2,6,23,0.64)_48%,rgba(2,6,23,0.46)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(0deg,rgba(2,6,23,0.58)_0%,transparent_45%,rgba(2,6,23,0.22)_100%)]" />
         <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 md:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:py-24">
           <div className="flex flex-col justify-center">
             <div className="flex flex-wrap gap-2">
               <Badge>Thai Energy Planner</Badge>
-              <Badge variant="outline">สำหรับเจ้าของบ้าน</Badge>
+              <Badge
+                className="border-white/25 bg-black/25 text-white backdrop-blur-md"
+                variant="outline"
+              >
+                สำหรับเจ้าของบ้าน
+              </Badge>
             </div>
-            <h1 className="mt-7 max-w-3xl text-5xl font-semibold leading-[1.08] tracking-[-0.045em] md:text-6xl">
+            <h1 className="mt-7 max-w-3xl text-5xl font-semibold leading-[1.08] tracking-[-0.045em] text-white drop-shadow-lg md:text-6xl">
               เข้าใจค่าไฟ แล้วตัดสินใจเรื่องพลังงานได้ชัดขึ้น
             </h1>
-            <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
+            <p className="mt-5 max-w-2xl text-base leading-8 text-white/80 md:text-lg">
               สร้างรูปแบบการใช้ไฟจากเครื่องใช้ไฟฟ้าหรือไฟล์โหลดก่อน
               แล้วใช้บิลค่าไฟช่วยปรับผลเปรียบเทียบแบบปกติ TOU และ Solar
               ให้ใกล้เคียงการใช้งานจริง
@@ -74,19 +82,19 @@ export default function Home() {
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </Link>
               <Link
-                className="inline-flex h-12 items-center justify-center rounded-full border border-border bg-card/80 px-6 text-base font-semibold transition hover:-translate-y-0.5 hover:bg-card hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-white/30 bg-black/25 px-6 text-base font-semibold text-white backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-black/45 hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-white"
                 href="#prepare"
               >
                 ดูสิ่งที่ต้องเตรียม
               </Link>
             </div>
-            <p className="mt-4 text-sm text-muted-foreground">
+            <p className="mt-4 text-sm text-white/70">
               ใช้เวลาประมาณ 5–10 นาที · ไม่จำเป็นต้องมีไฟล์จาก Smart Meter
             </p>
           </div>
           <section
             aria-label="ตัวอย่างผลลัพธ์"
-            className="surface-elevated rounded-[2rem] border border-border/80 p-5 shadow-float md:p-7"
+            className="rounded-[2rem] border border-white/20 bg-card/95 p-5 text-card-foreground shadow-float backdrop-blur-xl md:p-7"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
