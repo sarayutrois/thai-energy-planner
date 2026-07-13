@@ -11,11 +11,13 @@ import { ReportActions } from "./report-actions";
 const audienceLabels = {
   home: "บ้านพักอาศัย",
   shop: "ร้านค้า",
-  business: "ธุรกิจขนาดเล็ก"
+  business: "ธุรกิจขนาดเล็ก",
 };
 
 export function LocalBillReport() {
-  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(
+    null,
+  );
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
@@ -31,7 +33,9 @@ export function LocalBillReport() {
   if (!loaded) {
     return (
       <Card>
-        <CardContent className="p-6 text-sm text-muted-foreground">กำลังโหลดรายงานจากเซสชัน...</CardContent>
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          กำลังโหลดรายงานจากเซสชัน...
+        </CardContent>
       </Card>
     );
   }
@@ -47,7 +51,8 @@ export function LocalBillReport() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            กลับไปหน้ากรอกบิล แล้วกด “สร้างรายงานจากบิลนี้” เพื่อสร้าง snapshot ที่เก็บไว้ในเซสชันนี้
+            กลับไปหน้ากรอกบิล แล้วกด “สร้างรายงานจากบิลนี้” เพื่อสร้าง snapshot
+            ที่เก็บไว้ในเซสชันนี้
           </p>
           <a
             className="inline-flex h-10 w-fit items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -68,9 +73,15 @@ export function LocalBillReport() {
             <div className="mb-3 flex h-11 w-11 items-center justify-center rounded-md bg-primary text-primary-foreground">
               <ReceiptText aria-hidden="true" className="h-5 w-5" />
             </div>
-            <h2 className="text-3xl font-semibold tracking-normal">{snapshot.title}</h2>
+            <h2 className="text-3xl font-semibold tracking-normal">
+              {snapshot.title}
+            </h2>
             <p className="mt-2 text-sm text-muted-foreground">
-              สร้างเมื่อ {new Date(snapshot.createdAt).toLocaleString("th-TH-u-ca-gregory")} · {audienceLabels[snapshot.audience]}
+              สร้างเมื่อ{" "}
+              {new Date(snapshot.createdAt).toLocaleString(
+                "th-TH-u-ca-gregory",
+              )}{" "}
+              · {audienceLabels[snapshot.audience]}
             </p>
           </div>
           <ReportActions
@@ -79,7 +90,7 @@ export function LocalBillReport() {
               energyKwh: row.energyKwh,
               meterMode: row.meterMode,
               month: row.month,
-              totalCostThb: row.totalCostThb
+              totalCostThb: row.totalCostThb,
             }))}
             fileBaseName="thai-energy-planner-bill-summary"
             jsonData={snapshot}
@@ -90,26 +101,46 @@ export function LocalBillReport() {
       <section className="grid gap-5 py-5">
         <div className="grid gap-3 md:grid-cols-5">
           <Metric label="จำนวนเดือน" value={`${snapshot.monthCount}`} />
-          <Metric label="หน่วยรวม" value={`${formatNumber(snapshot.totalKwh)} kWh`} />
-          <Metric label="ค่าไฟรวม" value={`${formatNumber(snapshot.totalCostThb)} บาท`} />
-          <Metric label="เฉลี่ยต่อเดือน" value={`${formatNumber(snapshot.averageMonthlyCostThb)} บาท`} />
-          <Metric label="คุณภาพข้อมูล" value={`${snapshot.dataQualityLabel} (${snapshot.dataQualityScore})`} />
+          <Metric
+            label="หน่วยรวม"
+            value={`${formatNumber(snapshot.totalKwh)} kWh`}
+          />
+          <Metric
+            label="ค่าไฟรวม"
+            value={`${formatNumber(snapshot.totalCostThb)} บาท`}
+          />
+          <Metric
+            label="เฉลี่ยต่อเดือน"
+            value={`${formatNumber(snapshot.averageMonthlyCostThb)} บาท`}
+          />
+          <Metric
+            label="คุณภาพข้อมูล"
+            value={`${snapshot.dataQualityLabel} (${snapshot.dataQualityScore})`}
+          />
         </div>
 
         <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
-                <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary" />
+                <BarChart3
+                  aria-hidden="true"
+                  className="h-5 w-5 text-primary"
+                />
                 สรุปคำแนะนำ
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               {snapshot.recommendations.map((item) => (
-                <div key={item.title} className="rounded-md border border-border p-4">
+                <div
+                  key={item.title}
+                  className="rounded-md border border-border p-4"
+                >
                   <Badge variant="outline">{item.badge}</Badge>
                   <p className="mt-3 font-semibold">{item.title}</p>
-                  <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {item.description}
+                  </p>
                 </div>
               ))}
             </CardContent>
@@ -122,14 +153,19 @@ export function LocalBillReport() {
             <CardContent>
               {snapshot.highestMonth ? (
                 <div className="rounded-md border border-border bg-muted/35 p-4">
-                  <p className="text-sm font-medium">{snapshot.highestMonth.month}</p>
+                  <p className="text-sm font-medium">
+                    {snapshot.highestMonth.month}
+                  </p>
                   <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                    ใช้ {formatNumber(snapshot.highestMonth.energyKwh)} kWh และจ่าย{" "}
-                    {formatNumber(snapshot.highestMonth.totalCostThb)} บาท
+                    ใช้ {formatNumber(snapshot.highestMonth.energyKwh)} kWh
+                    และจ่าย {formatNumber(snapshot.highestMonth.totalCostThb)}{" "}
+                    บาท
                   </p>
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลเดือนที่สรุปได้</p>
+                <p className="text-sm text-muted-foreground">
+                  ยังไม่มีข้อมูลเดือนที่สรุปได้
+                </p>
               )}
             </CardContent>
           </Card>
@@ -155,10 +191,16 @@ export function LocalBillReport() {
                   {snapshot.rows.map((row) => (
                     <tr key={row.month} className="border-t border-border">
                       <td className="px-3 py-2 font-medium">{row.month}</td>
-                      <td className="px-3 py-2">{formatNumber(row.energyKwh)}</td>
-                      <td className="px-3 py-2">{formatNumber(row.totalCostThb)}</td>
+                      <td className="px-3 py-2">
+                        {formatNumber(row.energyKwh)}
+                      </td>
+                      <td className="px-3 py-2">
+                        {formatNumber(row.totalCostThb)}
+                      </td>
                       <td className="px-3 py-2">{row.authority}</td>
-                      <td className="px-3 py-2">{row.meterMode.toUpperCase()}</td>
+                      <td className="px-3 py-2">
+                        {row.meterMode.toUpperCase()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -168,8 +210,9 @@ export function LocalBillReport() {
         </Card>
 
         <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
-          รายงานนี้สร้างจากข้อมูลที่เก็บในเซสชันนี้ ยังไม่ใช่ข้อมูลจากฐานข้อมูลกลาง
-          และยังใช้เพื่อประเมินเบื้องต้นก่อนตรวจ tariff ทางการ
+          รายงานนี้สร้างจากข้อมูลที่เก็บในเซสชันนี้
+          ยังไม่ใช่ข้อมูลจากฐานข้อมูลกลาง และยังใช้เพื่อประเมินเบื้องต้นก่อนตรวจ
+          tariff ทางการ
         </p>
       </section>
     </article>
@@ -186,5 +229,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }

@@ -5,7 +5,7 @@ const config: Config = {
   content: [
     "./src/app/**/*.{ts,tsx}",
     "./src/components/**/*.{ts,tsx}",
-    "./src/lib/**/*.{ts,tsx}"
+    "./src/lib/**/*.{ts,tsx}",
   ],
   theme: {
     extend: {
@@ -17,43 +17,43 @@ const config: Config = {
         foreground: "hsl(var(--foreground))",
         primary: {
           DEFAULT: "hsl(var(--primary))",
-          foreground: "hsl(var(--primary-foreground))"
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
           DEFAULT: "hsl(var(--secondary))",
-          foreground: "hsl(var(--secondary-foreground))"
+          foreground: "hsl(var(--secondary-foreground))",
         },
         muted: {
           DEFAULT: "hsl(var(--muted))",
-          foreground: "hsl(var(--muted-foreground))"
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
           DEFAULT: "hsl(var(--accent))",
-          foreground: "hsl(var(--accent-foreground))"
+          foreground: "hsl(var(--accent-foreground))",
         },
         destructive: {
           DEFAULT: "hsl(var(--destructive))",
-          foreground: "hsl(var(--destructive-foreground))"
+          foreground: "hsl(var(--destructive-foreground))",
         },
         card: {
           DEFAULT: "hsl(var(--card))",
-          foreground: "hsl(var(--card-foreground))"
+          foreground: "hsl(var(--card-foreground))",
         },
         success: {
           DEFAULT: "hsl(var(--success))",
-          foreground: "hsl(var(--success-foreground))"
+          foreground: "hsl(var(--success-foreground))",
         },
         warning: {
           DEFAULT: "hsl(var(--warning))",
-          foreground: "hsl(var(--warning-foreground))"
+          foreground: "hsl(var(--warning-foreground))",
         },
         information: {
           DEFAULT: "hsl(var(--information))",
-          foreground: "hsl(var(--information-foreground))"
+          foreground: "hsl(var(--information-foreground))",
         },
         surface: {
           DEFAULT: "hsl(var(--surface))",
-          elevated: "hsl(var(--surface-elevated))"
+          elevated: "hsl(var(--surface-elevated))",
         },
         chart: {
           primary: "hsl(var(--chart-primary))",
@@ -61,23 +61,24 @@ const config: Config = {
           grid: "hsl(var(--chart-grid))",
           solar: "hsl(var(--chart-solar))",
           peak: "hsl(var(--on-peak))",
-          offPeak: "hsl(var(--off-peak))"
-        }
+          offPeak: "hsl(var(--off-peak))",
+        },
       },
       borderRadius: {
         lg: "8px",
         md: "6px",
-        sm: "4px"
+        sm: "4px",
       },
       fontFamily: {
-        sans: ["var(--font-sans)", "Arial", "sans-serif"]
+        sans: ["var(--font-sans)", "Arial", "sans-serif"],
       },
       boxShadow: {
-        panel: "0 1px 2px rgb(15 23 42 / 0.08), 0 10px 30px rgb(15 23 42 / 0.06)"
-      }
-    }
+        panel:
+          "0 1px 2px rgb(15 23 42 / 0.08), 0 10px 30px rgb(15 23 42 / 0.06)",
+      },
+    },
   },
-  plugins: []
+  plugins: [],
 };
 
 export default config;

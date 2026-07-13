@@ -6,14 +6,21 @@ import type { LoadSummaryMetrics } from "@thai-energy-planner/calculation-engine
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 const LazyLoadDashboardCharts = dynamic(
-  () => import("@/components/load-dashboard-charts").then((mod) => mod.LoadDashboardCharts),
+  () =>
+    import("@/components/load-dashboard-charts").then(
+      (mod) => mod.LoadDashboardCharts,
+    ),
   {
     loading: () => <ChartSkeleton />,
-    ssr: false
-  }
+    ssr: false,
+  },
 );
 
-export function LoadDashboardChartCard({ summary }: { summary: LoadSummaryMetrics }) {
+export function LoadDashboardChartCard({
+  summary,
+}: {
+  summary: LoadSummaryMetrics;
+}) {
   return (
     <Card className="mt-5">
       <CardHeader>
@@ -33,7 +40,10 @@ function ChartSkeleton() {
   return (
     <div className="grid gap-4 lg:grid-cols-2" aria-label="Loading load charts">
       {Array.from({ length: 4 }).map((_, index) => (
-        <div className="h-[320px] rounded-lg border border-border bg-muted/35 p-4" key={index}>
+        <div
+          className="h-[320px] rounded-lg border border-border bg-muted/35 p-4"
+          key={index}
+        >
           <div className="h-4 w-36 rounded bg-muted-foreground/20" />
           <div className="mt-6 h-[240px] rounded bg-muted-foreground/10" />
         </div>

@@ -1,5 +1,37 @@
 # ความคืบหน้าการปรับปรุง Thai Energy Planner
 
+## Maintenance Phase 1 — Experimental surface cleanup
+
+- สถานะ: เสร็จแล้ว
+- ลบ `e2e/presentation.spec.ts`, `demo.mjs`, script `npm run demo` และ dependency Puppeteer ที่เป็น presentation flow รุ่นเก่า
+- ลด Battery, EV และ Ecosystem ให้เหลือ unavailable boundary; ลบ UI sub-routes, summary API และ web demo helpers ออกจาก production build โดยคง calculation engine ไว้เป็นฐานสำหรับการพัฒนาในอนาคต
+- เพิ่ม E2E ครอบคลุม root/deep links ของโมดูลทดลองและ API ให้ตอบสถานะ unavailable โดยไม่ปรากฏใน navigation
+- ตรวจ Acceptance Criteria: `npm run typecheck` และ `npm run lint` ผ่าน; `npm run test:e2e` ผ่าน 16 tests หลังเริ่ม dev runtime ใหม่จาก cache สะอาด
+
+## Maintenance Phase 2 — Tooling and Solar observability
+
+- สถานะ: เสร็จแล้ว
+- เพิ่ม app-level ESLint flat config ให้ Next.js 15 ตรวจพบ `@next/next` และ Core Web Vitals rules ระหว่าง production build; คำเตือน plugin เดิมไม่ปรากฏอีก
+- เพิ่ม Web Vitals reporter เฉพาะ `/analysis/solar` และ endpoint `/api/observability/web-vitals` เพื่อส่ง metric แบบ allow-list ไปยัง structured server log โดยไม่ส่งข้อมูลผู้ใช้ บิล หรือ Load Profile
+- ป้องกัน endpoint ด้วย same-origin/rate-limit guard, payload-size limit และ runtime validation; เพิ่ม E2E ตรวจทั้ง payload ที่ยอมรับและ payload ที่ต้องปฏิเสธ
+- เปลี่ยน audit logger จาก `any` เป็น `unknown` พร้อม runtime client guard หลัง app-level lint เปิดเผย type debt เดิม
+- ตรวจ Acceptance Criteria: app lint และ typecheck ผ่าน; `npm run build` ผ่าน 51 routes โดยไม่มีคำเตือน Next.js ESLint plugin; E2E ของ observability endpoint ผ่าน
+
+## Maintenance Phase 3 — Repository format and release verification
+
+- สถานะ: เสร็จแล้ว
+- เพิ่ม `.prettierignore` สำหรับ agent history, generated output, test artifacts และไฟล์ข้อมูล binary/sample ที่ไม่ควรถูก formatter แตะ
+- จัดรูปแบบ source, config และเอกสารที่ดูแลจริงทั้ง repository ด้วย Prettier เพื่อให้ `npm run format` เป็น release gate ที่ใช้งานได้จริง
+- ตรวจ Acceptance Criteria: `npm run format`, `npm run lint`, `npm run typecheck` และ `npm run build` ผ่าน; `npm test` ผ่าน 241 tests; `npm run test:e2e` ผ่าน 17 tests
+
+## Maintenance Phase 4 — Dependency security verification
+
+- สถานะ: เสร็จแล้ว
+- อัปเกรด SheetJS จาก npm legacy release 0.18.5 เป็น official distribution 0.20.3 เพื่อแก้ high-severity advisories ที่กระทบ XLSX parser ใน production workflow
+- ตรวจ `npm audit --omit=dev`: ไม่เหลือ high หรือ critical; เหลือ 2 moderate ใน PostCSS ที่ฝังมากับ Next.js และ npm เสนอ downgrade ที่ไม่เหมาะสม จึงไม่ใช้ `npm audit fix --force`
+- critical advisory ที่ยังปรากฏเมื่อรวม dev dependencies อยู่ใน Vitest UI/dev server ซึ่งไม่ถูก deploy; การอัปเกรด Vitest 4 เป็น major migration แยกต่างหาก
+- ตรวจ Acceptance Criteria หลังเปลี่ยน parser: `npm run format`, `npm run lint`, `npm run typecheck` และ `npm run build` ผ่าน; `npm test` ผ่าน 241 tests; `npm run test:e2e` ผ่าน 17 tests รวม XLSX upload/preview
+
 ## Recovery Phase 1 — Production UI audit
 
 - สถานะ: เสร็จแล้ว

@@ -1,18 +1,5 @@
-import { getEvDemo, type Phase6SearchParams } from "@/lib/phase6-demo";
-import { EvChartsSection, EvControls, EvPageShell, EvRecommendations, EvSourcePanel, EvSummary } from "./ev-page-parts";
-import { LocalEvStart } from "./local-ev-start";
+import { redirect } from "next/navigation";
 
-export default async function EvOverviewPage({ searchParams }: { searchParams?: Promise<Phase6SearchParams> }) {
-  const { demo, selectedScenario, comparison, settings, queryString, savedBillContext } = getEvDemo((await searchParams) ?? {});
-
-  return (
-    <EvPageShell active="overview" queryString={queryString}>
-      <EvControls settings={settings} action="/analysis/ev/results" savedBillContext={savedBillContext} />
-      <LocalEvStart />
-      <EvSummary selectedScenario={selectedScenario} comparison={comparison} />
-      <EvSourcePanel demo={demo} selectedScenario={selectedScenario} />
-      <EvChartsSection demo={demo} selectedScenario={selectedScenario} comparison={comparison} />
-      <EvRecommendations comparison={comparison} />
-    </EvPageShell>
-  );
+export default function EvOverviewPage() {
+  redirect("/analysis/unavailable?module=ev");
 }

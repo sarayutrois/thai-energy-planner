@@ -5,26 +5,35 @@ import { useEffect, useState } from "react";
 import { ArrowRight, ReceiptText } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { persistLocalAnalysisReport, saveLocalAnalysisReport } from "@/lib/local-analysis-report";
+import {
+  persistLocalAnalysisReport,
+  saveLocalAnalysisReport,
+} from "@/lib/local-analysis-report";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
-import { localBillReportId, type LocalAnalysisReportDraft, type LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
+import {
+  localBillReportId,
+  type LocalAnalysisReportDraft,
+  type LocalBillReportSnapshot,
+} from "@/lib/local-analysis-snapshot";
 
 const audienceLabel: Record<LocalBillReportSnapshot["audience"], string> = {
   home: "บ้านพักอาศัย",
   shop: "ร้านค้า",
-  business: "ธุรกิจขนาดเล็ก"
+  business: "ธุรกิจขนาดเล็ก",
 };
 
 export function LocalBillResultContext({
   enabled,
   moduleName,
-  reportDraft
+  reportDraft,
 }: {
   enabled: boolean;
   moduleName: string;
   reportDraft?: LocalAnalysisReportDraft | undefined;
 }) {
-  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(
+    null,
+  );
   const [readError, setReadError] = useState(false);
   const [savedReportId, setSavedReportId] = useState<string | null>(null);
   const [syncStatus, setSyncStatus] = useState<string | null>(null);
@@ -54,7 +63,8 @@ export function LocalBillResultContext({
         </CardHeader>
         <CardContent className="grid gap-3">
           <p className="text-sm leading-6 text-muted-foreground">
-            ผลลัพธ์นี้เริ่มจากบิลที่บันทึกไว้ แต่ข้อมูลในอุปกรณ์อาจถูกลบหรือเสียรูปแบบแล้ว
+            ผลลัพธ์นี้เริ่มจากบิลที่บันทึกไว้
+            แต่ข้อมูลในอุปกรณ์อาจถูกลบหรือเสียรูปแบบแล้ว
           </p>
           <ActionLink href="/analysis/load-data/bills" label="กลับไปเพิ่มบิล" />
         </CardContent>
@@ -73,7 +83,8 @@ export function LocalBillResultContext({
         </CardHeader>
         <CardContent className="grid gap-3">
           <p className="text-sm leading-6 text-muted-foreground">
-            หน้านี้ถูกตั้งให้เริ่มจากบิล แต่ยังไม่มีข้อมูลบิลที่ใช้ยืนยันบริบทของผล {moduleName}
+            หน้านี้ถูกตั้งให้เริ่มจากบิล
+            แต่ยังไม่มีข้อมูลบิลที่ใช้ยืนยันบริบทของผล {moduleName}
           </p>
           <ActionLink href="/analysis/load-data/bills" label="เพิ่มบิลก่อน" />
         </CardContent>
@@ -87,11 +98,15 @@ export function LocalBillResultContext({
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <CardTitle className="flex items-center gap-2">
-              <ReceiptText aria-hidden="true" className="h-5 w-5 text-primary" />
+              <ReceiptText
+                aria-hidden="true"
+                className="h-5 w-5 text-primary"
+              />
               ผล {moduleName} นี้ใช้บิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              ใช้บิล {snapshot.monthCount} เดือนในอุปกรณ์นี้ร่วมกับ Load Profile และอัตราค่าไฟที่ระบุแหล่งอ้างอิงได้
+              ใช้บิล {snapshot.monthCount} เดือนในอุปกรณ์นี้ร่วมกับ Load Profile
+              และอัตราค่าไฟที่ระบุแหล่งอ้างอิงได้
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -103,11 +118,21 @@ export function LocalBillResultContext({
       <CardContent className="grid gap-4">
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="จำนวนเดือน" value={`${snapshot.monthCount}`} />
-          <Metric label="ใช้ไฟรวม" value={`${formatNumber(snapshot.totalKwh)} kWh`} />
-          <Metric label="ค่าไฟเฉลี่ย" value={`${formatNumber(snapshot.averageMonthlyCostThb)} บาท/เดือน`} />
+          <Metric
+            label="ใช้ไฟรวม"
+            value={`${formatNumber(snapshot.totalKwh)} kWh`}
+          />
+          <Metric
+            label="ค่าไฟเฉลี่ย"
+            value={`${formatNumber(snapshot.averageMonthlyCostThb)} บาท/เดือน`}
+          />
           <Metric
             label="ค่าเฉลี่ยต่อหน่วย"
-            value={snapshot.averageCostPerKwh ? `${formatNumber(snapshot.averageCostPerKwh)} บาท/kWh` : "-"}
+            value={
+              snapshot.averageCostPerKwh
+                ? `${formatNumber(snapshot.averageCostPerKwh)} บาท/kWh`
+                : "-"
+            }
           />
         </div>
         <div className="flex flex-wrap gap-2">
@@ -118,20 +143,24 @@ export function LocalBillResultContext({
                 const report = saveLocalAnalysisReport({
                   billSnapshot: snapshot,
                   draft: reportDraft,
-                  sourcePath: `${window.location.pathname}${window.location.search}`
+                  sourcePath: `${window.location.pathname}${window.location.search}`,
                 });
                 setSavedReportId(report.id);
-                setSyncStatus("บันทึกในอุปกรณ์แล้ว กำลังส่งข้อมูลไปยังบัญชี...");
+                setSyncStatus(
+                  "บันทึกในอุปกรณ์แล้ว กำลังส่งข้อมูลไปยังบัญชี...",
+                );
                 void persistLocalAnalysisReport(report)
                   .then((persistedReport) => {
                     setSyncStatus(
                       persistedReport.serverGeneratedReportId
                         ? "บันทึกลงบัญชีแล้ว"
-                        : "บันทึกในอุปกรณ์แล้ว แต่ยังส่งไปยังบัญชีไม่ได้"
+                        : "บันทึกในอุปกรณ์แล้ว แต่ยังส่งไปยังบัญชีไม่ได้",
                     );
                   })
                   .catch(() => {
-                    setSyncStatus("บันทึกในอุปกรณ์แล้ว แต่ยังส่งไปยังบัญชีไม่ได้");
+                    setSyncStatus(
+                      "บันทึกในอุปกรณ์แล้ว แต่ยังส่งไปยังบัญชีไม่ได้",
+                    );
                   });
               }}
               type="button"
@@ -140,12 +169,30 @@ export function LocalBillResultContext({
               <ReceiptText aria-hidden="true" className="h-4 w-4" />
             </button>
           ) : null}
-          {savedReportId ? <ActionLink href={`/analysis/reports/${savedReportId}`} label="เปิดรายงานที่บันทึก" /> : null}
-          <ActionLink href={`/analysis/reports/${localBillReportId}`} label="เปิดรายงานบิล" />
-          <ActionLink href={`/analysis/load-data/bills?audience=${snapshot.audience}&source=bills`} label="แก้ไขบิล" variant="outline" />
-          <ActionLink href="/analysis/load-data/dashboard" label="กลับ Dashboard" variant="outline" />
+          {savedReportId ? (
+            <ActionLink
+              href={`/analysis/reports/${savedReportId}`}
+              label="เปิดรายงานที่บันทึก"
+            />
+          ) : null}
+          <ActionLink
+            href={`/analysis/reports/${localBillReportId}`}
+            label="เปิดรายงานบิล"
+          />
+          <ActionLink
+            href={`/analysis/load-data/bills?audience=${snapshot.audience}&source=bills`}
+            label="แก้ไขบิล"
+            variant="outline"
+          />
+          <ActionLink
+            href="/analysis/load-data/dashboard"
+            label="กลับ Dashboard"
+            variant="outline"
+          />
         </div>
-        {syncStatus ? <p className="text-sm text-muted-foreground">{syncStatus}</p> : null}
+        {syncStatus ? (
+          <p className="text-sm text-muted-foreground">{syncStatus}</p>
+        ) : null}
       </CardContent>
     </Card>
   );
@@ -163,7 +210,7 @@ function Metric({ label, value }: { label: string; value: string }) {
 function ActionLink({
   href,
   label,
-  variant = "default"
+  variant = "default",
 }: {
   href: string;
   label: string;
@@ -183,5 +230,7 @@ function ActionLink({
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }

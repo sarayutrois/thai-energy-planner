@@ -7,7 +7,7 @@ const bangkokFormatter = new Intl.DateTimeFormat("en-CA", {
   minute: "2-digit",
   second: "2-digit",
   hourCycle: "h23",
-  weekday: "short"
+  weekday: "short",
 });
 
 const weekdayMap: Record<string, number> = {
@@ -17,7 +17,7 @@ const weekdayMap: Record<string, number> = {
   Wed: 3,
   Thu: 4,
   Fri: 5,
-  Sat: 6
+  Sat: 6,
 };
 
 export type BangkokDateTimeParts = {
@@ -33,12 +33,20 @@ export function getBangkokParts(timestamp: string): BangkokDateTimeParts {
     throw new Error(`Invalid timestamp: ${timestamp}`);
   }
 
-  const parts = Object.fromEntries(bangkokFormatter.formatToParts(date).map((part) => [part.type, part.value]));
+  const parts = Object.fromEntries(
+    bangkokFormatter.formatToParts(date).map((part) => [part.type, part.value]),
+  );
   const weekday = parts.weekday;
   const hour = Number(parts.hour);
   const minute = Number(parts.minute);
 
-  if (!parts.year || !parts.month || !parts.day || !weekday || weekdayMap[weekday] === undefined) {
+  if (
+    !parts.year ||
+    !parts.month ||
+    !parts.day ||
+    !weekday ||
+    weekdayMap[weekday] === undefined
+  ) {
     throw new Error(`Unable to parse timestamp in Asia/Bangkok: ${timestamp}`);
   }
 
@@ -46,7 +54,7 @@ export function getBangkokParts(timestamp: string): BangkokDateTimeParts {
     date: `${parts.year}-${parts.month}-${parts.day}`,
     time: `${parts.hour}:${parts.minute}:${parts.second ?? "00"}`,
     dayOfWeek: weekdayMap[weekday],
-    minuteOfDay: hour * 60 + minute
+    minuteOfDay: hour * 60 + minute,
   };
 }
 
@@ -73,7 +81,11 @@ export function parseTimeToMinuteOfDay(time: string): number {
   return hour * 60 + minute;
 }
 
-export function isDateInRange(targetDate: string, effectiveFrom: string, effectiveTo: string | null): boolean {
+export function isDateInRange(
+  targetDate: string,
+  effectiveFrom: string,
+  effectiveTo: string | null,
+): boolean {
   const target = getDateKey(targetDate);
   const start = getDateKey(effectiveFrom);
   const end = effectiveTo ? getDateKey(effectiveTo) : null;
@@ -81,7 +93,11 @@ export function isDateInRange(targetDate: string, effectiveFrom: string, effecti
   return target >= start && (end === null || target <= end);
 }
 
-export function isMinuteInRange(minuteOfDay: number, startTime: string, endTime: string): boolean {
+export function isMinuteInRange(
+  minuteOfDay: number,
+  startTime: string,
+  endTime: string,
+): boolean {
   const start = parseTimeToMinuteOfDay(startTime);
   const end = parseTimeToMinuteOfDay(endTime);
 

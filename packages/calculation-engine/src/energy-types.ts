@@ -1,4 +1,10 @@
-import type { Authority, CustomerSegment, LoadIntervalInput, MeterMode, MonthlyBillInput } from "@thai-energy-planner/shared-types";
+import type {
+  Authority,
+  CustomerSegment,
+  LoadIntervalInput,
+  MeterMode,
+  MonthlyBillInput,
+} from "@thai-energy-planner/shared-types";
 
 export type TariffPlan = {
   id: string;

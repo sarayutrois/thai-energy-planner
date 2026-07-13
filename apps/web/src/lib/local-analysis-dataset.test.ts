@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createAnalysisDatasetFingerprint, isCurrentAnalysisDataset } from "./local-analysis-dataset";
+import {
+  createAnalysisDatasetFingerprint,
+  isCurrentAnalysisDataset,
+} from "./local-analysis-dataset";
 import type { LocalLoadProfileSnapshot } from "./local-load-profile";
 import type { LocalBillReportSnapshot } from "./local-analysis-snapshot";
 
@@ -18,8 +21,20 @@ const billSnapshot: LocalBillReportSnapshot = {
   highestMonth: null,
   recommendations: [],
   rows: [
-    { month: "2026-02", energyKwh: 500, totalCostThb: 2200, authority: "PEA", meterMode: "normal" },
-    { month: "2026-01", energyKwh: 480, totalCostThb: 2082, authority: "PEA", meterMode: "normal" },
+    {
+      month: "2026-02",
+      energyKwh: 500,
+      totalCostThb: 2200,
+      authority: "PEA",
+      meterMode: "normal",
+    },
+    {
+      month: "2026-01",
+      energyKwh: 480,
+      totalCostThb: 2082,
+      authority: "PEA",
+      meterMode: "normal",
+    },
   ],
 };
 
@@ -40,25 +55,68 @@ const profileSnapshot = {
 
 describe("analysis dataset fingerprints", () => {
   it("is stable when bill rows are stored in a different order", () => {
-    const reordered = { ...billSnapshot, rows: [...billSnapshot.rows].reverse() };
-    expect(createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot }).fingerprint)
-      .toBe(createAnalysisDatasetFingerprint({ billSnapshot: reordered, profileSnapshot }).fingerprint);
+    const reordered = {
+      ...billSnapshot,
+      rows: [...billSnapshot.rows].reverse(),
+    };
+    expect(
+      createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot })
+        .fingerprint,
+    ).toBe(
+      createAnalysisDatasetFingerprint({
+        billSnapshot: reordered,
+        profileSnapshot,
+      }).fingerprint,
+    );
   });
 
   it("marks results stale when bills or Load Profile change", () => {
-    const saved = createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot });
+    const saved = createAnalysisDatasetFingerprint({
+      billSnapshot,
+      profileSnapshot,
+    });
     const [firstBill, secondBill] = billSnapshot.rows;
     const [firstInterval, secondInterval] = profileSnapshot.rows;
-    const changedBill = { ...billSnapshot, rows: [{ ...firstBill!, totalCostThb: 2300 }, secondBill!] };
-    const changedProfile = { ...profileSnapshot, rows: [{ ...firstInterval!, energyKwh: 5 }, secondInterval!] };
+    const changedBill = {
+      ...billSnapshot,
+      rows: [{ ...firstBill!, totalCostThb: 2300 }, secondBill!],
+    };
+    const changedProfile = {
+      ...profileSnapshot,
+      rows: [{ ...firstInterval!, energyKwh: 5 }, secondInterval!],
+    };
 
-    expect(isCurrentAnalysisDataset(saved, createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot }))).toBe(true);
-    expect(isCurrentAnalysisDataset(saved, createAnalysisDatasetFingerprint({ billSnapshot: changedBill, profileSnapshot }))).toBe(false);
-    expect(isCurrentAnalysisDataset(saved, createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot: changedProfile }))).toBe(false);
+    expect(
+      isCurrentAnalysisDataset(
+        saved,
+        createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot }),
+      ),
+    ).toBe(true);
+    expect(
+      isCurrentAnalysisDataset(
+        saved,
+        createAnalysisDatasetFingerprint({
+          billSnapshot: changedBill,
+          profileSnapshot,
+        }),
+      ),
+    ).toBe(false);
+    expect(
+      isCurrentAnalysisDataset(
+        saved,
+        createAnalysisDatasetFingerprint({
+          billSnapshot,
+          profileSnapshot: changedProfile,
+        }),
+      ),
+    ).toBe(false);
   });
 
   it("treats legacy reports without a fingerprint as unverified", () => {
-    const current = createAnalysisDatasetFingerprint({ billSnapshot, profileSnapshot });
+    const current = createAnalysisDatasetFingerprint({
+      billSnapshot,
+      profileSnapshot,
+    });
     expect(isCurrentAnalysisDataset(undefined, current)).toBe(false);
   });
 });

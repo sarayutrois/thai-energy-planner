@@ -79,19 +79,52 @@
     --off-peak: 154 54% 55%;
   }
 
-  * { @apply border-border; box-sizing: border-box; }
-  html { font-size: 16px; }
-  body { @apply bg-background text-foreground font-sans; min-height: 100vh; margin: 0; background: hsl(var(--background)); scroll-behavior: smooth; }
-  a { color: inherit; text-decoration: none; }
-  button, input, select, textarea { font: inherit; }
-  ::selection { background: hsl(var(--primary)); color: hsl(var(--primary-foreground)); }
+  * {
+    @apply border-border;
+    box-sizing: border-box;
+  }
+  html {
+    font-size: 16px;
+  }
+  body {
+    @apply bg-background text-foreground font-sans;
+    min-height: 100vh;
+    margin: 0;
+    background: hsl(var(--background));
+    scroll-behavior: smooth;
+  }
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+  button,
+  input,
+  select,
+  textarea {
+    font: inherit;
+  }
+  ::selection {
+    background: hsl(var(--primary));
+    color: hsl(var(--primary-foreground));
+  }
 }
 
 @layer utilities {
-  .surface-elevated { background: hsl(var(--surface-elevated)); }
-  .chart-grid { stroke: hsl(var(--chart-grid)); }
+  .surface-elevated {
+    background: hsl(var(--surface-elevated));
+  }
+  .chart-grid {
+    stroke: hsl(var(--chart-grid));
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; transition-duration: 0.01ms !important; }
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
 }

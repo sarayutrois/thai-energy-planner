@@ -1,5 +1,8 @@
 import Decimal from "decimal.js";
-import type { CanonicalLoadProfile, LoadIntervalInput } from "@thai-energy-planner/shared-types";
+import type {
+  CanonicalLoadProfile,
+  LoadIntervalInput,
+} from "@thai-energy-planner/shared-types";
 import { LoadIntervalSchema } from "@thai-energy-planner/shared-types";
 import {
   calculateNormalBill,
@@ -614,7 +617,9 @@ export type BatteryAnalysisInput = {
   monthlyScaleFactor?: number | undefined;
 };
 
-export function runBatteryAnalysis(input: BatteryAnalysisInput): BatteryAnalysisResult {
+export function runBatteryAnalysis(
+  input: BatteryAnalysisInput,
+): BatteryAnalysisResult {
   const loadIntervals = normalizeLoadIntervals(input.loadIntervals);
   const dispatch = simulateBatteryDispatch({
     loadIntervals,
@@ -1002,7 +1007,9 @@ export type EvScenarioComparisonInput = {
   monthlyScaleFactor?: number | undefined;
 };
 
-export function runEvScenarioComparison(input: EvScenarioComparisonInput): EvScenarioComparisonResult {
+export function runEvScenarioComparison(
+  input: EvScenarioComparisonInput,
+): EvScenarioComparisonResult {
   const strategies: EvChargingStrategy[] = [
     "CHARGE_IMMEDIATELY",
     "OFF_PEAK",
@@ -1216,8 +1223,7 @@ function buildBatteryRecommendations(input: {
     recommendations.push({
       type: "low_solar_export",
       title: "ปริมาณไฟส่งออกมีน้อยอยู่แล้ว (แบตเตอรี่อาจเกินความจำเป็น)",
-      explanation:
-        "ไม่มีไฟโซลาร์ส่วนเกินเหลือพอให้แบตเตอรี่ชาร์จเก็บไว้",
+      explanation: "ไม่มีไฟโซลาร์ส่วนเกินเหลือพอให้แบตเตอรี่ชาร์จเก็บไว้",
       supportingMetrics: {
         exportBeforeKwh: input.dispatch.gridExportBeforeKwh,
       },
@@ -1234,14 +1240,16 @@ function buildBatteryRecommendations(input: {
     recommendations.push({
       type: "reduce_battery_size",
       title: "แบตเตอรี่อาจมีขนาดใหญ่เกินไปเมื่อเทียบกับไฟที่เหลือ",
-      explanation: "ปริมาณไฟโซลาร์ที่ชาร์จเข้าแบตเตอรี่ได้มีน้อยมากเมื่อเทียบกับความจุแบตเตอรี่",
+      explanation:
+        "ปริมาณไฟโซลาร์ที่ชาร์จเข้าแบตเตอรี่ได้มีน้อยมากเมื่อเทียบกับความจุแบตเตอรี่",
       supportingMetrics: {
         chargedFromSolarKwh: input.dispatch.chargedFromSolarKwh,
         usableCapacityKwh: input.config.usableCapacityKwh,
       },
       confidence: "medium",
       limitations,
-      nextAction: "ลองเปรียบเทียบกับแบตเตอรี่ขนาดเล็กกว่า หรือเพิ่มขนาดแผงโซลาร์",
+      nextAction:
+        "ลองเปรียบเทียบกับแบตเตอรี่ขนาดเล็กกว่า หรือเพิ่มขนาดแผงโซลาร์",
     });
   }
 
@@ -1294,8 +1302,7 @@ function buildEvRecommendations(input: {
     recommendations.push({
       type: "smart_charging_best",
       title: "ระบบชาร์จอัจฉริยะช่วยประหยัดต้นทุนได้มากที่สุด",
-      explanation:
-        "ระบบจะเลือกช่วงเวลาที่ค่าไฟถูกที่สุดในการชาร์จอัตโนมัติ",
+      explanation: "ระบบจะเลือกช่วงเวลาที่ค่าไฟถูกที่สุดในการชาร์จอัตโนมัติ",
       supportingMetrics: {
         monthlyBillIncreaseThb: input.best.monthlyBillIncreaseThb,
       },
@@ -1603,9 +1610,13 @@ function toTariffInterval(interval: LoadIntervalInput) {
 function scaleIntervals(intervals: LoadIntervalInput[], factor: number) {
   return intervals.map((interval) => {
     const energy = new Decimal(interval.energyKwh).mul(factor);
-    const powerKw = interval.powerKw !== undefined
-      ? new Decimal(interval.powerKw).mul(factor).toDecimalPlaces(6).toNumber()
-      : undefined;
+    const powerKw =
+      interval.powerKw !== undefined
+        ? new Decimal(interval.powerKw)
+            .mul(factor)
+            .toDecimalPlaces(6)
+            .toNumber()
+        : undefined;
     return {
       ...interval,
       energyKwh: energy.toDecimalPlaces(6).toNumber(),

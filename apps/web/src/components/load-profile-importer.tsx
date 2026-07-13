@@ -246,8 +246,14 @@ export function LoadProfileImporter() {
                   : "-"
               }
             />
-            <Metric label="พลังงานรวม (kWh)" value={formatNumber(preview.totalKwh)} />
-            <Metric label="กำลังไฟสูงสุด (kW)" value={formatNumber(preview.peakKw)} />
+            <Metric
+              label="พลังงานรวม (kWh)"
+              value={formatNumber(preview.totalKwh)}
+            />
+            <Metric
+              label="กำลังไฟสูงสุด (kW)"
+              value={formatNumber(preview.peakKw)}
+            />
             <Metric
               label="คำเตือน/ข้อผิดพลาด"
               value={`${preview.warningCount}/${preview.errorCount}`}

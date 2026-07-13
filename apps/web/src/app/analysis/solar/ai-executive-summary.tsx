@@ -3,7 +3,11 @@
 import { AiSummaryCard } from "@/components/ai-summary-card";
 import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
 
-export function AiExecutiveSummary({ analysis }: { analysis: SolarAnalysisResult }) {
+export function AiExecutiveSummary({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   return (
     <AiSummaryCard
       apiEndpoint="/api/solar/summarize"

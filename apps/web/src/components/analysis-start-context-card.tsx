@@ -15,7 +15,7 @@ export function AnalysisStartContextCard({
   audienceDescription,
   sourceLabel,
   focus,
-  nextAction
+  nextAction,
 }: AnalysisStartContextCardProps) {
   return (
     <Card className="mt-6 border-primary/40 bg-primary/5">

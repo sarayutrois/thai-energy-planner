@@ -28,20 +28,20 @@ Key metrics
 
 ## หน้าและลำดับข้อมูล
 
-| หน้า | ลำดับ wireframe |
-| --- | --- |
-| หน้าแรก | value proposition → สิ่งที่ต้องเตรียม → เริ่มวิเคราะห์ → product preview ที่ระบุว่าเป็นตัวอย่าง |
-| เริ่มวิเคราะห์ | goal → ประเภทอาคาร → ข้อมูลที่มี → next journeys |
-| ข้อมูลอาคาร | page header → ประเภทผู้ใช้ที่เลือก → ข้อมูลจำเป็น → next action |
-| บิล | page header → context → entries → inline validation → summary/next action |
-| สร้าง Load Profile | page header → appliance form → preview → confidence → next action |
-| Import | page header → file selection → mapping/validation → preview → save/next action |
-| Dashboard | page header → readiness → quick summary → data quality → recommended next action |
-| TOU | page header → active profile → assumptions → recommendation/metrics → details → report |
-| Solar | page header → controls → recommendation/metrics → charts → assumptions/risks → report |
-| เปรียบเทียบแผน | page header → active inputs → option comparison → rationale → next action |
-| สรุปคำแนะนำ | page header → prioritized recommendations → confidence/limitations → links to source analyses |
-| รายงาน | page header → saved reports → report readiness → export options |
+| หน้า               | ลำดับ wireframe                                                                                 |
+| ------------------ | ----------------------------------------------------------------------------------------------- |
+| หน้าแรก            | value proposition → สิ่งที่ต้องเตรียม → เริ่มวิเคราะห์ → product preview ที่ระบุว่าเป็นตัวอย่าง |
+| เริ่มวิเคราะห์     | goal → ประเภทอาคาร → ข้อมูลที่มี → next journeys                                                |
+| ข้อมูลอาคาร        | page header → ประเภทผู้ใช้ที่เลือก → ข้อมูลจำเป็น → next action                                 |
+| บิล                | page header → context → entries → inline validation → summary/next action                       |
+| สร้าง Load Profile | page header → appliance form → preview → confidence → next action                               |
+| Import             | page header → file selection → mapping/validation → preview → save/next action                  |
+| Dashboard          | page header → readiness → quick summary → data quality → recommended next action                |
+| TOU                | page header → active profile → assumptions → recommendation/metrics → details → report          |
+| Solar              | page header → controls → recommendation/metrics → charts → assumptions/risks → report           |
+| เปรียบเทียบแผน     | page header → active inputs → option comparison → rationale → next action                       |
+| สรุปคำแนะนำ        | page header → prioritized recommendations → confidence/limitations → links to source analyses   |
+| รายงาน             | page header → saved reports → report readiness → export options                                 |
 
 ## Responsive rules
 

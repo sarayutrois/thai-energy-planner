@@ -6,7 +6,7 @@ const variants = {
   outline: "border-border bg-card text-foreground",
   success: "border-transparent bg-success text-success-foreground",
   warning: "border-transparent bg-warning text-warning-foreground",
-  information: "border-transparent bg-information text-information-foreground"
+  information: "border-transparent bg-information text-information-foreground",
 };
 
 export function Badge({
@@ -21,7 +21,7 @@ export function Badge({
       className={cn(
         "inline-flex items-center rounded-sm border px-2.5 py-1 text-xs font-medium",
         variants[variant],
-        className
+        className,
       )}
       {...props}
     />

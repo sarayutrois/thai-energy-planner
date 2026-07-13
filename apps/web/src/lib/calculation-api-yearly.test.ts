@@ -49,7 +49,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
         { month: "2026-10", billThb: 3300 },
         { month: "2026-11", billThb: 3200 },
         { month: "2026-12", billThb: 3100 },
-      ]
+      ],
     };
 
     // Validate using Zod (will be updated in M4)
@@ -69,7 +69,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
         { month: "2026-01", billThb: 3000 },
         { month: "2026-02", billThb: 3200 },
         { month: "2026-03", billThb: 3400 }, // Average is 3200
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -85,9 +85,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       propertyType: "home",
       usageShape: "day",
       billDate: "2026-01-01",
-      monthlyBills: [
-        { month: "2026-01", billThb: 4000 },
-      ]
+      monthlyBills: [{ month: "2026-01", billThb: 4000 }],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -105,11 +103,13 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
         { month: "2026-03", billThb: 3000 },
         { month: "2026-01", billThb: 3000 },
         { month: "2026-02", billThb: 3000 },
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
-    const payload = runEstimateApiCalculation(parsed) as unknown as TestEstimatePayload;
+    const payload = runEstimateApiCalculation(
+      parsed,
+    ) as unknown as TestEstimatePayload;
     // Verifies that the internal trace or output order is January -> February -> March
     expect(payload.trace.processedMonths[0]).toBe("2026-01");
   });
@@ -120,9 +120,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       propertyType: "home",
       usageShape: "day",
       billDate: "2028-02-01", // 2028 is a leap year (29 days in Feb)
-      monthlyBills: [
-        { month: "2028-02", billThb: 2900 },
-      ]
+      monthlyBills: [{ month: "2028-02", billThb: 2900 }],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -144,7 +142,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       propertyType: "home",
       usageShape: "day",
       billDate: "2026-01-01",
-      monthlyBills: []
+      monthlyBills: [],
     };
 
     const parsed = estimateRequestSchema.safeParse(request);
@@ -160,7 +158,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       monthlyBills: [
         { month: "2026-01", billThb: 3000 },
         { month: "2026-01", billThb: 3200 }, // Duplicate January
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.safeParse(request);
@@ -176,13 +174,17 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       monthlyBills: [
         { month: "2026-01", billThb: 3000 },
         { month: "2026-03", billThb: 4000 }, // Feb is missing
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
-    const payload = runEstimateApiCalculation(parsed) as unknown as TestEstimatePayload;
+    const payload = runEstimateApiCalculation(
+      parsed,
+    ) as unknown as TestEstimatePayload;
     // Missing February must be filled using the average (3500)
-    const febBill = payload.trace.filledBills.find((b) => b.month === "2026-02");
+    const febBill = payload.trace.filledBills.find(
+      (b) => b.month === "2026-02",
+    );
     expect(febBill?.billThb).toBe(3500);
   });
 
@@ -195,11 +197,13 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       monthlyBills: [
         { month: "2026-02", billThb: 3100 },
         { month: "2026-01", billThb: 3000 },
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
-    const payload = runEstimateApiCalculation(parsed) as unknown as TestEstimatePayload;
+    const payload = runEstimateApiCalculation(
+      parsed,
+    ) as unknown as TestEstimatePayload;
     expect(payload.trace.processedMonths[0]).toBe("2026-01");
   });
 
@@ -209,9 +213,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       propertyType: "home",
       usageShape: "day",
       billDate: "2026-01-01",
-      monthlyBills: [
-        { month: "2026-01", billThb: -100 },
-      ]
+      monthlyBills: [{ month: "2026-01", billThb: -100 }],
     };
 
     const parsed = estimateRequestSchema.safeParse(request);
@@ -232,7 +234,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
       monthlyBills: [
         { month: "2026-01", billThb: 3000 },
         { month: "2026-02", billThb: 4000 },
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
@@ -260,12 +262,12 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
         { month: "2026-04", billThb: 18000 },
         { month: "2026-05", billThb: 17000 },
         { month: "2026-06", billThb: 14000 },
-      ]
+      ],
     };
 
     const parsed = estimateRequestSchema.parse(request);
     const payload = runEstimateApiCalculation(parsed);
-    
+
     // Engine should execute 12 months independently, applying restaurant TOU structure
     expect(payload.trace.customerSegment).toBe("small_business");
     expect(payload.result.recommendedSystemSizeKwp).toBeGreaterThan(0);
@@ -285,7 +287,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
         { month: "2026-03", billThb: 4500 },
         { month: "2026-04", billThb: 5000 },
         { month: "2026-05", billThb: 4500 },
-      ]
+      ],
     };
 
     const peaRequest: unknown = {
@@ -299,7 +301,7 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
         { month: "2026-03", billThb: 4500 },
         { month: "2026-04", billThb: 5000 },
         { month: "2026-05", billThb: 4500 },
-      ]
+      ],
     };
 
     const parsedMea = estimateRequestSchema.parse(meaRequest);
@@ -311,6 +313,8 @@ describe("F2: Automatic Monthly Averaging for Incomplete Bills (API Layer)", () 
     // Verify trace is correct and bills are calculated using respective regional tariffs
     expect(meaPayload.trace.authority).toBe("MEA");
     expect(peaPayload.trace.authority).toBe("PEA");
-    expect(meaPayload.result.annualSavingsThb).not.toEqual(peaPayload.result.annualSavingsThb);
+    expect(meaPayload.result.annualSavingsThb).not.toEqual(
+      peaPayload.result.annualSavingsThb,
+    );
   });
 });

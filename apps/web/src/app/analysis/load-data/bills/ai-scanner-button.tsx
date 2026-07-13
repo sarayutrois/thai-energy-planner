@@ -4,11 +4,17 @@ import { useState, useRef } from "react";
 import { Sparkles, Loader2 } from "lucide-react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 
-export function AiScannerButton({ onScanSuccess }: { onScanSuccess: (bill: MonthlyBillInput) => void }) {
+export function AiScannerButton({
+  onScanSuccess,
+}: {
+  onScanSuccess: (bill: MonthlyBillInput) => void;
+}) {
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
-  const handleFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
@@ -28,17 +34,27 @@ export function AiScannerButton({ onScanSuccess }: { onScanSuccess: (bill: Month
       }
 
       const data = await response.json();
-      
+
       // Basic validation of the AI output
-      if (data && data.month && data.energyKwh !== undefined && data.totalCostThb !== undefined) {
+      if (
+        data &&
+        data.month &&
+        data.energyKwh !== undefined &&
+        data.totalCostThb !== undefined
+      ) {
         onScanSuccess({
           month: data.month,
           energyKwh: Number(data.energyKwh),
           totalCostThb: Number(data.totalCostThb),
-          authority: data.authority === "PEA" || data.authority === "MEA" ? data.authority : undefined,
+          authority:
+            data.authority === "PEA" || data.authority === "MEA"
+              ? data.authority
+              : undefined,
         });
       } else {
-        alert("AI อ่านข้อมูลที่จำเป็นจากไฟล์ได้ไม่ครบ กรุณาตรวจสอบไฟล์หรือลองกรอกข้อมูลด้วยตนเอง");
+        alert(
+          "AI อ่านข้อมูลที่จำเป็นจากไฟล์ได้ไม่ครบ กรุณาตรวจสอบไฟล์หรือลองกรอกข้อมูลด้วยตนเอง",
+        );
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);

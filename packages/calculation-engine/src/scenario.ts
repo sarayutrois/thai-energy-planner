@@ -32,25 +32,38 @@ export function compareScenarios(input: {
   currentNormalAnnualCostThb: number;
   scenarios: ScenarioCostInput[];
 }): EnergyScenarioComparisonResult {
-  if (!Number.isFinite(input.currentNormalAnnualCostThb) || input.currentNormalAnnualCostThb < 0) {
+  if (
+    !Number.isFinite(input.currentNormalAnnualCostThb) ||
+    input.currentNormalAnnualCostThb < 0
+  ) {
     throw new Error("currentNormalAnnualCostThb must be non-negative");
   }
-  if (input.scenarios.length === 0) throw new Error("compareScenarios requires at least one scenario");
+  if (input.scenarios.length === 0)
+    throw new Error("compareScenarios requires at least one scenario");
 
   const baseline = new Decimal(input.currentNormalAnnualCostThb);
-  const scenarios = input.scenarios.map((scenario) => buildScenarioResult(scenario, baseline));
-  const bestScenario = scenarios.reduce((best, scenario) => (scenario.annualCostThb < best.annualCostThb ? scenario : best));
+  const scenarios = input.scenarios.map((scenario) =>
+    buildScenarioResult(scenario, baseline),
+  );
+  const bestScenario = scenarios.reduce((best, scenario) =>
+    scenario.annualCostThb < best.annualCostThb ? scenario : best,
+  );
 
   return {
     baselineAnnualCostThb: roundMoney(baseline),
     scenarios,
-    bestScenario
+    bestScenario,
   };
 }
 
-function buildScenarioResult(input: ScenarioCostInput, baseline: Decimal): EnergyScenarioResult {
+function buildScenarioResult(
+  input: ScenarioCostInput,
+  baseline: Decimal,
+): EnergyScenarioResult {
   if (!Number.isFinite(input.annualCostThb) || input.annualCostThb < 0) {
-    throw new Error(`annualCostThb must be non-negative for ${input.scenarioName}`);
+    throw new Error(
+      `annualCostThb must be non-negative for ${input.scenarioName}`,
+    );
   }
 
   const annualCost = new Decimal(input.annualCostThb);
@@ -63,7 +76,7 @@ function buildScenarioResult(input: ScenarioCostInput, baseline: Decimal): Energ
     annualSaving,
     investment,
     npv,
-    payback
+    payback,
   });
 
   return {
@@ -75,11 +88,15 @@ function buildScenarioResult(input: ScenarioCostInput, baseline: Decimal): Energ
     simplePaybackYear: payback,
     discountedPaybackYear: input.discountedPaybackYear ?? null,
     recommendation: classifyRecommendation(annualSaving, npv, payback),
-    recommendationReasons: reasons
+    recommendationReasons: reasons,
   };
 }
 
-function classifyRecommendation(annualSaving: Decimal, npvThb: number | null, simplePaybackYear: number | null) {
+function classifyRecommendation(
+  annualSaving: Decimal,
+  npvThb: number | null,
+  simplePaybackYear: number | null,
+) {
   if (annualSaving.lte(0)) return "not_recommended";
   if (npvThb !== null && npvThb < 0) return "consider";
   if (simplePaybackYear !== null && simplePaybackYear > 12) return "consider";
@@ -95,18 +112,26 @@ function buildRecommendationReasons(input: {
 }) {
   const reasons: string[] = [];
   if (input.annualSaving.gt(0)) {
-    reasons.push(`${input.scenarioName} saves ${roundMoney(input.annualSaving)} THB/year versus Current Normal.`);
+    reasons.push(
+      `${input.scenarioName} saves ${roundMoney(input.annualSaving)} THB/year versus Current Normal.`,
+    );
   } else if (input.annualSaving.lt(0)) {
-    reasons.push(`${input.scenarioName} costs ${roundMoney(input.annualSaving.abs())} THB/year more than Current Normal.`);
+    reasons.push(
+      `${input.scenarioName} costs ${roundMoney(input.annualSaving.abs())} THB/year more than Current Normal.`,
+    );
   } else {
-    reasons.push(`${input.scenarioName} has the same annual cost as Current Normal.`);
+    reasons.push(
+      `${input.scenarioName} has the same annual cost as Current Normal.`,
+    );
   }
 
   if (input.npv !== null) {
     reasons.push(`NPV is ${roundMoney(new Decimal(input.npv))} THB.`);
   }
   if (input.payback !== null && input.investment.gt(0)) {
-    reasons.push(`Simple payback is ${input.payback} years on ${roundMoney(input.investment)} THB investment.`);
+    reasons.push(
+      `Simple payback is ${input.payback} years on ${roundMoney(input.investment)} THB investment.`,
+    );
   }
   return reasons;
 }

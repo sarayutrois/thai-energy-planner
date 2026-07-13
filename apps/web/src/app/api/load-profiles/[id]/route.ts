@@ -45,7 +45,10 @@ export async function GET(
       { status: 422 },
     );
   }
-  return NextResponse.json({ ok: true, profile: { id: profile.id, canonicalProfile } });
+  return NextResponse.json({
+    ok: true,
+    profile: { id: profile.id, canonicalProfile },
+  });
 }
 
 export async function DELETE(
@@ -100,7 +103,8 @@ function toCanonicalProfile(profile: {
     ![15, 30, 60].includes(intervalMinutes) ||
     profile.timezone !== "Asia/Bangkok" ||
     profile.intervals.length === 0
-  ) return null;
+  )
+    return null;
 
   const intervals = profile.intervals.map((interval) => {
     const metadata = asRecord(interval.metadata);
@@ -115,7 +119,9 @@ function toCanonicalProfile(profile: {
         ? { measuredDemandKw: metadata.measuredDemandKw }
         : {}),
       qualityFlags: Array.isArray(metadata?.qualityFlags)
-        ? metadata.qualityFlags.filter((value): value is string => typeof value === "string")
+        ? metadata.qualityFlags.filter(
+            (value): value is string => typeof value === "string",
+          )
         : [],
     };
   });
@@ -124,14 +130,18 @@ function toCanonicalProfile(profile: {
       intervalMinutes * 60_000,
   ).toISOString();
   const sourceKind =
-    typeof storedSource?.kind === "string" ? storedSource.kind : sourceKindForStored(profile.source);
+    typeof storedSource?.kind === "string"
+      ? storedSource.kind
+      : sourceKindForStored(profile.source);
   const candidate = {
     schemaVersion: "1" as const,
     id: profile.id,
     name: profile.name,
     source: {
       kind: sourceKind,
-      ...(typeof storedSource?.reference === "string" ? { reference: storedSource.reference } : {}),
+      ...(typeof storedSource?.reference === "string"
+        ? { reference: storedSource.reference }
+        : {}),
       generatedAt:
         typeof storedSource?.generatedAt === "string"
           ? storedSource.generatedAt
@@ -168,11 +178,15 @@ function asRecord(value: unknown): Record<string, unknown> | null {
 }
 
 function sourceKindForStored(source: string) {
-  return ({
-    BILL: "bill_estimate",
-    CSV: "csv",
-    XLSX: "xlsx",
-    APPLIANCE: "appliance",
-    DEMO: "demo",
-  } as const)[source] ?? "csv";
+  return (
+    (
+      {
+        BILL: "bill_estimate",
+        CSV: "csv",
+        XLSX: "xlsx",
+        APPLIANCE: "appliance",
+        DEMO: "demo",
+      } as const
+    )[source] ?? "csv"
+  );
 }

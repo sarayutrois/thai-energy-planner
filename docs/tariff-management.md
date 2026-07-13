@@ -11,6 +11,7 @@ The Thai Energy Planner system manages complex electricity tariffs (MEA, PEA) ac
 ## The Tariff Engine
 
 The `@thai-energy-planner/tariff-engine` package handles all tariff-related domain logic.
+
 - `versioning.ts`: Validates overlaps in Ft periods, checks for negative rates, and manages the Draft -> Published lifecycle.
 - `engine.ts`: Calculates monthly bills based on a given tariff snapshot and load intervals.
 - `audit.test.ts`: Ensures that the system maintains an audit log for all critical tariff operations.
@@ -18,6 +19,7 @@ The `@thai-energy-planner/tariff-engine` package handles all tariff-related doma
 ## Admin Controls
 
 The `/admin` UI allows administrators to:
+
 - Import and Export tariffs as JSON.
 - Adjust Ft (Fuel Adjustment Charge) rates over time.
 - Manage Holidays which affect TOU off-peak periods.

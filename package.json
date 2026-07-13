@@ -21,7 +21,6 @@
     "prisma:seed": "tsx prisma/seed.ts",
     "export:user-data": "tsx scripts/export-user-data-to-excel.ts",
     "smoke": "node scripts/smoke-test.js",
-    "demo": "playwright test e2e/presentation.spec.ts",
     "test:e2e": "playwright test --config playwright.regression.config.ts"
   },
   "dependencies": {
@@ -35,7 +34,6 @@
     "playwright": "^1.61.1",
     "prettier": "^3.4.2",
     "prisma": "^5.22.0",
-    "puppeteer": "^25.3.0",
     "tsx": "^4.19.2",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.18.2"

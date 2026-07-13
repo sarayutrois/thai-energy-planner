@@ -1,14 +1,26 @@
 import { useEffect, useRef, useState } from "react";
 import type { MonthlyBillInput } from "@thai-energy-planner/shared-types";
 import { type AnalysisAudience } from "@/lib/analysis-start";
-import { billReportStorageKey, billWorkspaceStorageKey, type BillWorkspaceMode, type StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
+import {
+  billReportStorageKey,
+  billWorkspaceStorageKey,
+  type BillWorkspaceMode,
+  type StoredBillWorkspace,
+} from "@/lib/local-analysis-snapshot";
 import { parseBillCsv } from "@/lib/csv-parser";
 import { exportToCsv } from "@thai-energy-planner/report-engine";
 import { downloadJsonFile, downloadTextFile } from "@/lib/file-download";
-import { getStoredWorkspaceMode, sampleHomeBills } from "./bill-workspace-state";
+import {
+  getStoredWorkspaceMode,
+  sampleHomeBills,
+} from "./bill-workspace-state";
 import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 
-function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: number) {
+function useDebouncedEffect(
+  callback: () => void,
+  deps: unknown[],
+  delayMs: number,
+) {
   const timerRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => {
     timerRef.current = setTimeout(callback, delayMs);
@@ -17,14 +29,24 @@ function useDebouncedEffect(callback: () => void, deps: unknown[], delayMs: numb
 }
 
 function sanitizeRow(row: unknown): EditableBillRow {
-  const obj = typeof row === "object" && row !== null
-    ? (row as Record<string, unknown>)
-    : {};
+  const obj =
+    typeof row === "object" && row !== null
+      ? (row as Record<string, unknown>)
+      : {};
   return {
-    id: typeof obj["id"] === "string" && obj["id"] ? obj["id"] : crypto.randomUUID(),
+    id:
+      typeof obj["id"] === "string" && obj["id"]
+        ? obj["id"]
+        : crypto.randomUUID(),
     month: typeof obj["month"] === "string" ? obj["month"] : "",
-    energyKwh: typeof obj["energyKwh"] === "string" ? obj["energyKwh"] : String(obj["energyKwh"] ?? ""),
-    totalCostThb: typeof obj["totalCostThb"] === "string" ? obj["totalCostThb"] : String(obj["totalCostThb"] ?? ""),
+    energyKwh:
+      typeof obj["energyKwh"] === "string"
+        ? obj["energyKwh"]
+        : String(obj["energyKwh"] ?? ""),
+    totalCostThb:
+      typeof obj["totalCostThb"] === "string"
+        ? obj["totalCostThb"]
+        : String(obj["totalCostThb"] ?? ""),
     authority: obj["authority"] === "MEA" ? "MEA" : "PEA",
     meterMode: obj["meterMode"] === "tou" ? "tou" : "normal",
   };
@@ -39,8 +61,13 @@ export type EditableBillRow = {
   meterMode: "normal" | "tou";
 };
 
-export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: AnalysisAudience) {
-  const [workspace, setWorkspace] = useState(() => createInitialWorkspace(initialBills));
+export function useBillWorkspace(
+  initialBills: MonthlyBillInput[],
+  audience: AnalysisAudience,
+) {
+  const [workspace, setWorkspace] = useState(() =>
+    createInitialWorkspace(initialBills),
+  );
   const [hasHydrated, setHasHydrated] = useState(false);
   const { mode, rows } = workspace;
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
@@ -50,30 +77,44 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
     setHasHydrated(true);
   }, [audience, initialBills]);
 
-  useDebouncedEffect(() => {
-    if (!hasHydrated) return;
-    if (mode === "empty") {
-      window.localStorage.removeItem(billWorkspaceStorageKey);
-      setSaveStatus("ยังไม่มีข้อมูลที่บันทึกไว้");
-      return;
-    }
-    const payload: StoredBillWorkspace = {
-      audience,
-      mode,
-      rows,
-      updatedAt: new Date().toISOString()
-    };
-    window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify(payload));
-    window.localStorage.removeItem(billReportStorageKey);
-    setSaveStatus(`บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`);
-  }, [audience, hasHydrated, mode, rows], 500);
+  useDebouncedEffect(
+    () => {
+      if (!hasHydrated) return;
+      if (mode === "empty") {
+        window.localStorage.removeItem(billWorkspaceStorageKey);
+        setSaveStatus("ยังไม่มีข้อมูลที่บันทึกไว้");
+        return;
+      }
+      const payload: StoredBillWorkspace = {
+        audience,
+        mode,
+        rows,
+        updatedAt: new Date().toISOString(),
+      };
+      window.localStorage.setItem(
+        billWorkspaceStorageKey,
+        JSON.stringify(payload),
+      );
+      window.localStorage.removeItem(billReportStorageKey);
+      setSaveStatus(
+        `บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`,
+      );
+    },
+    [audience, hasHydrated, mode, rows],
+    500,
+  );
 
   function updateRow(id: string, patch: Partial<EditableBillRow>) {
     setWorkspace((current) => {
       if (current.mode === "sample") {
         return { mode: "user", rows: [{ ...emptyRow(), id, ...patch }] };
       }
-      return { mode: "user", rows: current.rows.map((row) => (row.id === id ? { ...row, ...patch } : row)) };
+      return {
+        mode: "user",
+        rows: current.rows.map((row) =>
+          row.id === id ? { ...row, ...patch } : row,
+        ),
+      };
     });
   }
 
@@ -85,7 +126,18 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
       .at(-1);
     setWorkspace((current) => ({
       mode: "user",
-      rows: current.mode === "sample" ? [{ ...emptyRow(), month: nextMonth(undefined) }] : [...current.rows, { ...emptyRow(), month: nextMonth(latest), authority: current.rows.at(-1)?.authority ?? "PEA", meterMode: current.rows.at(-1)?.meterMode ?? "normal" }]
+      rows:
+        current.mode === "sample"
+          ? [{ ...emptyRow(), month: nextMonth(undefined) }]
+          : [
+              ...current.rows,
+              {
+                ...emptyRow(),
+                month: nextMonth(latest),
+                authority: current.rows.at(-1)?.authority ?? "PEA",
+                meterMode: current.rows.at(-1)?.meterMode ?? "normal",
+              },
+            ],
     }));
   }
 
@@ -99,23 +151,38 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
   function upsertRow(patch: Partial<EditableBillRow> & { month: string }) {
     setWorkspace((current) => {
       if (current.mode === "sample") {
-        return { mode: "user", rows: [{ ...emptyRow(), ...patch, id: crypto.randomUUID() }] };
+        return {
+          mode: "user",
+          rows: [{ ...emptyRow(), ...patch, id: crypto.randomUUID() }],
+        };
       }
       const rows = current.rows;
-      const existingIdx = rows.findIndex(r => r.month === patch.month);
+      const existingIdx = rows.findIndex((r) => r.month === patch.month);
       if (existingIdx !== -1) {
         const next = [...rows];
-        next[existingIdx] = { ...next[existingIdx], ...patch } as EditableBillRow;
+        next[existingIdx] = {
+          ...next[existingIdx],
+          ...patch,
+        } as EditableBillRow;
         return { mode: "user", rows: next };
       }
-      return { mode: "user", rows: [...rows, {
-        id: crypto.randomUUID(),
-        month: patch.month,
-        energyKwh: patch.energyKwh || "",
-        totalCostThb: patch.totalCostThb || "",
-        authority: (patch.authority as "PEA" | "MEA") || rows.at(-1)?.authority || "PEA",
-        meterMode: rows.at(-1)?.meterMode ?? "normal"
-      }].sort((a, b) => a.month.localeCompare(b.month)) };
+      return {
+        mode: "user",
+        rows: [
+          ...rows,
+          {
+            id: crypto.randomUUID(),
+            month: patch.month,
+            energyKwh: patch.energyKwh || "",
+            totalCostThb: patch.totalCostThb || "",
+            authority:
+              (patch.authority as "PEA" | "MEA") ||
+              rows.at(-1)?.authority ||
+              "PEA",
+            meterMode: rows.at(-1)?.meterMode ?? "normal",
+          },
+        ].sort((a, b) => a.month.localeCompare(b.month)),
+      };
     });
   }
 
@@ -139,7 +206,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
       audience,
       mode,
       rows,
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
     downloadJsonFile("thai-energy-planner-bills.json", payload);
   }
@@ -153,14 +220,17 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
           energyKwh: row.energyKwh,
           meterMode: row.meterMode,
           month: row.month,
-          totalCostThb: row.totalCostThb
-        }))
+          totalCostThb: row.totalCostThb,
+        })),
       ),
-      "text/csv;charset=utf-8"
+      "text/csv;charset=utf-8",
     );
   }
 
-  async function importWorkspace(file: File | undefined, clearInputCallback?: () => void) {
+  async function importWorkspace(
+    file: File | undefined,
+    clearInputCallback?: () => void,
+  ) {
     if (!file) return;
     const MAX_FILE_SIZE = 2 * 1024 * 1024; // 2 MB
     const MAX_IMPORT_ROWS = 120; // 10 years of monthly data
@@ -171,7 +241,10 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
 
     try {
       const text = await file.text();
-      if (file.name.toLowerCase().endsWith(".csv") || text.trimStart().startsWith("month,")) {
+      if (
+        file.name.toLowerCase().endsWith(".csv") ||
+        text.trimStart().startsWith("month,")
+      ) {
         const importedRows = parseBillCsv(text);
         if (importedRows.length === 0) {
           setSaveStatus("ไฟล์ CSV ไม่มีข้อมูลบิลที่นำเข้าได้");
@@ -220,7 +293,7 @@ export function useBillWorkspace(initialBills: MonthlyBillInput[], audience: Ana
     exportWorkspace,
     exportWorkspaceCsv,
     importWorkspace,
-    upsertRow
+    upsertRow,
   };
 }
 
@@ -231,7 +304,7 @@ export function toEditableRow(bill: MonthlyBillInput): EditableBillRow {
     energyKwh: String(bill.energyKwh),
     totalCostThb: String(bill.totalCostThb),
     authority: bill.authority ?? "PEA",
-    meterMode: bill.meterMode ?? "normal"
+    meterMode: bill.meterMode ?? "normal",
   };
 }
 
@@ -244,42 +317,73 @@ export function toBillInput(row: EditableBillRow): MonthlyBillInput {
     totalCostThb: Number.isFinite(cost) ? cost : 0,
     authority: row.authority,
     meterMode: row.meterMode,
-    customerSegment: "residential"
+    customerSegment: "residential",
   };
 }
 
-function loadStoredWorkspace(initialBills: MonthlyBillInput[], audience: AnalysisAudience): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
-  if (typeof window === "undefined") return createInitialWorkspace(initialBills);
+function loadStoredWorkspace(
+  initialBills: MonthlyBillInput[],
+  audience: AnalysisAudience,
+): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
+  if (typeof window === "undefined")
+    return createInitialWorkspace(initialBills);
 
   try {
     const parsed = readStoredBillWorkspace();
-    if (!parsed) return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
+    if (!parsed)
+      return {
+        mode: initialBills.length > 0 ? "user" : "empty",
+        rows: initialBills.map(toEditableRow),
+      };
     const mode = getStoredWorkspaceMode(parsed, audience);
-    return { mode, rows: mode === "empty" ? [] : parsed.rows!.map(sanitizeRow) };
+    return {
+      mode,
+      rows: mode === "empty" ? [] : parsed.rows!.map(sanitizeRow),
+    };
   } catch {
-    return { mode: initialBills.length > 0 ? "user" : "empty", rows: initialBills.map(toEditableRow) };
+    return {
+      mode: initialBills.length > 0 ? "user" : "empty",
+      rows: initialBills.map(toEditableRow),
+    };
   }
 }
 
-function createInitialWorkspace(initialBills: MonthlyBillInput[]): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
+function createInitialWorkspace(initialBills: MonthlyBillInput[]): {
+  mode: BillWorkspaceMode;
+  rows: EditableBillRow[];
+} {
   return {
     mode: initialBills.length > 0 ? "user" : "empty",
     rows: initialBills.map(toEditableRow),
   };
 }
 
-function persistWorkspace(audience: AnalysisAudience, mode: BillWorkspaceMode, rows: EditableBillRow[]) {
-  window.localStorage.setItem(billWorkspaceStorageKey, JSON.stringify({
-    audience,
-    mode,
-    rows,
-    updatedAt: new Date().toISOString(),
-  } satisfies StoredBillWorkspace));
+function persistWorkspace(
+  audience: AnalysisAudience,
+  mode: BillWorkspaceMode,
+  rows: EditableBillRow[],
+) {
+  window.localStorage.setItem(
+    billWorkspaceStorageKey,
+    JSON.stringify({
+      audience,
+      mode,
+      rows,
+      updatedAt: new Date().toISOString(),
+    } satisfies StoredBillWorkspace),
+  );
   window.localStorage.removeItem(billReportStorageKey);
 }
 
 function emptyRow(): EditableBillRow {
-  return { id: crypto.randomUUID(), month: "", energyKwh: "", totalCostThb: "", authority: "PEA", meterMode: "normal" };
+  return {
+    id: crypto.randomUUID(),
+    month: "",
+    energyKwh: "",
+    totalCostThb: "",
+    authority: "PEA",
+    meterMode: "normal",
+  };
 }
 
 function nextMonth(month: string | undefined): string {
@@ -289,7 +393,14 @@ function nextMonth(month: string | undefined): string {
   const parts = month.split("-").map(Number);
   const year = parts[0];
   const monthNumber = parts[1];
-  if (year === undefined || monthNumber === undefined || !Number.isFinite(year) || !Number.isFinite(monthNumber) || monthNumber < 1 || monthNumber > 12) {
+  if (
+    year === undefined ||
+    monthNumber === undefined ||
+    !Number.isFinite(year) ||
+    !Number.isFinite(monthNumber) ||
+    monthNumber < 1 ||
+    monthNumber > 12
+  ) {
     return fallback;
   }
   const date = new Date(Date.UTC(year, monthNumber - 1, 1));

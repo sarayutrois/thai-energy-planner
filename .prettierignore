@@ -1,0 +1,10 @@
+.agents/
+agents/
+.next/
+node_modules/
+coverage/
+dist/
+playwright-report/
+test-results/
+apps/web/public/*.csv
+apps/web/public/*.xlsx

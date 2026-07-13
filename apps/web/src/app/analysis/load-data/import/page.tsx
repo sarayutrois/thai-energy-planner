@@ -3,10 +3,20 @@ import { AnalysisStartContextCard } from "@/components/analysis-start-context-ca
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadProfileImporter } from "@/components/load-profile-importer";
-import { getAnalysisStartContext, type AnalysisStartSearchParams } from "@/lib/analysis-start";
+import {
+  getAnalysisStartContext,
+  type AnalysisStartSearchParams,
+} from "@/lib/analysis-start";
 
-export default async function ImportLoadPage({ searchParams }: { searchParams?: Promise<AnalysisStartSearchParams> }) {
-  const startContext = getAnalysisStartContext((await searchParams) ?? {}, "interval");
+export default async function ImportLoadPage({
+  searchParams,
+}: {
+  searchParams?: Promise<AnalysisStartSearchParams>;
+}) {
+  const startContext = getAnalysisStartContext(
+    (await searchParams) ?? {},
+    "interval",
+  );
 
   return (
     <main className="min-h-screen">
@@ -15,9 +25,14 @@ export default async function ImportLoadPage({ searchParams }: { searchParams?: 
           <Badge>นำเข้าข้อมูลจาก CSV หรือ XLSX</Badge>
           <Badge variant="outline">Asia/Bangkok</Badge>
         </div>
-        <h1 className="text-3xl font-semibold tracking-normal">นำเข้าข้อมูลการใช้ไฟ</h1>
+        <h1 className="text-3xl font-semibold tracking-normal">
+          นำเข้าข้อมูลการใช้ไฟ
+        </h1>
         <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-          รองรับ CSV/XLSX พร้อมการจับคู่คอลัมน์ข้อมูล ช่วงเวลา 15/30/60 นาที และตัวอย่างข้อมูลก่อนนำเข้าจริง ระบบต้องการข้อมูลวันและเวลาร่วมกับพลังงานไฟฟ้า (kWh) หรือกำลังไฟฟ้า (kW)
+          รองรับ CSV/XLSX พร้อมการจับคู่คอลัมน์ข้อมูล ช่วงเวลา 15/30/60 นาที
+          และตัวอย่างข้อมูลก่อนนำเข้าจริง
+          ระบบต้องการข้อมูลวันและเวลาร่วมกับพลังงานไฟฟ้า (kWh) หรือกำลังไฟฟ้า
+          (kW)
         </p>
 
         <AnalysisStartContextCard {...startContext} />

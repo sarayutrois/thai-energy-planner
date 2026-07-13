@@ -15,7 +15,7 @@ describe("scenario comparison core", () => {
           npvThb: 15000,
           irrPercent: 9.5,
           simplePaybackYear: 10,
-          discountedPaybackYear: 12
+          discountedPaybackYear: 12,
         },
         {
           scenarioName: "TOU + Solar",
@@ -24,15 +24,17 @@ describe("scenario comparison core", () => {
           npvThb: 21000,
           irrPercent: 11.2,
           simplePaybackYear: 8.17,
-          discountedPaybackYear: 10.4
-        }
-      ]
+          discountedPaybackYear: 10.4,
+        },
+      ],
     });
 
     expect(result.bestScenario.scenarioName).toBe("TOU + Solar");
     expect(result.bestScenario.annualSavingThb).toBe(15000);
     expect(result.bestScenario.recommendation).toBe("recommended");
-    expect(result.bestScenario.recommendationReasons.join(" ")).toContain("15000 THB/year");
+    expect(result.bestScenario.recommendationReasons.join(" ")).toContain(
+      "15000 THB/year",
+    );
   });
 
   it("uses actual numbers to avoid generic recommendations", () => {
@@ -40,13 +42,23 @@ describe("scenario comparison core", () => {
       currentNormalAnnualCostThb: 24000,
       scenarios: [
         { scenarioName: "TOU only", annualCostThb: 25000 },
-        { scenarioName: "Solar only", annualCostThb: 22000, investmentThb: 200000, npvThb: -50000, simplePaybackYear: 20 }
-      ]
+        {
+          scenarioName: "Solar only",
+          annualCostThb: 22000,
+          investmentThb: 200000,
+          npvThb: -50000,
+          simplePaybackYear: 20,
+        },
+      ],
     });
 
     expect(result.scenarios[0]?.recommendation).toBe("not_recommended");
-    expect(result.scenarios[0]?.recommendationReasons[0]).toContain("1000 THB/year more");
+    expect(result.scenarios[0]?.recommendationReasons[0]).toContain(
+      "1000 THB/year more",
+    );
     expect(result.scenarios[1]?.recommendation).toBe("consider");
-    expect(result.scenarios[1]?.recommendationReasons).toContain("NPV is -50000 THB.");
+    expect(result.scenarios[1]?.recommendationReasons).toContain(
+      "NPV is -50000 THB.",
+    );
   });
 });

@@ -10,7 +10,12 @@ interface Props {
   direction?: "up" | "down" | "left" | "right";
 }
 
-export const Reveal = ({ children, width = "fit-content", delay = 0, direction = "up" }: Props) => {
+export const Reveal = ({
+  children,
+  width = "fit-content",
+  delay = 0,
+  direction = "up",
+}: Props) => {
   const ref = useRef(null);
   const isInView = useInView(ref, { once: true, margin: "-50px" });
   const mainControls = useAnimation();

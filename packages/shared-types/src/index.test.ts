@@ -40,10 +40,31 @@ describe("shared schemas", () => {
       powerUnit: "W",
       quantity: 1,
       dutyCycle: 0.65,
-      schedule: { startTime: "18:00", endTime: "06:00", daysOfWeek: [1], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
+      schedule: {
+        startTime: "18:00",
+        endTime: "06:00",
+        daysOfWeek: [1],
+        workingDayOnly: false,
+        holidayOnly: false,
+        seasonalMonths: [],
+      },
       schedules: [
-        { startTime: "12:00", endTime: "06:00", daysOfWeek: [0], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
-        { startTime: "18:00", endTime: "06:00", daysOfWeek: [1], workingDayOnly: false, holidayOnly: false, seasonalMonths: [] },
+        {
+          startTime: "12:00",
+          endTime: "06:00",
+          daysOfWeek: [0],
+          workingDayOnly: false,
+          holidayOnly: false,
+          seasonalMonths: [],
+        },
+        {
+          startTime: "18:00",
+          endTime: "06:00",
+          daysOfWeek: [1],
+          workingDayOnly: false,
+          holidayOnly: false,
+          seasonalMonths: [],
+        },
       ],
     });
 

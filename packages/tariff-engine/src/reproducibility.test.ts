@@ -7,7 +7,7 @@ function generateReport(analysisSnapshot: any, tariffSnapshot: any) {
   return {
     analysisId: analysisSnapshot.id,
     tariffUsed: tariffSnapshot.versionLabel,
-    totalBill: analysisSnapshot.consumption * tariffSnapshot.rate
+    totalBill: analysisSnapshot.consumption * tariffSnapshot.rate,
   };
 }
 
@@ -21,12 +21,14 @@ describe("Reproducibility Strategy", () => {
 
     // Simulate publishing tariff version B
     const updatedTariff = { versionLabel: "v2", rate: 6 };
-    
+
     const newReportWithOldSnapshot = generateReport(analysis, savedSnapshot);
 
     expect(oldReport.totalBill).toBe(500);
     // The report with the old snapshot should yield the same result despite new tariff existing
     expect(newReportWithOldSnapshot.totalBill).toBe(oldReport.totalBill);
-    expect(newReportWithOldSnapshot.totalBill).not.toBe(100 * updatedTariff.rate);
+    expect(newReportWithOldSnapshot.totalBill).not.toBe(
+      100 * updatedTariff.rate,
+    );
   });
 });

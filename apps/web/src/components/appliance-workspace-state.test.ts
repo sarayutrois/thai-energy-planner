@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { applianceSourceLabel, storedApplianceWorkspaceMode } from "./appliance-workspace-state";
+import {
+  applianceSourceLabel,
+  storedApplianceWorkspaceMode,
+} from "./appliance-workspace-state";
 
 describe("appliance workspace state", () => {
   it("starts empty without a saved labelled workspace", () => {

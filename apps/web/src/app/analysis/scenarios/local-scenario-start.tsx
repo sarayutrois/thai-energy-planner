@@ -11,17 +11,22 @@ import type { LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
 const audienceProfile = {
   home: "evening_home",
   shop: "daytime_shop",
-  business: "daytime_shop"
+  business: "daytime_shop",
 } satisfies Record<LocalBillReportSnapshot["audience"], string>;
 
 const audienceSourceWindow = {
   home: { start: "18:00", end: "22:00", target: "22:00-06:00" },
   shop: { start: "10:00", end: "16:00", target: "16:00-20:00" },
-  business: { start: "09:00", end: "17:00", target: "17:00-21:00" }
-} satisfies Record<LocalBillReportSnapshot["audience"], { start: string; end: string; target: string }>;
+  business: { start: "09:00", end: "17:00", target: "17:00-21:00" },
+} satisfies Record<
+  LocalBillReportSnapshot["audience"],
+  { start: string; end: string; target: string }
+>;
 
 export function LocalScenarioStart() {
-  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(
+    null,
+  );
 
   useEffect(() => {
     try {
@@ -34,7 +39,8 @@ export function LocalScenarioStart() {
   const scenarioHref = useMemo(() => {
     if (!snapshot) return "/analysis/scenarios/results";
 
-    const averageKwh = snapshot.monthCount > 0 ? snapshot.totalKwh / snapshot.monthCount : 0;
+    const averageKwh =
+      snapshot.monthCount > 0 ? snapshot.totalKwh / snapshot.monthCount : 0;
     const shiftPercent = averageKwh >= 900 ? 30 : averageKwh >= 500 ? 25 : 18;
     const window = audienceSourceWindow[snapshot.audience];
     const params = new URLSearchParams({
@@ -47,7 +53,7 @@ export function LocalScenarioStart() {
       shiftPercent: String(shiftPercent),
       sourceStart: window.start,
       sourceEnd: window.end,
-      targetWindow: window.target
+      targetWindow: window.target,
     });
     return `/analysis/scenarios/results?${params.toString()}`;
   }, [snapshot]);
@@ -63,7 +69,8 @@ export function LocalScenarioStart() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            กรุณาเพิ่มบิลหรือสร้าง Load Profile ก่อน ระบบจึงจะเปรียบเทียบช่วงเวลาย้ายโหลดจากข้อมูลของคุณได้
+            กรุณาเพิ่มบิลหรือสร้าง Load Profile ก่อน
+            ระบบจึงจะเปรียบเทียบช่วงเวลาย้ายโหลดจากข้อมูลของคุณได้
           </p>
           <Link
             className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -77,7 +84,8 @@ export function LocalScenarioStart() {
     );
   }
 
-  const averageKwh = snapshot.monthCount > 0 ? snapshot.totalKwh / snapshot.monthCount : 0;
+  const averageKwh =
+    snapshot.monthCount > 0 ? snapshot.totalKwh / snapshot.monthCount : 0;
   const averageCost = snapshot.averageMonthlyCostThb;
   const window = audienceSourceWindow[snapshot.audience];
 
@@ -91,7 +99,8 @@ export function LocalScenarioStart() {
               ตั้ง scenario จากบิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              ใช้ข้อมูล {snapshot.monthCount} เดือนใน browser นี้เพื่อเลือก profile และช่วงเวลาย้ายโหลดเบื้องต้น
+              ใช้ข้อมูล {snapshot.monthCount} เดือนใน browser นี้เพื่อเลือก
+              profile และช่วงเวลาย้ายโหลดเบื้องต้น
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -102,9 +111,18 @@ export function LocalScenarioStart() {
       </CardHeader>
       <CardContent className="grid gap-5">
         <div className="grid gap-3 md:grid-cols-3">
-          <Metric label="ใช้ไฟเฉลี่ย" value={`${formatNumber(averageKwh)} kWh/เดือน`} />
-          <Metric label="ค่าไฟเฉลี่ย" value={`${formatNumber(averageCost)} บาท/เดือน`} />
-          <Metric label="ช่วงที่ควรลองย้าย" value={`${window.start}-${window.end} -> ${window.target}`} />
+          <Metric
+            label="ใช้ไฟเฉลี่ย"
+            value={`${formatNumber(averageKwh)} kWh/เดือน`}
+          />
+          <Metric
+            label="ค่าไฟเฉลี่ย"
+            value={`${formatNumber(averageCost)} บาท/เดือน`}
+          />
+          <Metric
+            label="ช่วงที่ควรลองย้าย"
+            value={`${window.start}-${window.end} -> ${window.target}`}
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -137,7 +155,9 @@ function Metric({ label, value }: { label: string; value: string }) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
 function round(value: number, places: number) {

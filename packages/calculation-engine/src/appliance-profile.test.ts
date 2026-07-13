@@ -76,15 +76,31 @@ describe("appliance load profiles", () => {
       ...weekdayAppliance,
       schedule: { ...weekdayAppliance.schedule, daysOfWeek: [0] },
       schedules: [
-        { ...weekdayAppliance.schedule, startTime: "12:00", endTime: "06:00", daysOfWeek: [0], workingDayOnly: false },
-        { ...weekdayAppliance.schedule, startTime: "18:00", endTime: "06:00", daysOfWeek: [1], workingDayOnly: false },
+        {
+          ...weekdayAppliance.schedule,
+          startTime: "12:00",
+          endTime: "06:00",
+          daysOfWeek: [0],
+          workingDayOnly: false,
+        },
+        {
+          ...weekdayAppliance.schedule,
+          startTime: "18:00",
+          endTime: "06:00",
+          daysOfWeek: [1],
+          workingDayOnly: false,
+        },
       ],
     };
     const sunday = simulateApplianceLoadProfile({
-      appliances: [appliance], date: "2026-07-12", intervalMinutes: 60,
+      appliances: [appliance],
+      date: "2026-07-12",
+      intervalMinutes: 60,
     });
     const monday = simulateApplianceLoadProfile({
-      appliances: [appliance], date: "2026-07-13", intervalMinutes: 60,
+      appliances: [appliance],
+      date: "2026-07-13",
+      intervalMinutes: 60,
     });
 
     expect(sunday.kwhPerDay).toBe(12);

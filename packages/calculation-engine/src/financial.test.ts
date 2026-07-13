@@ -5,7 +5,7 @@ import {
   calculateFinancialResult,
   calculateIRR,
   calculateNPV,
-  calculateSimplePayback
+  calculateSimplePayback,
 } from "./financial";
 
 describe("financial core", () => {
@@ -13,7 +13,7 @@ describe("financial core", () => {
     const cashflows = [
       { year: 0, amountThb: -1000 },
       { year: 1, amountThb: 700 },
-      { year: 2, amountThb: 700 }
+      { year: 2, amountThb: 700 },
     ];
 
     expect(calculateNPV(cashflows, 5)).toBeGreaterThan(250);
@@ -23,7 +23,7 @@ describe("financial core", () => {
     const cashflows = [
       { year: 0, amountThb: -1000 },
       { year: 1, amountThb: 100 },
-      { year: 2, amountThb: 100 }
+      { year: 2, amountThb: 100 },
     ];
 
     expect(calculateNPV(cashflows, 5)).toBeLessThan(0);
@@ -35,7 +35,7 @@ describe("financial core", () => {
       { year: 1, amountThb: 400 },
       { year: 2, amountThb: 400 },
       { year: 3, amountThb: 400 },
-      { year: 4, amountThb: 400 }
+      { year: 4, amountThb: 400 },
     ];
 
     expect(calculateSimplePayback(cashflows)).toBe(2.5);
@@ -47,7 +47,7 @@ describe("financial core", () => {
       { year: 0, amountThb: -1000 },
       { year: 1, amountThb: 500 },
       { year: 2, amountThb: 500 },
-      { year: 3, amountThb: 500 }
+      { year: 3, amountThb: 500 },
     ]);
 
     expect(irr).not.toBeNull();
@@ -55,7 +55,12 @@ describe("financial core", () => {
   });
 
   it("returns null instead of crashing when IRR cannot be calculated", () => {
-    expect(calculateIRR([{ year: 0, amountThb: 100 }, { year: 1, amountThb: 100 }])).toBeNull();
+    expect(
+      calculateIRR([
+        { year: 0, amountThb: 100 },
+        { year: 1, amountThb: 100 },
+      ]),
+    ).toBeNull();
   });
 
   it("builds solar cashflows with year 0 negative investment and lifecycle adjustments", () => {
@@ -68,12 +73,14 @@ describe("financial core", () => {
       electricityEscalationRatePercent: 5,
       solarDegradationRatePercent: 1,
       inverterReplacementCostThb: 5000,
-      inverterReplacementYear: 2
+      inverterReplacementYear: 2,
     });
 
     expect(cashflows[0]).toMatchObject({ year: 0, amountThb: -100000 });
     expect(cashflows[1]?.amountThb).toBe(20000);
-    expect(cashflows[2]?.amountThb).toBeLessThan(cashflows[1]!.amountThb + 21000 * 0.05);
+    expect(cashflows[2]?.amountThb).toBeLessThan(
+      cashflows[1]!.amountThb + 21000 * 0.05,
+    );
 
     const result = calculateFinancialResult(cashflows, 5);
     expect(result.npvThb).toBeLessThan(0);

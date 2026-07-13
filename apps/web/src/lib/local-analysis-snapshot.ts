@@ -2,7 +2,8 @@ import type { AnalysisAudience } from "./analysis-start";
 
 export const billWorkspaceStorageKey = "thai-energy-planner.bill-workspace.v1";
 export const billReportStorageKey = "thai-energy-planner.bill-report.v1";
-export const localAnalysisReportsStorageKey = "thai-energy-planner.analysis-reports.v1";
+export const localAnalysisReportsStorageKey =
+  "thai-energy-planner.analysis-reports.v1";
 export const localBillReportId = "local-bill-summary";
 export const localAnalysisReportIdPrefix = "local-analysis-";
 
@@ -36,13 +37,11 @@ export type LocalBillReportSnapshot = {
   averageCostPerKwh: number | null;
   dataQualityLabel: string;
   dataQualityScore: number;
-  highestMonth:
-    | {
-        month: string;
-        energyKwh: number;
-        totalCostThb: number;
-      }
-    | null;
+  highestMonth: {
+    month: string;
+    energyKwh: number;
+    totalCostThb: number;
+  } | null;
   recommendations: Array<{
     title: string;
     description: string;
@@ -110,22 +109,28 @@ export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
     averageMonthlyCostThb: number;
     dataQualityLabel: string;
   };
-  sourceDataset?: {
-    fingerprint: string;
-    billFingerprint: string;
-    profileFingerprint: string | null;
-  } | undefined;
-  sourceProfile?: {
-    id: string;
-    name: string;
-    sourceKind: string;
-    intervalCount: number;
-    qualityLevel: string;
-  } | undefined;
-  billCalibration?: {
-    comparedMonthCount: number;
-    varianceKwh: number;
-    variancePercent: number | null;
-    warnings: string[];
-  } | undefined;
+  sourceDataset?:
+    | {
+        fingerprint: string;
+        billFingerprint: string;
+        profileFingerprint: string | null;
+      }
+    | undefined;
+  sourceProfile?:
+    | {
+        id: string;
+        name: string;
+        sourceKind: string;
+        intervalCount: number;
+        qualityLevel: string;
+      }
+    | undefined;
+  billCalibration?:
+    | {
+        comparedMonthCount: number;
+        varianceKwh: number;
+        variancePercent: number | null;
+        warnings: string[];
+      }
+    | undefined;
 };

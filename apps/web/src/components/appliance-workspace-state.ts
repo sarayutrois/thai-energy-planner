@@ -1,6 +1,9 @@
 export type ApplianceWorkspaceMode = "empty" | "sample" | "user";
 
-export function storedApplianceWorkspaceMode(value: unknown, applianceCount: number): ApplianceWorkspaceMode {
+export function storedApplianceWorkspaceMode(
+  value: unknown,
+  applianceCount: number,
+): ApplianceWorkspaceMode {
   if (applianceCount === 0) return "empty";
   return value === "sample" || value === "user" ? value : "empty";
 }

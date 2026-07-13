@@ -22,6 +22,7 @@ npm run test
 ```
 
 Key areas covered by unit tests:
+
 - `tariff-engine`: Overlap validation, negative rate checks, reproducibility constraints, and audit logs.
 - `calculation-engine`: TOU break-even logic, Solar payback calculations, and EV charging strategies.
 - `report-engine`: CSV and JSON exporter validations.
@@ -34,4 +35,4 @@ Currently, we utilize a lightweight Node.js HTTP Smoke Test script (`scripts/smo
 npm run smoke
 ```
 
-*Note: In the future, a browser-based E2E testing framework like Playwright or Cypress should be introduced for comprehensive UI integration testing.*
+_Note: In the future, a browser-based E2E testing framework like Playwright or Cypress should be introduced for comprehensive UI integration testing._

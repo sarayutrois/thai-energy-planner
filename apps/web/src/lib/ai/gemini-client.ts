@@ -22,7 +22,7 @@ export function isGeminiConfigured(): boolean {
  */
 export async function callGeminiWithFallback(
   prompt: string,
-  fallbackFn: () => string
+  fallbackFn: () => string,
 ): Promise<string> {
   if (!genAI) {
     return fallbackFn();
@@ -39,11 +39,16 @@ export async function callGeminiWithFallback(
 
   // Tier 2: Gemini 2.0 Flash-Lite (lighter, cheaper)
   try {
-    const liteModel = genAI.getGenerativeModel({ model: "gemini-2.0-flash-lite" });
+    const liteModel = genAI.getGenerativeModel({
+      model: "gemini-2.0-flash-lite",
+    });
     const liteResult = await liteModel.generateContent(prompt);
     return liteResult.response.text().trim();
   } catch (err) {
-    console.warn("[Gemini] Flash-Lite also failed, falling back to rule-based:", err);
+    console.warn(
+      "[Gemini] Flash-Lite also failed, falling back to rule-based:",
+      err,
+    );
   }
 
   // Tier 3: Rule-based (guaranteed to work)

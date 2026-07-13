@@ -3,10 +3,13 @@ import {
   calculateTouBill,
   getOfficialThaiTariffPair,
   type LoadIntervalForTariff,
-  type TariffCalculationResult
+  type TariffCalculationResult,
 } from "@thai-energy-planner/tariff-engine";
 
-export type TariffDemoSearchParams = Record<string, string | string[] | undefined>;
+export type TariffDemoSearchParams = Record<
+  string,
+  string | string[] | undefined
+>;
 
 type SupportedAuthority = "PEA" | "MEA";
 type SupportedCustomerSegment = "residential" | "small_business";
@@ -26,18 +29,25 @@ const defaultBillDate = "2026-07-01";
 const officialSeedEffectiveFrom = "2026-05-01";
 const officialSeedEffectiveTo = "2026-08-31";
 
-export function getOfficialTariffDemo(params: TariffDemoSearchParams): OfficialTariffDemo {
+export function getOfficialTariffDemo(
+  params: TariffDemoSearchParams,
+): OfficialTariffDemo {
   const warnings: string[] = [];
-  const normalKwh = normalizeEnergyKwh(getSingleParam(params.normalKwh), warnings);
+  const normalKwh = normalizeEnergyKwh(
+    getSingleParam(params.normalKwh),
+    warnings,
+  );
   const billDate = normalizeBillDate(getSingleParam(params.billDate), warnings);
   const authority = normalizeAuthority(getSingleParam(params.authority));
-  const customerSegment = normalizeCustomerSegment(getSingleParam(params.customerSegment));
+  const customerSegment = normalizeCustomerSegment(
+    getSingleParam(params.customerSegment),
+  );
   const tariffs = getOfficialThaiTariffPair({
     authority,
     billDate,
     customerSegment,
     monthlyEnergyKwh: Number(normalKwh),
-    voltageLevel: "low_voltage"
+    voltageLevel: "low_voltage",
   });
   const touIntervals = buildRepresentativeTouIntervals(billDate);
 
@@ -49,37 +59,51 @@ export function getOfficialTariffDemo(params: TariffDemoSearchParams): OfficialT
     normalResult: calculateNormalBill({
       tariffVersion: tariffs.normalTariff,
       billDate,
-      energyKwh: normalKwh
+      energyKwh: normalKwh,
     }),
     touIntervals,
     touResult: calculateTouBill({
       tariffVersion: tariffs.touTariff,
-      intervals: touIntervals
+      intervals: touIntervals,
     }),
-    warnings
+    warnings,
   };
 }
 
-function buildRepresentativeTouIntervals(billDate: string): LoadIntervalForTariff[] {
-  const weekday = findDateInMonth(billDate, (dayOfWeek) => dayOfWeek >= 1 && dayOfWeek <= 5);
-  const weekend = findDateInMonth(billDate, (dayOfWeek) => dayOfWeek === 0 || dayOfWeek === 6);
+function buildRepresentativeTouIntervals(
+  billDate: string,
+): LoadIntervalForTariff[] {
+  const weekday = findDateInMonth(
+    billDate,
+    (dayOfWeek) => dayOfWeek >= 1 && dayOfWeek <= 5,
+  );
+  const weekend = findDateInMonth(
+    billDate,
+    (dayOfWeek) => dayOfWeek === 0 || dayOfWeek === 6,
+  );
 
   return [
     { timestamp: `${weekday}T10:00:00+07:00`, energyKwh: "100" },
     { timestamp: `${weekday}T23:00:00+07:00`, energyKwh: "100" },
-    { timestamp: `${weekend}T14:00:00+07:00`, energyKwh: "40" }
+    { timestamp: `${weekend}T14:00:00+07:00`, energyKwh: "40" },
   ];
 }
 
-function findDateInMonth(billDate: string, predicate: (dayOfWeek: number) => boolean) {
+function findDateInMonth(
+  billDate: string,
+  predicate: (dayOfWeek: number) => boolean,
+) {
   const [yearText = "2026", monthText = "07"] = billDate.split("-");
   const year = Number(yearText);
   const monthIndex = Number(monthText) - 1;
   const daysInMonth = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
 
   for (let day = 1; day <= daysInMonth; day += 1) {
-    const dayOfWeek = new Date(Date.UTC(year, monthIndex, day, 12, 0, 0)).getUTCDay();
-    if (predicate(dayOfWeek)) return `${yearText}-${monthText}-${String(day).padStart(2, "0")}`;
+    const dayOfWeek = new Date(
+      Date.UTC(year, monthIndex, day, 12, 0, 0),
+    ).getUTCDay();
+    if (predicate(dayOfWeek))
+      return `${yearText}-${monthText}-${String(day).padStart(2, "0")}`;
   }
 
   return `${yearText}-${monthText}-01`;
@@ -89,18 +113,25 @@ function normalizeAuthority(value: string | undefined): SupportedAuthority {
   return value === "MEA" ? "MEA" : "PEA";
 }
 
-function normalizeCustomerSegment(value: string | undefined): SupportedCustomerSegment {
+function normalizeCustomerSegment(
+  value: string | undefined,
+): SupportedCustomerSegment {
   return value === "small_business" ? "small_business" : "residential";
 }
 
 function normalizeBillDate(value: string | undefined, warnings: string[]) {
-  if (value && /^\d{4}-\d{2}-\d{2}$/.test(value) && value >= officialSeedEffectiveFrom && value <= officialSeedEffectiveTo) {
+  if (
+    value &&
+    /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    value >= officialSeedEffectiveFrom &&
+    value <= officialSeedEffectiveTo
+  ) {
     return value;
   }
 
   if (value) {
     warnings.push(
-      `ข้อมูลอัตราค่าไฟที่ตรวจสอบได้ครอบคลุม ${officialSeedEffectiveFrom} ถึง ${officialSeedEffectiveTo} จึงใช้วันที่ ${defaultBillDate} แทน`
+      `ข้อมูลอัตราค่าไฟที่ตรวจสอบได้ครอบคลุม ${officialSeedEffectiveFrom} ถึง ${officialSeedEffectiveTo} จึงใช้วันที่ ${defaultBillDate} แทน`,
     );
   }
   return defaultBillDate;
@@ -110,7 +141,9 @@ function normalizeEnergyKwh(value: string | undefined, warnings: string[]) {
   if (!value) return "250";
   const parsed = Number(value);
   if (Number.isFinite(parsed) && parsed >= 0) return String(parsed);
-  warnings.push("จำนวนหน่วยไฟต้องเป็นศูนย์หรือมากกว่า จึงใช้ 250 kWh เป็นค่าเริ่มต้นสำหรับการทดลองคำนวณ");
+  warnings.push(
+    "จำนวนหน่วยไฟต้องเป็นศูนย์หรือมากกว่า จึงใช้ 250 kWh เป็นค่าเริ่มต้นสำหรับการทดลองคำนวณ",
+  );
   return "250";
 }
 

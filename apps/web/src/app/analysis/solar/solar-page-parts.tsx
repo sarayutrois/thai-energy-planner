@@ -1,6 +1,16 @@
 import type { ReactNode } from "react";
 import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
-import { AlertTriangle, BadgeCheck, BarChart3, Calculator, CircleDollarSign, Info, Settings, ShieldCheck, SunMedium } from "lucide-react";
+import {
+  AlertTriangle,
+  BadgeCheck,
+  BarChart3,
+  Calculator,
+  CircleDollarSign,
+  Info,
+  Settings,
+  ShieldCheck,
+  SunMedium,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +18,10 @@ import { SolarAnalysisCharts } from "@/components/solar-analysis-charts";
 import { SolarLocationFields } from "@/components/solar-location-fields";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
 import { buildSolarQuery, solarProfileOptions } from "@/lib/solar-demo";
-import { formatApproximateMoneyRange, solarReadinessCopy } from "@/lib/solar-readiness-copy";
+import {
+  formatApproximateMoneyRange,
+  solarReadinessCopy,
+} from "@/lib/solar-readiness-copy";
 import { PageHeader } from "@/components/ui/page-layout";
 
 type SavedBillContext = {
@@ -22,16 +35,43 @@ const tabs = [
   { key: "results", href: "/analysis/solar/results", label: "ผลลัพธ์" },
   { key: "sizing", href: "/analysis/solar/sizing", label: "ขนาดระบบ" },
   { key: "finance", href: "/analysis/solar/finance", label: "การเงิน" },
-  { key: "sensitivity", href: "/analysis/solar/sensitivity", label: "ความไวของผลลัพธ์" }
+  {
+    key: "sensitivity",
+    href: "/analysis/solar/sensitivity",
+    label: "ความไวของผลลัพธ์",
+  },
 ];
 
-export function SolarPageShell({ active, queryString, children }: { active: string; queryString: string; children: ReactNode }) {
+export function SolarPageShell({
+  active,
+  queryString,
+  children,
+}: {
+  active: string;
+  queryString: string;
+  children: ReactNode;
+}) {
   return (
     <main className="min-h-screen">
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
-        <PageHeader eyebrow={<><Badge>ประเมินโซลาร์เซลล์</Badge><Badge className="ml-2" variant="warning">ข้อมูลเพื่อประกอบการตัดสินใจ</Badge></>} title="จำลองการติดตั้งโซลาร์เซลล์บนหลังคา" description="ประเมินสัดส่วนไฟ Solar ที่ใช้เอง ระยะเวลาคืนทุน ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์ โดยไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด" />
+        <PageHeader
+          eyebrow={
+            <>
+              <Badge>ประเมินโซลาร์เซลล์</Badge>
+              <Badge className="ml-2" variant="warning">
+                ข้อมูลเพื่อประกอบการตัดสินใจ
+              </Badge>
+            </>
+          }
+          title="จำลองการติดตั้งโซลาร์เซลล์บนหลังคา"
+          description="ประเมินสัดส่วนไฟ Solar ที่ใช้เอง ระยะเวลาคืนทุน ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์ โดยไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด"
+        />
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div><p className="text-sm text-muted-foreground">เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ</p></div>
+          <div>
+            <p className="text-sm text-muted-foreground">
+              เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ
+            </p>
+          </div>
           <div className="flex flex-wrap gap-2">
             {tabs.map((tab) => (
               <a
@@ -57,7 +97,7 @@ export function SolarPageShell({ active, queryString, children }: { active: stri
 export function SolarControls({
   settings,
   action,
-  savedBillContext
+  savedBillContext,
 }: {
   settings: SolarDemoSettings;
   action: string;
@@ -82,10 +122,17 @@ export function SolarControls({
             ))}
           </div>
         ) : null}
-        <form action={action} className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+        <form
+          action={action}
+          className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
+        >
           <SavedBillHiddenInputs context={savedBillContext} />
           <Field label="Load profile">
-            <select name="profile" defaultValue={settings.profile} className={inputClassName}>
+            <select
+              name="profile"
+              defaultValue={settings.profile}
+              className={inputClassName}
+            >
               {solarProfileOptions.map((option) => (
                 <option key={option.value} value={option.value}>
                   {option.label}
@@ -94,36 +141,94 @@ export function SolarControls({
             </select>
           </Field>
           <Field label="Baseline meter">
-            <select name="baseline" defaultValue={settings.baseline} className={inputClassName}>
+            <select
+              name="baseline"
+              defaultValue={settings.baseline}
+              className={inputClassName}
+            >
               <option value="normal">Normal</option>
               <option value="tou">TOU</option>
             </select>
           </Field>
           <Field label="Model detail">
-            <select name="modelMode" defaultValue={settings.modelMode} className={inputClassName}>
+            <select
+              name="modelMode"
+              defaultValue={settings.modelMode}
+              className={inputClassName}
+            >
               <option value="easy">แบบประเมินเบื้องต้น</option>
               <option value="advanced">สมมติฐานขั้นสูง</option>
               <option value="xhigh">ตรวจสอบรายละเอียด</option>
             </select>
           </Field>
-          <SolarLocationFields province={settings.province} latitude={settings.latitude} longitude={settings.longitude} />
+          <SolarLocationFields
+            province={settings.province}
+            latitude={settings.latitude}
+            longitude={settings.longitude}
+          />
           <Field label="Solar size (kWp)">
-            <input name="systemSizeKwp" type="number" min="0.1" step="0.1" defaultValue={settings.systemSizeKwp} className={inputClassName} />
+            <input
+              name="systemSizeKwp"
+              type="number"
+              min="0.1"
+              step="0.1"
+              defaultValue={settings.systemSizeKwp}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Roof area (sqm)">
-            <input name="roofAreaSqm" type="number" min="0" step="1" defaultValue={settings.roofAreaSqm} className={inputClassName} />
+            <input
+              name="roofAreaSqm"
+              type="number"
+              min="0"
+              step="1"
+              defaultValue={settings.roofAreaSqm}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Roof azimuth (degree)">
-            <input name="roofAzimuth" type="number" min="0" max="360" step="1" defaultValue={settings.roofAzimuth} className={inputClassName} />
+            <input
+              name="roofAzimuth"
+              type="number"
+              min="0"
+              max="360"
+              step="1"
+              defaultValue={settings.roofAzimuth}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Roof tilt (degree)">
-            <input name="roofTilt" type="number" min="0" max="60" step="1" defaultValue={settings.roofTilt} className={inputClassName} />
+            <input
+              name="roofTilt"
+              type="number"
+              min="0"
+              max="60"
+              step="1"
+              defaultValue={settings.roofTilt}
+              className={inputClassName}
+            />
           </Field>
           <Field label="System loss (%)">
-            <input name="systemLossPercent" type="number" min="0" max="100" step="0.1" defaultValue={settings.systemLossPercent} className={inputClassName} />
+            <input
+              name="systemLossPercent"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              defaultValue={settings.systemLossPercent}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Shading loss (%)">
-            <input name="shadingLossPercent" type="number" min="0" max="100" step="0.1" defaultValue={settings.shadingLossPercent} className={inputClassName} />
+            <input
+              name="shadingLossPercent"
+              type="number"
+              min="0"
+              max="100"
+              step="0.1"
+              defaultValue={settings.shadingLossPercent}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Degradation (%/year)">
             <input
@@ -137,16 +242,44 @@ export function SolarControls({
             />
           </Field>
           <Field label="CAPEX (baht)">
-            <input name="capexThb" type="number" min="0" step="1000" defaultValue={settings.capexThb} className={inputClassName} />
+            <input
+              name="capexThb"
+              type="number"
+              min="0"
+              step="1000"
+              defaultValue={settings.capexThb}
+              className={inputClassName}
+            />
           </Field>
           <Field label="O&M (baht/year)">
-            <input name="oAndMCostPerYear" type="number" min="0" step="100" defaultValue={settings.oAndMCostPerYear} className={inputClassName} />
+            <input
+              name="oAndMCostPerYear"
+              type="number"
+              min="0"
+              step="100"
+              defaultValue={settings.oAndMCostPerYear}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Project life (years)">
-            <input name="projectLifeYears" type="number" min="1" step="1" defaultValue={settings.projectLifeYears} className={inputClassName} />
+            <input
+              name="projectLifeYears"
+              type="number"
+              min="1"
+              step="1"
+              defaultValue={settings.projectLifeYears}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Discount rate (%)">
-            <input name="discountRatePercent" type="number" min="0" step="0.1" defaultValue={settings.discountRatePercent} className={inputClassName} />
+            <input
+              name="discountRatePercent"
+              type="number"
+              min="0"
+              step="0.1"
+              defaultValue={settings.discountRatePercent}
+              className={inputClassName}
+            />
           </Field>
           <Field label="Electricity escalation (%)">
             <input
@@ -179,7 +312,11 @@ export function SolarControls({
             />
           </Field>
           <Field label="เปิดรับไฟฟ้าที่ส่งกลับเข้าสู่ระบบ">
-            <select name="exportEnabled" defaultValue={String(settings.exportEnabled)} className={inputClassName}>
+            <select
+              name="exportEnabled"
+              defaultValue={String(settings.exportEnabled)}
+              className={inputClassName}
+            >
               <option value="true">เปิดใช้</option>
               <option value="false">ไม่เปิดใช้</option>
             </select>
@@ -195,7 +332,14 @@ export function SolarControls({
             />
           </Field>
           <Field label="กำลังส่งกลับสูงสุด (kW)">
-            <input name="exportLimitKw" type="number" min="0" step="0.1" defaultValue={settings.exportLimitKw} className={inputClassName} />
+            <input
+              name="exportLimitKw"
+              type="number"
+              min="0"
+              step="0.1"
+              defaultValue={settings.exportLimitKw}
+              className={inputClassName}
+            />
           </Field>
           <div className="flex items-end">
             <Button type="submit" className="w-full">
@@ -216,17 +360,26 @@ export function SolarControls({
   );
 }
 
-function SavedBillHiddenInputs({ context }: { context?: SavedBillContext | undefined }) {
+function SavedBillHiddenInputs({
+  context,
+}: {
+  context?: SavedBillContext | undefined;
+}) {
   if (context?.source !== "bills") return null;
   return (
     <>
       <input name="source" type="hidden" value="bills" />
-      {context.audience ? <input name="audience" type="hidden" value={context.audience} /> : null}
+      {context.audience ? (
+        <input name="audience" type="hidden" value={context.audience} />
+      ) : null}
     </>
   );
 }
 
-function withSavedBillContext(queryString: string, context?: SavedBillContext | undefined) {
+function withSavedBillContext(
+  queryString: string,
+  context?: SavedBillContext | undefined,
+) {
   if (context?.source !== "bills") return queryString;
 
   const params = new URLSearchParams(queryString);
@@ -246,24 +399,114 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
         label="ประมาณการประหยัด/ปี"
         value={`${formatApproximateMoneyRange(comparison.netAnnualBenefit)}/ปี`}
       />
-      <Metric label="สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่" value={formatPercent(analysis.selfConsumption.selfConsumptionRatio)} />
-      <Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatNumber(recommended.systemSizeKwp)} kWp` : "ยังไม่มี"} />
-      <Metric label="ระยะเวลาคืนทุน" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} ปี` : "-"} />
-      <Metric label="NPV" value={`${formatNumber(analysis.financial.npvThb)} baht`} />
-      <Metric label="IRR" value={analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%`} />
+      <Metric
+        label="สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่"
+        value={formatPercent(analysis.selfConsumption.selfConsumptionRatio)}
+      />
+      <Metric
+        label="ขนาดที่ผ่านเกณฑ์"
+        value={
+          recommended
+            ? `${formatNumber(recommended.systemSizeKwp)} kWp`
+            : "ยังไม่มี"
+        }
+      />
+      <Metric
+        label="ระยะเวลาคืนทุน"
+        value={
+          analysis.financial.simplePaybackYears
+            ? `${analysis.financial.simplePaybackYears} ปี`
+            : "-"
+        }
+      />
+      <Metric
+        label="NPV"
+        value={`${formatNumber(analysis.financial.npvThb)} baht`}
+      />
+      <Metric
+        label="IRR"
+        value={
+          analysis.financial.irrPercent === null
+            ? "-"
+            : `${formatNumber(analysis.financial.irrPercent)}%`
+        }
+      />
     </div>
   );
 }
 
-export function SolarDecisionSummary({ analysis }: { analysis: SolarAnalysisResult }) {
+export function SolarDecisionSummary({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   const recommended = analysis.sizing.recommended;
   const recommendation = analysis.recommendations[0];
-  const decision = recommendation?.title ?? (recommended ? `Solar มีแนวโน้มเหมาะที่ขนาด ${formatNumber(recommended.systemSizeKwp)} kWp` : "ยังไม่แนะนำติดตั้ง Solar ตามข้อมูลปัจจุบัน");
-  const reason = recommendation?.explanation ?? (recommended ? "ขนาดนี้ผ่านเกณฑ์ความคุ้มค่าของแบบจำลองภายใต้สมมติฐานปัจจุบัน" : "ยังไม่มีขนาดระบบที่ผ่านเกณฑ์ความคุ้มค่าของแบบจำลอง");
-  return <section className="rounded-xl border border-primary/35 bg-primary/5 p-5 md:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="max-w-2xl"><p className="text-sm font-semibold text-primary">คำแนะนำหลัก</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{decision}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{reason}</p>{recommendation?.nextAction ? <p className="mt-3 text-sm font-medium">ขั้นตอนถัดไป: {recommendation.nextAction}</p> : null}</div><Badge variant={analysis.modelQuality.score >= 70 ? "success" : "warning"}>ความมั่นใจ {analysis.modelQuality.label} · {analysis.modelQuality.score}/100</Badge></div><div className="mt-5 grid gap-3 sm:grid-cols-3"><Metric label="ผลประหยัดสุทธิโดยประมาณ" value={`${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี`} /><Metric label="ระยะเวลาคืนทุน" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} ปี` : "ยังประเมินไม่ได้"} /><Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatNumber(recommended.systemSizeKwp)} kWp` : "ไม่มี"} /></div></section>;
+  const decision =
+    recommendation?.title ??
+    (recommended
+      ? `Solar มีแนวโน้มเหมาะที่ขนาด ${formatNumber(recommended.systemSizeKwp)} kWp`
+      : "ยังไม่แนะนำติดตั้ง Solar ตามข้อมูลปัจจุบัน");
+  const reason =
+    recommendation?.explanation ??
+    (recommended
+      ? "ขนาดนี้ผ่านเกณฑ์ความคุ้มค่าของแบบจำลองภายใต้สมมติฐานปัจจุบัน"
+      : "ยังไม่มีขนาดระบบที่ผ่านเกณฑ์ความคุ้มค่าของแบบจำลอง");
+  return (
+    <section className="rounded-xl border border-primary/35 bg-primary/5 p-5 md:p-6">
+      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div className="max-w-2xl">
+          <p className="text-sm font-semibold text-primary">คำแนะนำหลัก</p>
+          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
+            {decision}
+          </h2>
+          <p className="mt-3 text-sm leading-6 text-muted-foreground">
+            {reason}
+          </p>
+          {recommendation?.nextAction ? (
+            <p className="mt-3 text-sm font-medium">
+              ขั้นตอนถัดไป: {recommendation.nextAction}
+            </p>
+          ) : null}
+        </div>
+        <Badge
+          variant={analysis.modelQuality.score >= 70 ? "success" : "warning"}
+        >
+          ความมั่นใจ {analysis.modelQuality.label} ·{" "}
+          {analysis.modelQuality.score}/100
+        </Badge>
+      </div>
+      <div className="mt-5 grid gap-3 sm:grid-cols-3">
+        <Metric
+          label="ผลประหยัดสุทธิโดยประมาณ"
+          value={`${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี`}
+        />
+        <Metric
+          label="ระยะเวลาคืนทุน"
+          value={
+            analysis.financial.simplePaybackYears
+              ? `${analysis.financial.simplePaybackYears} ปี`
+              : "ยังประเมินไม่ได้"
+          }
+        />
+        <Metric
+          label="ขนาดที่ผ่านเกณฑ์"
+          value={
+            recommended
+              ? `${formatNumber(recommended.systemSizeKwp)} kWp`
+              : "ไม่มี"
+          }
+        />
+      </div>
+    </section>
+  );
 }
 
-export function ModelQualityPanel({ analysis }: { analysis: SolarAnalysisResult }) {
+export function ModelQualityPanel({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   const quality = analysis.modelQuality;
   return (
     <Card>
@@ -277,73 +520,115 @@ export function ModelQualityPanel({ analysis }: { analysis: SolarAnalysisResult 
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="ระดับความมั่นใจ" value={quality.label} />
           <Metric label="Score" value={`${quality.score}/100`} />
-          <Metric label="Detail mode" value={quality.detailLevel.toUpperCase()} />
-          <Metric label="จำนวน risk flags" value={String(quality.risks.length)} />
+          <Metric
+            label="Detail mode"
+            value={quality.detailLevel.toUpperCase()}
+          />
+          <Metric
+            label="จำนวน risk flags"
+            value={String(quality.risks.length)}
+          />
         </div>
         <div className="grid gap-3 lg:grid-cols-2">
           {quality.risks.map((risk) => (
-            <div key={risk.code} className="rounded-md border border-border p-4">
+            <div
+              key={risk.code}
+              className="rounded-md border border-border p-4"
+            >
               <div className="flex flex-wrap items-center gap-2">
-                <AlertTriangle aria-hidden="true" className="h-4 w-4 text-warning" />
-                <Badge variant={risk.severity === "critical" || risk.severity === "warning" ? "warning" : "outline"}>
+                <AlertTriangle
+                  aria-hidden="true"
+                  className="h-4 w-4 text-warning"
+                />
+                <Badge
+                  variant={
+                    risk.severity === "critical" || risk.severity === "warning"
+                      ? "warning"
+                      : "outline"
+                  }
+                >
                   {risk.severity}
                 </Badge>
               </div>
               <h3 className="mt-2 font-semibold">{risk.title}</h3>
-              <p className="mt-2 text-sm leading-6 text-muted-foreground">{risk.explanation}</p>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {risk.explanation}
+              </p>
               <p className="mt-2 text-sm font-medium">{risk.mitigation}</p>
             </div>
           ))}
         </div>
-        {quality.risks.length === 0 ? <EmptyState title="No material risk flags" text="ยังต้องตรวจสอบแหล่งข้อมูลทางการก่อนใช้ประกอบการลงทุนจริง" /> : null}
+        {quality.risks.length === 0 ? (
+          <EmptyState
+            title="No material risk flags"
+            text="ยังต้องตรวจสอบแหล่งข้อมูลทางการก่อนใช้ประกอบการลงทุนจริง"
+          />
+        ) : null}
       </CardContent>
     </Card>
   );
 }
 
-export function SolarChartsSection({ analysis }: { analysis: SolarAnalysisResult }) {
+export function SolarChartsSection({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   if (analysis.selfConsumption.intervalResults.length === 0) {
-    return <EmptyState title="No interval data" text="Import load and solar profiles before using charts." />;
+    return (
+      <EmptyState
+        title="No interval data"
+        text="Import load and solar profiles before using charts."
+      />
+    );
   }
 
   return (
     <SolarAnalysisCharts
-      intervals={analysis.selfConsumption.intervalResults.slice(0, 48).map((row) => ({
-        label: formatBangkokHour(row.timestamp),
-        loadKwh: row.loadKwh,
-        solarKwh: row.solarKwh,
-        gridImportKwh: row.gridImportKwh,
-        gridExportKwh: row.gridExportKwh
-      }))}
-      monthlyGeneration={analysis.solarProfile.monthlyGenerationKwh.map((row) => ({
-        month: row.month,
-        generationKwh: row.generationKwh
-      }))}
+      intervals={analysis.selfConsumption.intervalResults
+        .slice(0, 48)
+        .map((row) => ({
+          label: formatBangkokHour(row.timestamp),
+          loadKwh: row.loadKwh,
+          solarKwh: row.solarKwh,
+          gridImportKwh: row.gridImportKwh,
+          gridExportKwh: row.gridExportKwh,
+        }))}
+      monthlyGeneration={analysis.solarProfile.monthlyGenerationKwh.map(
+        (row) => ({
+          month: row.month,
+          generationKwh: row.generationKwh,
+        }),
+      )}
       selfConsumption={[
         { name: "Self-used", kwh: analysis.selfConsumption.selfConsumedKwh },
-        { name: "Exported", kwh: analysis.selfConsumption.gridExportKwh }
+        { name: "Exported", kwh: analysis.selfConsumption.gridExportKwh },
       ]}
       cashFlows={analysis.financial.cashFlows.map((row) => ({
         year: row.year,
         netCashFlowThb: row.netCashFlowThb,
-        cumulativeCashFlowThb: row.cumulativeCashFlowThb
+        cumulativeCashFlowThb: row.cumulativeCashFlowThb,
       }))}
       sizing={analysis.sizing.options.map((row) => ({
         systemSizeKwp: row.systemSizeKwp,
         npvThb: row.npvThb,
         paybackYears: row.simplePaybackYears,
-        annualNetBenefitThb: row.annualNetBenefitThb
+        annualNetBenefitThb: row.annualNetBenefitThb,
       }))}
     />
   );
 }
 
-export function BillComparisonTable({ analysis }: { analysis: SolarAnalysisResult }) {
+export function BillComparisonTable({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   const rows = [
     analysis.billComparison.normalWithoutSolar,
     analysis.billComparison.touWithoutSolar,
     analysis.billComparison.normalWithSolar,
-    analysis.billComparison.touWithSolar
+    analysis.billComparison.touWithSolar,
   ];
 
   return (
@@ -402,13 +687,41 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
       </CardHeader>
       <CardContent>
         <div className="mb-4 grid gap-3 md:grid-cols-5">
-          <Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatSizing(recommended.systemSizeKwp)} · NPV ${formatNumber(recommended.npvThb)}` : "ไม่มีขนาดที่ผ่านเกณฑ์"} />
-          <Metric label="ขนาดที่คืนทุนเร็วที่สุด" value={formatSizing(analysis.sizing.fastestPayback?.systemSizeKwp)} />
-          <Metric label="Highest NPV" value={formatSizing(analysis.sizing.highestNpv?.systemSizeKwp)} />
-          <Metric label="Highest benefit" value={formatSizing(analysis.sizing.highestAnnualSavings?.systemSizeKwp)} />
-          <Metric label="Best self-use" value={formatSizing(analysis.sizing.bestSelfConsumption?.systemSizeKwp)} />
+          <Metric
+            label="ขนาดที่ผ่านเกณฑ์"
+            value={
+              recommended
+                ? `${formatSizing(recommended.systemSizeKwp)} · NPV ${formatNumber(recommended.npvThb)}`
+                : "ไม่มีขนาดที่ผ่านเกณฑ์"
+            }
+          />
+          <Metric
+            label="ขนาดที่คืนทุนเร็วที่สุด"
+            value={formatSizing(analysis.sizing.fastestPayback?.systemSizeKwp)}
+          />
+          <Metric
+            label="Highest NPV"
+            value={formatSizing(analysis.sizing.highestNpv?.systemSizeKwp)}
+          />
+          <Metric
+            label="Highest benefit"
+            value={formatSizing(
+              analysis.sizing.highestAnnualSavings?.systemSizeKwp,
+            )}
+          />
+          <Metric
+            label="Best self-use"
+            value={formatSizing(
+              analysis.sizing.bestSelfConsumption?.systemSizeKwp,
+            )}
+          />
         </div>
-        {analysis.sizing.options.length === 0 ? <EmptyState title="ยังไม่มีขนาดระบบที่ประเมินได้" text="ตรวจสอบพื้นที่หลังคา กำลังส่งกลับสูงสุด และช่วงขนาดระบบที่ตั้งไว้" /> : null}
+        {analysis.sizing.options.length === 0 ? (
+          <EmptyState
+            title="ยังไม่มีขนาดระบบที่ประเมินได้"
+            text="ตรวจสอบพื้นที่หลังคา กำลังส่งกลับสูงสุด และช่วงขนาดระบบที่ตั้งไว้"
+          />
+        ) : null}
         <Table>
           <thead className="bg-muted text-muted-foreground">
             <tr>
@@ -430,7 +743,10 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
           </thead>
           <tbody>
             {analysis.sizing.options.map((row) => (
-              <tr key={row.systemSizeKwp} className={`border-t border-border ${recommended?.systemSizeKwp === row.systemSizeKwp ? "bg-success/10" : ""}`}>
+              <tr
+                key={row.systemSizeKwp}
+                className={`border-t border-border ${recommended?.systemSizeKwp === row.systemSizeKwp ? "bg-success/10" : ""}`}
+              >
                 <Td strong>{row.systemSizeKwp}</Td>
                 <Td>{formatNumber(row.annualGenerationKwh)}</Td>
                 <Td>{formatNumber(row.annualSelfConsumedKwh)}</Td>
@@ -439,7 +755,11 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
                 <Td>{formatNumber(row.annualNetBenefitThb)}</Td>
                 <Td>{row.simplePaybackYears ?? "-"}</Td>
                 <Td>{formatNumber(row.npvThb)}</Td>
-                <Td>{row.irrPercent === null ? "-" : `${formatNumber(row.irrPercent)}%`}</Td>
+                <Td>
+                  {row.irrPercent === null
+                    ? "-"
+                    : `${formatNumber(row.irrPercent)}%`}
+                </Td>
               </tr>
             ))}
           </tbody>
@@ -449,21 +769,48 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
   );
 }
 
-export function FinancialTable({ analysis }: { analysis: SolarAnalysisResult }) {
+export function FinancialTable({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <CircleDollarSign aria-hidden="true" className="h-5 w-5 text-primary" />
+          <CircleDollarSign
+            aria-hidden="true"
+            className="h-5 w-5 text-primary"
+          />
           ผลการประเมินทางการเงิน
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-3 md:grid-cols-4">
-          <Metric label="Initial investment" value={`${formatNumber(analysis.financial.initialInvestmentThb)} baht`} />
-          <Metric label="ระยะเวลาคืนทุนคิดลด" value={analysis.financial.discountedPaybackYears ? `${analysis.financial.discountedPaybackYears} ปี` : "-"} />
-          <Metric label="ROI" value={`${formatNumber(analysis.financial.roiPercent)}%`} />
-          <Metric label="IRR" value={analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%`} />
+          <Metric
+            label="Initial investment"
+            value={`${formatNumber(analysis.financial.initialInvestmentThb)} baht`}
+          />
+          <Metric
+            label="ระยะเวลาคืนทุนคิดลด"
+            value={
+              analysis.financial.discountedPaybackYears
+                ? `${analysis.financial.discountedPaybackYears} ปี`
+                : "-"
+            }
+          />
+          <Metric
+            label="ROI"
+            value={`${formatNumber(analysis.financial.roiPercent)}%`}
+          />
+          <Metric
+            label="IRR"
+            value={
+              analysis.financial.irrPercent === null
+                ? "-"
+                : `${formatNumber(analysis.financial.irrPercent)}%`
+            }
+          />
         </div>
         <Table>
           <thead className="bg-muted text-muted-foreground">
@@ -498,7 +845,11 @@ export function FinancialTable({ analysis }: { analysis: SolarAnalysisResult }) 
   );
 }
 
-export function SensitivityTable({ analysis }: { analysis: SolarAnalysisResult }) {
+export function SensitivityTable({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -509,14 +860,36 @@ export function SensitivityTable({ analysis }: { analysis: SolarAnalysisResult }
       </CardHeader>
       <CardContent className="grid gap-4">
         <div className="grid gap-3 md:grid-cols-4">
-          <Metric label="Base NPV" value={`${formatNumber(analysis.sensitivity.baseNpvThb)} baht`} />
-          <Metric label="Most impactful" value={analysis.sensitivity.mostImpactfulVariable ?? "-"} />
-          <Metric label="Break-even CAPEX" value={analysis.sensitivity.breakEvenCapexThb === null ? "-" : `${formatNumber(analysis.sensitivity.breakEvenCapexThb)} baht`} />
-          <Metric label="NPV range" value={`${formatNumber(analysis.sensitivity.npvRangeThb.low)} to ${formatNumber(analysis.sensitivity.npvRangeThb.high)}`} />
+          <Metric
+            label="Base NPV"
+            value={`${formatNumber(analysis.sensitivity.baseNpvThb)} baht`}
+          />
+          <Metric
+            label="Most impactful"
+            value={analysis.sensitivity.mostImpactfulVariable ?? "-"}
+          />
+          <Metric
+            label="Break-even CAPEX"
+            value={
+              analysis.sensitivity.breakEvenCapexThb === null
+                ? "-"
+                : `${formatNumber(analysis.sensitivity.breakEvenCapexThb)} baht`
+            }
+          />
+          <Metric
+            label="NPV range"
+            value={`${formatNumber(analysis.sensitivity.npvRangeThb.low)} to ${formatNumber(analysis.sensitivity.npvRangeThb.high)}`}
+          />
         </div>
         <div className="grid gap-3 md:grid-cols-2">
-          <StressCase title="Downside case" caseResult={analysis.sensitivity.downsideCase} />
-          <StressCase title="Upside case" caseResult={analysis.sensitivity.upsideCase} />
+          <StressCase
+            title="Downside case"
+            caseResult={analysis.sensitivity.downsideCase}
+          />
+          <StressCase
+            title="Upside case"
+            caseResult={analysis.sensitivity.upsideCase}
+          />
         </div>
         <Table>
           <thead className="bg-muted text-muted-foreground">
@@ -532,7 +905,10 @@ export function SensitivityTable({ analysis }: { analysis: SolarAnalysisResult }
           </thead>
           <tbody>
             {analysis.sensitivity.cases.map((row) => (
-              <tr key={`${row.variable}-${row.label}`} className="border-t border-border">
+              <tr
+                key={`${row.variable}-${row.label}`}
+                className="border-t border-border"
+              >
                 <Td strong>{row.variable}</Td>
                 <Td>{row.label}</Td>
                 <Td>{row.value}</Td>
@@ -549,7 +925,11 @@ export function SensitivityTable({ analysis }: { analysis: SolarAnalysisResult }
   );
 }
 
-export function RecommendationCards({ analysis }: { analysis: SolarAnalysisResult }) {
+export function RecommendationCards({
+  analysis,
+}: {
+  analysis: SolarAnalysisResult;
+}) {
   return (
     <Card>
       <CardHeader>
@@ -559,16 +939,34 @@ export function RecommendationCards({ analysis }: { analysis: SolarAnalysisResul
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 lg:grid-cols-2">
-        {analysis.recommendations.length === 0 ? <EmptyState title="No recommendations" text="Run the simulation to generate recommendations." /> : null}
+        {analysis.recommendations.length === 0 ? (
+          <EmptyState
+            title="No recommendations"
+            text="Run the simulation to generate recommendations."
+          />
+        ) : null}
         {analysis.recommendations.map((recommendation) => (
-          <div key={`${recommendation.type}-${recommendation.title}`} className="rounded-md border border-border p-4">
+          <div
+            key={`${recommendation.type}-${recommendation.title}`}
+            className="rounded-md border border-border p-4"
+          >
             <div className="flex flex-wrap gap-2">
               <Badge>{recommendation.type}</Badge>
-              <Badge variant={recommendation.confidence === "high" ? "default" : "outline"}>{recommendation.confidence}</Badge>
+              <Badge
+                variant={
+                  recommendation.confidence === "high" ? "default" : "outline"
+                }
+              >
+                {recommendation.confidence}
+              </Badge>
             </div>
             <h3 className="mt-3 font-semibold">{recommendation.title}</h3>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">{recommendation.explanation}</p>
-            <p className="mt-2 text-sm font-medium">{recommendation.nextAction}</p>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              {recommendation.explanation}
+            </p>
+            <p className="mt-2 text-sm font-medium">
+              {recommendation.nextAction}
+            </p>
           </div>
         ))}
       </CardContent>
@@ -590,17 +988,26 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
     ["Shading loss", `${assumptions.shadingLossPercent}%`],
     ["Degradation", `${assumptions.degradationPercentPerYear}%/year`],
     ["Yield data status", assumptions.yieldSource.status],
-    ["Yield source", assumptions.yieldSource.sourceUrl ?? assumptions.yieldSource.notes],
+    [
+      "Yield source",
+      assumptions.yieldSource.sourceUrl ?? assumptions.yieldSource.notes,
+    ],
     ["สถานะการรับไฟฟ้าที่ส่งกลับ", exportPolicy.status],
     ["อัตรารับซื้อไฟฟ้า", `${exportPolicy.exportRateThbPerKwh} บาท/kWh`],
     ["กำลังส่งกลับสูงสุด", `${exportPolicy.exportLimitKw ?? "-"} kW`],
     ["แหล่งอ้างอิงอัตรารับซื้อ", exportPolicy.sourceUrl ?? exportPolicy.notes],
     ["Project life", `${financial.projectLifeYears} years`],
     ["Discount rate", `${financial.discountRatePercent}%`],
-    ["Electricity escalation", `${financial.electricityEscalationRatePercent}%/year`],
+    [
+      "Electricity escalation",
+      `${financial.electricityEscalationRatePercent}%/year`,
+    ],
     ["CAPEX", `${formatNumber(financial.capexThb)} baht`],
     ["O&M", `${formatNumber(financial.oAndMCostPerYear)} baht/year`],
-    ["Inverter replacement", `${formatNumber(financial.inverterReplacementCostThb)} baht in year ${financial.inverterReplacementYear ?? "-"}`]
+    [
+      "Inverter replacement",
+      `${formatNumber(financial.inverterReplacementCostThb)} baht in year ${financial.inverterReplacementYear ?? "-"}`,
+    ],
   ];
 
   return (
@@ -612,8 +1019,13 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
         <Table>
           <tbody>
             {rows.map(([label, value]) => (
-              <tr key={label} className="border-t border-border first:border-t-0">
-                <td className="w-64 bg-muted px-3 py-2 font-medium text-muted-foreground">{label}</td>
+              <tr
+                key={label}
+                className="border-t border-border first:border-t-0"
+              >
+                <td className="w-64 bg-muted px-3 py-2 font-medium text-muted-foreground">
+                  {label}
+                </td>
                 <td className="px-3 py-2">{value}</td>
               </tr>
             ))}
@@ -626,7 +1038,7 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
 
 function StressCase({
   title,
-  caseResult
+  caseResult,
 }: {
   title: string;
   caseResult: SolarAnalysisResult["sensitivity"]["downsideCase"];
@@ -634,11 +1046,30 @@ function StressCase({
   return (
     <div className="rounded-md border border-border p-4">
       <p className="text-sm font-semibold">{title}</p>
-      <p className="mt-1 text-sm leading-6 text-muted-foreground">{caseResult.label}</p>
+      <p className="mt-1 text-sm leading-6 text-muted-foreground">
+        {caseResult.label}
+      </p>
       <div className="mt-3 grid gap-2 text-sm">
-        <InfoRow label="NPV" value={`${formatNumber(caseResult.npvThb)} baht`} />
-        <InfoRow label="ระยะเวลาคืนทุน" value={caseResult.simplePaybackYears === null ? "-" : `${caseResult.simplePaybackYears} ปี`} />
-        <InfoRow label="IRR" value={caseResult.irrPercent === null ? "-" : `${formatNumber(caseResult.irrPercent)}%`} />
+        <InfoRow
+          label="NPV"
+          value={`${formatNumber(caseResult.npvThb)} baht`}
+        />
+        <InfoRow
+          label="ระยะเวลาคืนทุน"
+          value={
+            caseResult.simplePaybackYears === null
+              ? "-"
+              : `${caseResult.simplePaybackYears} ปี`
+          }
+        />
+        <InfoRow
+          label="IRR"
+          value={
+            caseResult.irrPercent === null
+              ? "-"
+              : `${formatNumber(caseResult.irrPercent)}%`
+          }
+        />
       </div>
     </div>
   );
@@ -653,7 +1084,15 @@ function Field({ label, children }: { label: string; children: ReactNode }) {
   );
 }
 
-function Metric({ helpText, label, value }: { helpText?: string | undefined; label: string; value: string }) {
+function Metric({
+  helpText,
+  label,
+  value,
+}: {
+  helpText?: string | undefined;
+  label: string;
+  value: string;
+}) {
   return (
     <div className="rounded-md border border-border bg-card p-4">
       <p className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground">
@@ -686,7 +1125,9 @@ function EmptyState({ title, text }: { title: string; text: string }) {
 function Table({ children }: { children: ReactNode }) {
   return (
     <div className="overflow-x-auto rounded-md border border-border">
-      <table className="w-full min-w-[900px] border-collapse text-left text-sm">{children}</table>
+      <table className="w-full min-w-[900px] border-collapse text-left text-sm">
+        {children}
+      </table>
     </div>
   );
 }
@@ -695,8 +1136,16 @@ function Th({ children }: { children: ReactNode }) {
   return <th className="px-3 py-2">{children}</th>;
 }
 
-function Td({ children, strong }: { children: ReactNode; strong?: boolean | undefined }) {
-  return <td className={`px-3 py-2 ${strong ? "font-medium" : ""}`}>{children}</td>;
+function Td({
+  children,
+  strong,
+}: {
+  children: ReactNode;
+  strong?: boolean | undefined;
+}) {
+  return (
+    <td className={`px-3 py-2 ${strong ? "font-medium" : ""}`}>{children}</td>
+  );
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
@@ -720,7 +1169,9 @@ function formatPercent(value: number) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }
 
 function formatSigned(value: number) {
@@ -733,6 +1184,6 @@ function formatBangkokHour(timestamp: string) {
     day: "2-digit",
     hour: "2-digit",
     minute: "2-digit",
-    hourCycle: "h23"
+    hourCycle: "h23",
   }).format(new Date(timestamp));
 }

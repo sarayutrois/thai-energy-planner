@@ -30,13 +30,20 @@ export const defaultReportManifest: ReportManifest = {
     "recommendations",
     "sensitivity",
     "disclaimer",
-    "tariff_sources"
+    "tariff_sources",
   ],
-  locale: "th-TH"
+  locale: "th-TH",
 };
 
-export function createReportFileName(projectName: string, date: string, format: ReportFormat) {
-  const safeProjectName = projectName.trim().replace(/[^\p{L}\p{M}\p{N}]+/gu, "-").replace(/^-|-$/g, "");
+export function createReportFileName(
+  projectName: string,
+  date: string,
+  format: ReportFormat,
+) {
+  const safeProjectName = projectName
+    .trim()
+    .replace(/[^\p{L}\p{M}\p{N}]+/gu, "-")
+    .replace(/^-|-$/g, "");
   return `${safeProjectName || "thai-energy-planner"}-${date}.${format}`;
 }
 

@@ -179,7 +179,9 @@ describe("phase 5 solar engine", () => {
     });
 
     expect(comparison.selfConsumption.gridExportKwh).toBeCloseTo(1460);
-    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBeCloseTo(60.83);
+    expect(comparison.normalWithSolar.monthlyExportRevenueThb).toBeCloseTo(
+      60.83,
+    );
     expect(comparison.annualGridExport).toBeCloseTo(1460);
   });
 
@@ -302,7 +304,9 @@ describe("phase 5 solar engine", () => {
     });
 
     expect(Number(comparison.touWithSolar.bill.peakEnergyKwh)).toBe(212.916667);
-    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(243.333333);
+    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(
+      243.333333,
+    );
     expect(comparison.touWithSolar.monthlyBillThb).toBeLessThan(
       comparison.touWithoutSolar.monthlyBillThb,
     );
@@ -320,7 +324,9 @@ describe("phase 5 solar engine", () => {
     });
 
     expect(Number(comparison.touWithSolar.bill.peakEnergyKwh)).toBe(0);
-    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(121.666667);
+    expect(Number(comparison.touWithSolar.bill.offPeakEnergyKwh)).toBe(
+      121.666667,
+    );
   });
 
   it("calculates export revenue from export policy config", () => {

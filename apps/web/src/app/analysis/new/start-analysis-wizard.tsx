@@ -28,7 +28,12 @@ import {
   billWorkspaceStorageKey,
   type StoredBillWorkspace,
 } from "@/lib/local-analysis-snapshot";
-import { analysisGoalCopy, readAnalysisGoal, saveAnalysisGoal, type AnalysisGoal } from "@/lib/analysis-preferences";
+import {
+  analysisGoalCopy,
+  readAnalysisGoal,
+  saveAnalysisGoal,
+  type AnalysisGoal,
+} from "@/lib/analysis-preferences";
 
 const userTypes: Array<{
   value: AnalysisAudience;
@@ -161,7 +166,10 @@ export function StartAnalysisWizard() {
       ),
     [audience],
   );
-  const goalPrimaryHref = goal === "tou" || goal === "understand" ? appliancesHref : buildAnalysisStartHref("/analysis/load-data/bills", audience, "bills");
+  const goalPrimaryHref =
+    goal === "tou" || goal === "understand"
+      ? appliancesHref
+      : buildAnalysisStartHref("/analysis/load-data/bills", audience, "bills");
 
   function chooseGoal(value: AnalysisGoal) {
     setGoal(value);
@@ -198,7 +206,8 @@ export function StartAnalysisWizard() {
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
                 บอกเป้าหมายและข้อมูลที่มี ระบบจะพาไปทีละขั้น
-                เพื่อให้คุณเห็นคำแนะนำเรื่องค่าไฟ TOU หรือ Solar จากข้อมูลจริงของคุณ
+                เพื่อให้คุณเห็นคำแนะนำเรื่องค่าไฟ TOU หรือ Solar
+                จากข้อมูลจริงของคุณ
               </p>
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
@@ -239,7 +248,10 @@ export function StartAnalysisWizard() {
               <CardTitle>สถานะที่เลือกตอนนี้</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
-              <StatusRow label="เป้าหมาย" value={analysisGoalCopy[goal].label} />
+              <StatusRow
+                label="เป้าหมาย"
+                value={analysisGoalCopy[goal].label}
+              />
               <StatusRow
                 label="ประเภทผู้ใช้"
                 value={
@@ -264,14 +276,47 @@ export function StartAnalysisWizard() {
         <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
           <div className="mb-5">
             <p className="text-sm font-medium text-primary">ขั้นที่ 1</p>
-            <h2 className="mt-1 text-2xl font-semibold tracking-normal">เป้าหมายของคุณคืออะไร</h2>
-            <p className="mt-2 text-sm leading-6 text-muted-foreground">เลือกเพียงข้อเดียวเพื่อให้ระบบจัดลำดับข้อมูลและคำแนะนำที่จำเป็น</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
+              เป้าหมายของคุณคืออะไร
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              เลือกเพียงข้อเดียวเพื่อให้ระบบจัดลำดับข้อมูลและคำแนะนำที่จำเป็น
+            </p>
           </div>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {goals.map((item) => {
               const selected = item.value === goal;
               const copy = analysisGoalCopy[item.value];
-              return <button key={item.value} className={`rounded-lg text-left transition focus:outline-none focus:ring-2 focus:ring-ring ${selected ? "ring-2 ring-primary" : ""}`} onClick={() => chooseGoal(item.value)} type="button"><Card className={`h-full transition ${selected ? "border-primary bg-primary/5" : "hover:border-primary"}`}><CardContent className="flex h-full flex-col gap-3 p-5"><item.icon aria-hidden="true" className="h-5 w-5 text-primary" /><div><h3 className="font-semibold">{copy.label}</h3><p className="mt-2 text-sm leading-6 text-muted-foreground">{copy.description}</p></div>{selected ? <Badge variant="success" className="w-fit">เลือกอยู่</Badge> : null}</CardContent></Card></button>;
+              return (
+                <button
+                  key={item.value}
+                  className={`rounded-lg text-left transition focus:outline-none focus:ring-2 focus:ring-ring ${selected ? "ring-2 ring-primary" : ""}`}
+                  onClick={() => chooseGoal(item.value)}
+                  type="button"
+                >
+                  <Card
+                    className={`h-full transition ${selected ? "border-primary bg-primary/5" : "hover:border-primary"}`}
+                  >
+                    <CardContent className="flex h-full flex-col gap-3 p-5">
+                      <item.icon
+                        aria-hidden="true"
+                        className="h-5 w-5 text-primary"
+                      />
+                      <div>
+                        <h3 className="font-semibold">{copy.label}</h3>
+                        <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {copy.description}
+                        </p>
+                      </div>
+                      {selected ? (
+                        <Badge variant="success" className="w-fit">
+                          เลือกอยู่
+                        </Badge>
+                      ) : null}
+                    </CardContent>
+                  </Card>
+                </button>
+              );
             })}
           </div>
         </div>
@@ -344,7 +389,9 @@ export function StartAnalysisWizard() {
                         <item.icon aria-hidden="true" className="h-5 w-5" />
                       </div>
                       <Badge
-                        variant={item.value === "appliances" ? "success" : "outline"}
+                        variant={
+                          item.value === "appliances" ? "success" : "outline"
+                        }
                       >
                         {item.badge}
                       </Badge>
@@ -369,7 +416,9 @@ export function StartAnalysisWizard() {
 
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="mb-5">
-          <p className="text-sm font-medium text-primary">หลังเตรียมข้อมูลแล้ว</p>
+          <p className="text-sm font-medium text-primary">
+            หลังเตรียมข้อมูลแล้ว
+          </p>
           <h2 className="mt-1 text-2xl font-semibold tracking-normal">
             ต่อยอดหลังมีข้อมูลแล้ว
           </h2>

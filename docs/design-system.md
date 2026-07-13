@@ -18,12 +18,12 @@ Light และ dark theme ใช้ชื่อ token เดิม จึงไ
 
 ## Shared components
 
-| กลุ่ม | Component |
-| --- | --- |
-| Layout | `PageHeader`, `SectionHeader`, `ActionBar`, `EmptyState` |
+| กลุ่ม    | Component                                                            |
+| -------- | -------------------------------------------------------------------- |
+| Layout   | `PageHeader`, `SectionHeader`, `ActionBar`, `EmptyState`             |
 | Controls | `Button`, `Input`, Badge และ native select ที่ใช้ token input/border |
-| Feedback | `Alert`, `DataConfidence`, `LoadingState`, `Skeleton` |
-| Data | `Card`, `MetricCard` |
+| Feedback | `Alert`, `DataConfidence`, `LoadingState`, `Skeleton`                |
+| Data     | `Card`, `MetricCard`                                                 |
 
 ทุก control หลักมี focus ring, disabled style และ semantic foreground/background. Motion ใช้ transition สั้นของ button/card เท่านั้น และ global reduced-motion mode ปิด motion ที่ไม่จำเป็น
 

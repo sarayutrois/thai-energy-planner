@@ -26,6 +26,7 @@ data/demo-load-profiles        CSV load profile ตัวอย่าง
 ## Project Status
 
 The project is currently completing **Phase 8 (Final QA & Deployment Prep)**.
+
 - **Phase 1:** Core Data Models & Load Profiles (Completed)
 - **Phase 2:** Financial Engine & Tariff Builder (Completed)
 - **Phase 3:** Current Bill Analysis (Completed)
@@ -38,6 +39,7 @@ The project is currently completing **Phase 8 (Final QA & Deployment Prep)**.
 ## Documentation
 
 Comprehensive documentation is available in the `docs/` directory:
+
 - [Architecture](docs/architecture.md)
 - [Calculation Engine](docs/calculation-engine.md)
 - [Tariff Management](docs/tariff-management.md)
@@ -46,7 +48,9 @@ Comprehensive documentation is available in the `docs/` directory:
 - [Production Checklist](docs/production-checklist.md)
 
 ## Deployment Smoke Routes
+
 After deploying (e.g., to Vercel), check the following routes to ensure the app is running correctly:
+
 - `/` - Landing page (should load without DB)
 - `/analysis/solar` - Main screening page (should load without DB, uses local state)
 - `/api/solar/analyze` - Engine API (can be tested via UI)

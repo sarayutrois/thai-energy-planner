@@ -11,7 +11,7 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from "recharts";
 
 export type ScenarioChartDatum = {
@@ -31,7 +31,7 @@ export type LoadShiftChartDatum = {
 
 export function ScenarioComparisonCharts({
   scenarios,
-  loadShift
+  loadShift,
 }: {
   scenarios: ScenarioChartDatum[];
   loadShift: LoadShiftChartDatum[];
@@ -45,7 +45,12 @@ export function ScenarioComparisonCharts({
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis width={72} />
             <Tooltip formatter={(value) => formatNumber(Number(value))} />
-            <Bar dataKey="monthlyBill" name="บาท/เดือน" fill="#2563eb" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="monthlyBill"
+              name="บาท/เดือน"
+              fill="#2563eb"
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartPanel>
@@ -56,10 +61,24 @@ export function ScenarioComparisonCharts({
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis width={72} />
-            <Tooltip formatter={(value) => `${formatNumber(Number(value))} kWh`} />
+            <Tooltip
+              formatter={(value) => `${formatNumber(Number(value))} kWh`}
+            />
             <Legend />
-            <Bar dataKey="peakKwh" name="Peak" stackId="energy" fill="#dc2626" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="offPeakKwh" name="Off-Peak" stackId="energy" fill="#16a34a" radius={[4, 4, 0, 0]} />
+            <Bar
+              dataKey="peakKwh"
+              name="Peak"
+              stackId="energy"
+              fill="#dc2626"
+              radius={[4, 4, 0, 0]}
+            />
+            <Bar
+              dataKey="offPeakKwh"
+              name="Off-Peak"
+              stackId="energy"
+              fill="#16a34a"
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartPanel>
@@ -70,8 +89,15 @@ export function ScenarioComparisonCharts({
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="name" tick={{ fontSize: 11 }} />
             <YAxis width={72} />
-            <Tooltip formatter={(value) => `${formatNumber(Number(value))} บาท`} />
-            <Bar dataKey="annualSavings" name="บาท/ปี" fill="#0f766e" radius={[4, 4, 0, 0]} />
+            <Tooltip
+              formatter={(value) => `${formatNumber(Number(value))} บาท`}
+            />
+            <Bar
+              dataKey="annualSavings"
+              name="บาท/ปี"
+              fill="#0f766e"
+              radius={[4, 4, 0, 0]}
+            />
           </BarChart>
         </ResponsiveContainer>
       </ChartPanel>
@@ -82,10 +108,24 @@ export function ScenarioComparisonCharts({
             <CartesianGrid strokeDasharray="3 3" />
             <XAxis dataKey="label" tick={{ fontSize: 11 }} />
             <YAxis width={72} />
-            <Tooltip formatter={(value) => `${formatNumber(Number(value))} kWh`} />
+            <Tooltip
+              formatter={(value) => `${formatNumber(Number(value))} kWh`}
+            />
             <Legend />
-            <Line type="monotone" dataKey="peakKwh" name="Peak" stroke="#dc2626" strokeWidth={2} />
-            <Line type="monotone" dataKey="offPeakKwh" name="Off-Peak" stroke="#16a34a" strokeWidth={2} />
+            <Line
+              type="monotone"
+              dataKey="peakKwh"
+              name="Peak"
+              stroke="#dc2626"
+              strokeWidth={2}
+            />
+            <Line
+              type="monotone"
+              dataKey="offPeakKwh"
+              name="Off-Peak"
+              stroke="#16a34a"
+              strokeWidth={2}
+            />
           </LineChart>
         </ResponsiveContainer>
       </ChartPanel>
@@ -93,7 +133,13 @@ export function ScenarioComparisonCharts({
   );
 }
 
-function ChartPanel({ title, children }: { title: string; children: ReactNode }) {
+function ChartPanel({
+  title,
+  children,
+}: {
+  title: string;
+  children: ReactNode;
+}) {
   return (
     <div className="rounded-md border border-border bg-card p-4">
       <h3 className="text-sm font-semibold">{title}</h3>
@@ -103,5 +149,7 @@ function ChartPanel({ title, children }: { title: string; children: ReactNode })
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }

@@ -43,12 +43,15 @@ export function parseCsvRows(csv: string): string[][] {
 }
 
 export function parseBillCsv(csv: string) {
-  const rows = parseCsvRows(csv).filter((row) => row.some((cell) => cell.trim() !== ""));
+  const rows = parseCsvRows(csv).filter((row) =>
+    row.some((cell) => cell.trim() !== ""),
+  );
   const [headers, ...dataRows] = rows;
   if (!headers) return [];
 
   const normalizedHeaders = headers.map((header) => header.trim());
-  const columnIndex = (name: string) => normalizedHeaders.findIndex((header) => header === name);
+  const columnIndex = (name: string) =>
+    normalizedHeaders.findIndex((header) => header === name);
   const monthIndex = columnIndex("month");
   const energyIndex = columnIndex("energyKwh");
   const costIndex = columnIndex("totalCostThb");
@@ -66,7 +69,7 @@ export function parseBillCsv(csv: string) {
       energyKwh: row[energyIndex]?.trim() ?? "",
       meterMode: meterMode === "tou" ? "tou" : ("normal" as "normal" | "tou"),
       month: row[monthIndex]?.trim() ?? "",
-      totalCostThb: row[costIndex]?.trim() ?? ""
+      totalCostThb: row[costIndex]?.trim() ?? "",
     };
   });
 }

@@ -34,8 +34,7 @@ export async function POST(req: NextRequest) {
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
         {
-          error:
-            "รองรับเฉพาะไฟล์ PDF หรือรูปภาพ PNG, JPG และ WebP",
+          error: "รองรับเฉพาะไฟล์ PDF หรือรูปภาพ PNG, JPG และ WebP",
         },
         { status: 400 },
       );
@@ -138,6 +137,9 @@ Ensure the output is ONLY a valid JSON object with these 4 keys. No markdown blo
     );
   } catch (error: unknown) {
     console.error("Error scanning bill:", error);
-    return NextResponse.json({ error: "สแกนบิลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" }, { status: 500 });
+    return NextResponse.json(
+      { error: "สแกนบิลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" },
+      { status: 500 },
+    );
   }
 }

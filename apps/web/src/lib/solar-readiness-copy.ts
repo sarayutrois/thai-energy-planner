@@ -16,7 +16,7 @@ export const solarReadinessCopy = {
   yieldReference:
     "ใช้ค่าผลิตไฟรายเดือนเพื่อการประเมินเบื้องต้น ควรยืนยันด้วยข้อมูลแสงอาทิตย์และการสำรวจหน้างานก่อนตัดสินใจลงทุนจริง",
   exportReference:
-    "ใช้อัตรารับซื้อไฟที่ผู้ใช้ระบุในแบบจำลอง หากต้องใช้ production ต้องตรวจประกาศ ERC ล่าสุดและ eligibility ของโครงการก่อน"
+    "ใช้อัตรารับซื้อไฟที่ผู้ใช้ระบุในแบบจำลอง หากต้องใช้ production ต้องตรวจประกาศ ERC ล่าสุดและ eligibility ของโครงการก่อน",
 } as const;
 
 export function formatApproximateMoneyRange(value: number) {
@@ -38,5 +38,7 @@ function roundToStep(value: number, step: number) {
 }
 
 function formatMoney(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(
+    value,
+  );
 }

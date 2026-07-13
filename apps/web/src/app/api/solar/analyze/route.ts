@@ -61,7 +61,8 @@ async function getPvgisSolarResource(input: {
   roofAzimuth?: number | undefined;
   roofTilt?: number | undefined;
 }): Promise<SolarResourceOverride | undefined> {
-  if (input.latitude === undefined || input.longitude === undefined) return undefined;
+  if (input.latitude === undefined || input.longitude === undefined)
+    return undefined;
   const params = new URLSearchParams({
     lat: String(input.latitude),
     lon: String(input.longitude),
@@ -71,12 +72,17 @@ async function getPvgisSolarResource(input: {
     aspect: String((input.roofAzimuth ?? 180) - 180),
     outputformat: "json",
   });
-  const response = await fetch(`https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?${params.toString()}`, {
-    next: { revalidate: 60 * 60 * 24 },
-    signal: AbortSignal.timeout(8_000),
-  }).catch(() => null);
+  const response = await fetch(
+    `https://re.jrc.ec.europa.eu/api/v5_3/PVcalc?${params.toString()}`,
+    {
+      next: { revalidate: 60 * 60 * 24 },
+      signal: AbortSignal.timeout(8_000),
+    },
+  ).catch(() => null);
   if (!response?.ok) return undefined;
-  const data = await response.json() as { outputs?: { monthly?: { fixed?: Array<{ month?: number; E_m?: number }> } } };
+  const data = (await response.json()) as {
+    outputs?: { monthly?: { fixed?: Array<{ month?: number; E_m?: number }> } };
+  };
   const monthly = data.outputs?.monthly?.fixed ?? [];
   const yields = Array.from({ length: 12 }, (_, index) => {
     const value = monthly.find((row) => row.month === index + 1)?.E_m;

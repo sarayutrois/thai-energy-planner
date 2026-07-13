@@ -3,7 +3,7 @@ import {
   estimateRequestSchema,
   runEstimateApiCalculation,
   runSolarAnalyzeApiCalculation,
-  solarAnalyzeRequestSchema
+  solarAnalyzeRequestSchema,
 } from "./calculation-api";
 
 describe("calculation API helpers", () => {
@@ -12,7 +12,7 @@ describe("calculation API helpers", () => {
       monthlyBillThb: -1,
       province: "bangkok",
       propertyType: "home",
-      usageShape: "day"
+      usageShape: "day",
     });
 
     expect(parsed.success).toBe(false);
@@ -24,7 +24,7 @@ describe("calculation API helpers", () => {
       profile: "daytime_home",
       modelMode: "xhigh",
       billDate: "2026-07-01",
-      loadIntervals: []
+      loadIntervals: [],
     });
 
     expect(parsed.success).toBe(false);
@@ -36,13 +36,15 @@ describe("calculation API helpers", () => {
       province: "bangkok",
       propertyType: "home",
       usageShape: "day",
-      billDate: "2026-07-01"
+      billDate: "2026-07-01",
     });
     const payload = runEstimateApiCalculation(request);
 
     expect(payload.trace.authority).toBe("MEA");
     expect(payload.trace.customerSegment).toBe("residential");
-    expect(payload.trace.tariffVersionIds.every((id) => id.includes("mea-"))).toBe(true);
+    expect(
+      payload.trace.tariffVersionIds.every((id) => id.includes("mea-")),
+    ).toBe(true);
     expect(payload.result.estimatedMonthlyKwh).toBeGreaterThan(0);
     expect(payload.result.annualSavingsThb).toBeGreaterThan(0);
   });
@@ -53,7 +55,7 @@ describe("calculation API helpers", () => {
       province: "chonburi",
       propertyType: "factory",
       usageShape: "both",
-      billDate: "2026-07-01"
+      billDate: "2026-07-01",
     });
     const payload = runEstimateApiCalculation(request);
 
@@ -69,15 +71,21 @@ describe("calculation API helpers", () => {
       modelMode: "xhigh",
       billDate: "2026-07-01",
       systemSizeKwp: 3,
-      capexThb: 126000
+      capexThb: 126000,
     });
     const payload = runSolarAnalyzeApiCalculation(request);
 
     expect(payload.trace.authority).toBe("MEA");
     expect(payload.trace.customerSegment).toBe("residential");
-    expect(payload.trace.tariffVersionIds.every((id) => id.includes("mea-"))).toBe(true);
-    expect(payload.analysis.billComparison.bestWithoutSolar.bill.tariffStatus).toBe("published");
-    expect(payload.warnings).toContain("No uploaded load intervals were provided; the API used a sample screening profile.");
+    expect(
+      payload.trace.tariffVersionIds.every((id) => id.includes("mea-")),
+    ).toBe(true);
+    expect(
+      payload.analysis.billComparison.bestWithoutSolar.bill.tariffStatus,
+    ).toBe("published");
+    expect(payload.warnings).toContain(
+      "No uploaded load intervals were provided; the API used a sample screening profile.",
+    );
   });
 
   it("uses uploaded load intervals when provided to solar analysis", () => {
@@ -89,10 +97,22 @@ describe("calculation API helpers", () => {
       systemSizeKwp: 3,
       loadIntervals: [
         { timestamp: "2026-07-01T09:00:00+07:00", energyKwh: 1, powerKw: 2 },
-        { timestamp: "2026-07-01T09:30:00+07:00", energyKwh: 1.2, powerKw: 2.4 },
-        { timestamp: "2026-07-01T10:00:00+07:00", energyKwh: 1.4, powerKw: 2.8 },
-        { timestamp: "2026-07-01T10:30:00+07:00", energyKwh: 1.2, powerKw: 2.4 }
-      ]
+        {
+          timestamp: "2026-07-01T09:30:00+07:00",
+          energyKwh: 1.2,
+          powerKw: 2.4,
+        },
+        {
+          timestamp: "2026-07-01T10:00:00+07:00",
+          energyKwh: 1.4,
+          powerKw: 2.8,
+        },
+        {
+          timestamp: "2026-07-01T10:30:00+07:00",
+          energyKwh: 1.2,
+          powerKw: 2.4,
+        },
+      ],
     });
     const payload = runSolarAnalyzeApiCalculation(request);
 

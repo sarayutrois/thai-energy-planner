@@ -1,7 +1,11 @@
 import React from "react";
 import Link from "next/link";
 
-export default function AdminLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const guardEnabled = Boolean(process.env.ADMIN_ACCESS_TOKEN?.trim());
 
   return (
@@ -9,11 +13,19 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
       <aside className="flex w-64 flex-col bg-slate-900 p-6 text-white">
         <div
           className={`mb-6 rounded border p-3 text-sm ${
-            guardEnabled ? "border-green-600/50 bg-green-600/20 text-green-300" : "border-yellow-600/50 bg-yellow-600/20 text-yellow-500"
+            guardEnabled
+              ? "border-green-600/50 bg-green-600/20 text-green-300"
+              : "border-yellow-600/50 bg-yellow-600/20 text-yellow-500"
           }`}
         >
-          <p className="font-semibold">{guardEnabled ? "Admin guard enabled" : "Admin locked"}</p>
-          <p>{guardEnabled ? "Admin routes require ADMIN_ACCESS_TOKEN." : "Admin access is locked until a token is configured."}</p>
+          <p className="font-semibold">
+            {guardEnabled ? "Admin guard enabled" : "Admin locked"}
+          </p>
+          <p>
+            {guardEnabled
+              ? "Admin routes require ADMIN_ACCESS_TOKEN."
+              : "Admin access is locked until a token is configured."}
+          </p>
         </div>
         <h2 className="mb-8 text-xl font-bold">Admin Panel</h2>
         <nav className="flex flex-col gap-4">

@@ -14,13 +14,13 @@ describe("CSV Exporter", () => {
   it("handles normal strings correctly", () => {
     expect(sanitizeCsvCell("Normal String")).toBe("Normal String");
     expect(sanitizeCsvCell("String with, comma")).toBe(`"String with, comma"`);
-    expect(sanitizeCsvCell(`String with "quote"`)).toBe(`"String with ""quote"""`);
+    expect(sanitizeCsvCell(`String with "quote"`)).toBe(
+      `"String with ""quote"""`,
+    );
   });
 
   it("generates csv rows correctly", () => {
-    const data = [
-      { id: 1, name: "Test", formula: "=1+1" }
-    ];
+    const data = [{ id: 1, name: "Test", formula: "=1+1" }];
     const csv = exportToCsv(data);
     const rows = csv.split("\n");
     expect(rows.length).toBe(2);

@@ -1,5 +1,5 @@
-import { ComingSoon } from "@/components/coming-soon";
+import { redirect } from "next/navigation";
 
 export default function EcosystemPage() {
-  return <ComingSoon feature="ระบบพลังงานรวม" />;
+  redirect("/analysis/unavailable?module=ecosystem");
 }

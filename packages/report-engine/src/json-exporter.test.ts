@@ -10,14 +10,14 @@ describe("JSON Exporter", () => {
         versionId: "v1",
         status: "PUBLISHED",
         effectiveFrom: "2025-01-01",
-        source: "PEA"
+        source: "PEA",
       },
       inputSnapshot: {},
       scenarioInputs: {},
       scenarioResults: {},
       calculationBreakdown: {},
       recommendations: [],
-      assumptions: {}
+      assumptions: {},
     };
 
     const jsonString = exportToJson(analysisData);

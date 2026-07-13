@@ -1,8 +1,12 @@
-import { ApplianceInputSchema, type ApplianceInput } from "@thai-energy-planner/shared-types";
+import {
+  ApplianceInputSchema,
+  type ApplianceInput,
+} from "@thai-energy-planner/shared-types";
 import { z } from "zod";
 import type { ApplianceWorkspaceMode } from "@/components/appliance-workspace-state";
 
-export const applianceWorkspaceStorageKey = "thai-energy-planner.appliance-workspace.v3";
+export const applianceWorkspaceStorageKey =
+  "thai-energy-planner.appliance-workspace.v3";
 export const maxStoredAppliances = 100;
 
 const applianceWorkspaceSchema = z.object({
@@ -21,10 +25,17 @@ export type StoredApplianceWorkspace = {
   endDate: string;
 };
 
-export function parseStoredApplianceWorkspace(value: unknown): StoredApplianceWorkspace | null {
+export function parseStoredApplianceWorkspace(
+  value: unknown,
+): StoredApplianceWorkspace | null {
   const parsed = applianceWorkspaceSchema.safeParse(value);
   if (!parsed.success) return null;
-  if (parsed.data.mode === "empty" ? parsed.data.appliances.length > 0 : parsed.data.appliances.length === 0) return null;
+  if (
+    parsed.data.mode === "empty"
+      ? parsed.data.appliances.length > 0
+      : parsed.data.appliances.length === 0
+  )
+    return null;
   if (parsed.data.endDate < parsed.data.startDate) return null;
   return parsed.data;
 }
@@ -33,7 +44,9 @@ export function readStoredApplianceWorkspace(): StoredApplianceWorkspace | null 
   if (typeof window === "undefined") return null;
   try {
     const raw = window.localStorage.getItem(applianceWorkspaceStorageKey);
-    return raw ? parseStoredApplianceWorkspace(JSON.parse(raw) as unknown) : null;
+    return raw
+      ? parseStoredApplianceWorkspace(JSON.parse(raw) as unknown)
+      : null;
   } catch {
     return null;
   }

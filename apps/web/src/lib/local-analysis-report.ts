@@ -9,7 +9,11 @@ import {
 import { calibrateLoadProfileAgainstBills } from "@thai-energy-planner/calculation-engine";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 import { authenticatedFetch } from "@/lib/auth-fetch";
-import { createAnalysisDatasetFingerprint, isCurrentAnalysisDataset, type AnalysisDatasetFingerprint } from "@/lib/local-analysis-dataset";
+import {
+  createAnalysisDatasetFingerprint,
+  isCurrentAnalysisDataset,
+  type AnalysisDatasetFingerprint,
+} from "@/lib/local-analysis-dataset";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
 
 const maxStoredReports = 12;

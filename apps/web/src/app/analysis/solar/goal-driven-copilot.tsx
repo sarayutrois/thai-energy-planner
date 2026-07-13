@@ -8,12 +8,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
 
-export function GoalDrivenCopilot({ currentSettings }: { currentSettings: SolarDemoSettings }) {
+export function GoalDrivenCopilot({
+  currentSettings,
+}: {
+  currentSettings: SolarDemoSettings;
+}) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [prompt, setPrompt] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const [response, setResponse] = useState<{ thoughtProcess: string; suggestedParameters?: Partial<SolarDemoSettings> } | null>(null);
+  const [response, setResponse] = useState<{
+    thoughtProcess: string;
+    suggestedParameters?: Partial<SolarDemoSettings>;
+  } | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -30,7 +37,7 @@ export function GoalDrivenCopilot({ currentSettings }: { currentSettings: SolarD
       });
 
       if (!res.ok) throw new Error("API failed");
-      
+
       const data = await res.json();
       setResponse(data);
 
@@ -44,10 +51,12 @@ export function GoalDrivenCopilot({ currentSettings }: { currentSettings: SolarD
         }
         router.push(`?${params.toString()}`);
       }
-      
     } catch (err) {
       console.error(err);
-      setResponse({ thoughtProcess: "ขออภัยครับ ระบบ AI เกิดข้อผิดพลาดชั่วคราว ลองใหม่อีกครั้งนะครับ" });
+      setResponse({
+        thoughtProcess:
+          "ขออภัยครับ ระบบ AI เกิดข้อผิดพลาดชั่วคราว ลองใหม่อีกครั้งนะครับ",
+      });
     } finally {
       setIsLoading(false);
     }
@@ -59,11 +68,14 @@ export function GoalDrivenCopilot({ currentSettings }: { currentSettings: SolarD
         <div className="mb-3 flex items-center gap-2 text-indigo-900">
           <Sparkles className="h-5 w-5 text-indigo-600" />
           <h3 className="font-semibold">Goal-Driven Energy Copilot</h3>
-          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">Beta</span>
+          <span className="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">
+            Beta
+          </span>
         </div>
-        
+
         <p className="mb-4 text-sm text-indigo-800">
-          ขี้เกียจกรอกฟอร์ม? พิมพ์บอก AI ได้เลย เช่น <i>"มีงบ 2 แสนบาท ทำงานกลางวัน กลับมาใช้ไฟกลางคืน"</i>
+          ขี้เกียจกรอกฟอร์ม? พิมพ์บอก AI ได้เลย เช่น{" "}
+          <i>"มีงบ 2 แสนบาท ทำงานกลางวัน กลับมาใช้ไฟกลางคืน"</i>
         </p>
 
         <form onSubmit={handleSubmit} className="flex gap-2">
@@ -74,8 +86,16 @@ export function GoalDrivenCopilot({ currentSettings }: { currentSettings: SolarD
             className="border-indigo-200 bg-white shadow-sm placeholder:text-indigo-300 focus-visible:ring-indigo-500"
             disabled={isLoading}
           />
-          <Button type="submit" disabled={isLoading || !prompt.trim()} className="bg-indigo-600 hover:bg-indigo-700">
-            {isLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
+          <Button
+            type="submit"
+            disabled={isLoading || !prompt.trim()}
+            className="bg-indigo-600 hover:bg-indigo-700"
+          >
+            {isLoading ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Send className="h-4 w-4" />
+            )}
           </Button>
         </form>
 
@@ -86,7 +106,9 @@ export function GoalDrivenCopilot({ currentSettings }: { currentSettings: SolarD
             </div>
             <div>
               <p className="text-sm font-medium text-indigo-900">AI ตอบกลับ:</p>
-              <p className="mt-1 text-sm text-indigo-800/90 leading-relaxed">{response.thoughtProcess}</p>
+              <p className="mt-1 text-sm text-indigo-800/90 leading-relaxed">
+                {response.thoughtProcess}
+              </p>
             </div>
           </div>
         )}

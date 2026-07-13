@@ -1,10 +1,17 @@
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { localAnalysisReportIdPrefix, localBillReportId } from "@/lib/local-analysis-snapshot";
+import {
+  localAnalysisReportIdPrefix,
+  localBillReportId,
+} from "@/lib/local-analysis-snapshot";
 import { LocalAnalysisReport } from "./local-analysis-report";
 import { LocalBillReport } from "./local-bill-report";
 
-export default async function AnalysisReportDetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function AnalysisReportDetailPage({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}) {
   const { id } = await params;
   if (id === localBillReportId) {
     return (

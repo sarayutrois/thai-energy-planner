@@ -384,7 +384,9 @@ export function estimateSolarFromMonthlyBill(
     touTariff,
     exportPolicy,
     billDate,
-    ...(input.monthlyScaleFactors ? { monthlyScaleFactors: input.monthlyScaleFactors } : { monthlyScaleFactor: 1 }),
+    ...(input.monthlyScaleFactors
+      ? { monthlyScaleFactors: input.monthlyScaleFactors }
+      : { monthlyScaleFactor: 1 }),
     solarAssumptions,
   });
   const roi = calculateSolarROI({
@@ -410,14 +412,17 @@ export function estimateSolarFromMonthlyBill(
     }),
     afterSolar: (() => {
       const targetMonthStr = billDate.slice(5, 7);
-      const monthlyEnergyRow = comparison.selfConsumption.monthlyEnergy.find((row) =>
-        row.month.endsWith(targetMonthStr),
+      const monthlyEnergyRow = comparison.selfConsumption.monthlyEnergy.find(
+        (row) => row.month.endsWith(targetMonthStr),
       );
       const monthImportKwh = monthlyEnergyRow
         ? monthlyEnergyRow.gridImportKwh
         : comparison.selfConsumption.gridImportKwh / 12;
       const targetIntervals = comparison.selfConsumption.intervalResults
-        .filter((row) => getBangkokParts(row.timestamp).date.slice(5, 7) === targetMonthStr)
+        .filter(
+          (row) =>
+            getBangkokParts(row.timestamp).date.slice(5, 7) === targetMonthStr,
+        )
         .map((row) => ({
           timestamp: row.timestamp,
           energyKwh: row.gridImportKwh,

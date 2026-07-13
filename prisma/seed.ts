@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 async function main() {
   await prisma.tariffPlan.upsert({
     where: {
-      id: "draft-pea-residential-normal"
+      id: "draft-pea-residential-normal",
     },
     update: {},
     create: {
@@ -23,20 +23,21 @@ async function main() {
           sourceUrl: null,
           verifiedAt: null,
           verifiedBy: null,
-          notes: "Template only. Do not use for production calculation until official rates are verified.",
+          notes:
+            "Template only. Do not use for production calculation until official rates are verified.",
           tariffSnapshot: {
             status: "draft",
             ratesIncluded: false,
-            reason: "No tariff numbers are guessed in seed data."
-          }
-        }
-      }
-    }
+            reason: "No tariff numbers are guessed in seed data.",
+          },
+        },
+      },
+    },
   });
 
   await prisma.tariffPlan.upsert({
     where: {
-      id: "demo-pea-residential-normal-phase2"
+      id: "demo-pea-residential-normal-phase2",
     },
     update: {},
     create: {
@@ -52,50 +53,68 @@ async function main() {
           versionLabel: "demo-normal-draft-2026",
           effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
           authority: "PEA",
-          sourceUrl: "https://example.com/thai-energy-planner/demo-tariff-not-real",
+          sourceUrl:
+            "https://example.com/thai-energy-planner/demo-tariff-not-real",
           verifiedAt: null,
           verifiedBy: null,
-          notes: "Synthetic demo rates for Tariff Engine tests only. Not official PEA or MEA tariff data.",
+          notes:
+            "Synthetic demo rates for Tariff Engine tests only. Not official PEA or MEA tariff data.",
           serviceChargeThb: "10",
           tariffSnapshot: {
             status: "draft",
             ratesIncluded: true,
             official: false,
-            warning: "Synthetic demo rates only."
+            warning: "Synthetic demo rates only.",
           },
           energyRateTiers: {
             create: [
-              { fromKwh: "0", toKwh: "100", rateThbPerKwh: "1.00", sortOrder: 1 },
-              { fromKwh: "100", toKwh: "200", rateThbPerKwh: "2.00", sortOrder: 2 },
-              { fromKwh: "200", toKwh: null, rateThbPerKwh: "3.00", sortOrder: 3 }
-            ]
+              {
+                fromKwh: "0",
+                toKwh: "100",
+                rateThbPerKwh: "1.00",
+                sortOrder: 1,
+              },
+              {
+                fromKwh: "100",
+                toKwh: "200",
+                rateThbPerKwh: "2.00",
+                sortOrder: 2,
+              },
+              {
+                fromKwh: "200",
+                toKwh: null,
+                rateThbPerKwh: "3.00",
+                sortOrder: 3,
+              },
+            ],
           },
           ftPeriods: {
             create: [
               {
                 effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
                 ftThbPerKwh: "0.50",
-                sourceUrl: "https://example.com/thai-energy-planner/demo-tariff-not-real"
-              }
-            ]
+                sourceUrl:
+                  "https://example.com/thai-energy-planner/demo-tariff-not-real",
+              },
+            ],
           },
           taxRates: {
             create: [
               {
                 name: "Demo VAT",
                 ratePercent: "7",
-                effectiveFrom: new Date("2026-01-01T00:00:00+07:00")
-              }
-            ]
-          }
-        }
-      }
-    }
+                effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
+              },
+            ],
+          },
+        },
+      },
+    },
   });
 
   await prisma.tariffPlan.upsert({
     where: {
-      id: "demo-pea-residential-tou-phase2"
+      id: "demo-pea-residential-tou-phase2",
     },
     update: {},
     create: {
@@ -111,16 +130,18 @@ async function main() {
           versionLabel: "demo-tou-draft-2026",
           effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
           authority: "PEA",
-          sourceUrl: "https://example.com/thai-energy-planner/demo-tariff-not-real",
+          sourceUrl:
+            "https://example.com/thai-energy-planner/demo-tariff-not-real",
           verifiedAt: null,
           verifiedBy: null,
-          notes: "Synthetic demo TOU rates for Tariff Engine tests only. Not official PEA or MEA tariff data.",
+          notes:
+            "Synthetic demo TOU rates for Tariff Engine tests only. Not official PEA or MEA tariff data.",
           serviceChargeThb: "10",
           tariffSnapshot: {
             status: "draft",
             ratesIncluded: true,
             official: false,
-            warning: "Synthetic demo rates only."
+            warning: "Synthetic demo rates only.",
           },
           touPeriods: {
             create: [
@@ -131,7 +152,7 @@ async function main() {
                 endTime: "22:00",
                 daysOfWeek: [1, 2, 3, 4, 5],
                 includesHoliday: false,
-                rateThbPerKwh: "5.00"
+                rateThbPerKwh: "5.00",
               },
               {
                 label: "Demo Off-Peak Weekend",
@@ -140,7 +161,7 @@ async function main() {
                 endTime: "24:00",
                 daysOfWeek: [0, 6],
                 includesHoliday: false,
-                rateThbPerKwh: "2.00"
+                rateThbPerKwh: "2.00",
               },
               {
                 label: "Demo Off-Peak Holiday",
@@ -149,36 +170,37 @@ async function main() {
                 endTime: "24:00",
                 daysOfWeek: [],
                 includesHoliday: true,
-                rateThbPerKwh: "2.00"
-              }
-            ]
+                rateThbPerKwh: "2.00",
+              },
+            ],
           },
           ftPeriods: {
             create: [
               {
                 effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
                 ftThbPerKwh: "0.50",
-                sourceUrl: "https://example.com/thai-energy-planner/demo-tariff-not-real"
-              }
-            ]
+                sourceUrl:
+                  "https://example.com/thai-energy-planner/demo-tariff-not-real",
+              },
+            ],
           },
           taxRates: {
             create: [
               {
                 name: "Demo VAT",
                 ratePercent: "7",
-                effectiveFrom: new Date("2026-01-01T00:00:00+07:00")
-              }
-            ]
-          }
-        }
-      }
-    }
+                effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
+              },
+            ],
+          },
+        },
+      },
+    },
   });
 
   await prisma.incentivePolicy.upsert({
     where: {
-      id: "demo-solar-export-policy-phase5-draft"
+      id: "demo-solar-export-policy-phase5-draft",
     },
     update: {},
     create: {
@@ -191,13 +213,14 @@ async function main() {
       authority: "Thai Energy Planner demo",
       effectiveFrom: new Date("2026-01-01T00:00:00+07:00"),
       verifiedAt: null,
-      notes: "Synthetic demo export value for Phase 5 UI and tests only. Not an official feed-in tariff."
-    }
+      notes:
+        "Synthetic demo export value for Phase 5 UI and tests only. Not an official feed-in tariff.",
+    },
   });
 
   await prisma.solarScenario.upsert({
     where: {
-      id: "demo-solar-phase5-evening-home"
+      id: "demo-solar-phase5-evening-home",
     },
     update: {},
     create: {
@@ -226,17 +249,18 @@ async function main() {
       assumptions: {
         status: "demo",
         sourceUrl: null,
-        notes: "Synthetic Phase 5 solar scenario. Replace with verified site, irradiance, CAPEX, and policy data before production use."
+        notes:
+          "Synthetic Phase 5 solar scenario. Replace with verified site, irradiance, CAPEX, and policy data before production use.",
       },
       assumptionsSnapshot: {
         engineVersion: "0.5.0-solar-finance",
         tariffData: "draft demo tariffs from Phase 2",
-        exportPolicyId: "demo-solar-export-policy-phase5-draft"
+        exportPolicyId: "demo-solar-export-policy-phase5-draft",
       },
       tariffSnapshot: {
         status: "draft",
         ratesIncluded: false,
-        note: "Solar seed does not embed official tariff rates."
+        note: "Solar seed does not embed official tariff rates.",
       },
       systemConfig: {
         create: {
@@ -252,8 +276,8 @@ async function main() {
           degradationPercentPerYear: "0.5",
           exportEnabled: true,
           exportRate: "0.80",
-          exportLimitKw: "10"
-        }
+          exportLimitKw: "10",
+        },
       },
       generationProfiles: {
         create: {
@@ -265,23 +289,26 @@ async function main() {
           intervalMinutes: 60,
           annualGenerationKwh: "5936",
           monthlyGeneration: {
-            monthlySpecificYieldKwhPerKwp: [112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106],
+            monthlySpecificYieldKwhPerKwp: [
+              112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106,
+            ],
             status: "demo",
-            notes: "Synthetic monthly yield values; not verified irradiance data."
+            notes:
+              "Synthetic monthly yield values; not verified irradiance data.",
           },
           assumptions: {
             systemLossPercent: 12,
             shadingLossPercent: 8,
-            degradationPercentPerYear: 0.5
-          }
-        }
-      }
-    }
+            degradationPercentPerYear: 0.5,
+          },
+        },
+      },
+    },
   });
 
   await prisma.batteryScenario.upsert({
     where: {
-      id: "demo-battery-phase6-export-home"
+      id: "demo-battery-phase6-export-home",
     },
     update: {},
     create: {
@@ -300,7 +327,8 @@ async function main() {
         scenarioName: "Battery Demo A - solar export available",
         sourceUrl: null,
         authority: "Thai Energy Planner demo",
-        notes: "Synthetic Phase 6 storage scenario. Equipment costs and performance are demo placeholders only."
+        notes:
+          "Synthetic Phase 6 storage scenario. Equipment costs and performance are demo placeholders only.",
       },
       config: {
         create: {
@@ -324,15 +352,16 @@ async function main() {
           dispatchStrategy: "HYBRID",
           sourceStatus: "demo",
           sourceUrl: null,
-          notes: "Demo/draft battery cost. Replace with verified vendor quote before production analysis."
-        }
-      }
-    }
+          notes:
+            "Demo/draft battery cost. Replace with verified vendor quote before production analysis.",
+        },
+      },
+    },
   });
 
   await prisma.batteryScenario.upsert({
     where: {
-      id: "demo-battery-phase6-low-export-home"
+      id: "demo-battery-phase6-low-export-home",
     },
     update: {},
     create: {
@@ -351,7 +380,8 @@ async function main() {
         scenarioName: "Battery Demo B - limited solar export",
         sourceUrl: null,
         authority: "Thai Energy Planner demo",
-        notes: "Synthetic Phase 6 storage scenario for non-viable financial recommendation tests."
+        notes:
+          "Synthetic Phase 6 storage scenario for non-viable financial recommendation tests.",
       },
       config: {
         create: {
@@ -375,32 +405,33 @@ async function main() {
           dispatchStrategy: "BACKUP_RESERVE",
           sourceStatus: "demo",
           sourceUrl: null,
-          notes: "Demo/draft battery cost. Replace with verified vendor quote before production analysis."
-        }
-      }
-    }
+          notes:
+            "Demo/draft battery cost. Replace with verified vendor quote before production analysis.",
+        },
+      },
+    },
   });
 
   for (const evDemo of [
     {
       id: "demo-ev-phase6-evening-immediate",
       strategy: "CHARGE_IMMEDIATELY",
-      name: "EV Demo A - evening immediate charging"
+      name: "EV Demo A - evening immediate charging",
     },
     {
       id: "demo-ev-phase6-off-peak",
       strategy: "OFF_PEAK",
-      name: "EV Demo B - off-peak charging"
+      name: "EV Demo B - off-peak charging",
     },
     {
       id: "demo-ev-phase6-solar-surplus",
       strategy: "SOLAR_SURPLUS",
-      name: "EV Demo C - solar surplus charging"
-    }
+      name: "EV Demo C - solar surplus charging",
+    },
   ]) {
     await prisma.evScenario.upsert({
       where: {
-        id: evDemo.id
+        id: evDemo.id,
       },
       update: {},
       create: {
@@ -419,7 +450,8 @@ async function main() {
           scenarioName: evDemo.name,
           sourceUrl: null,
           authority: "Thai Energy Planner demo",
-          notes: "Synthetic Phase 6 EV charging scenario. Vehicle and charger costs are demo placeholders only."
+          notes:
+            "Synthetic Phase 6 EV charging scenario. Vehicle and charger costs are demo placeholders only.",
         },
         config: {
           create: {
@@ -430,8 +462,10 @@ async function main() {
             weeklyDrivingDays: 5,
             chargerPowerKw: "7",
             chargerEfficiency: "0.90",
-            arrivalTime: evDemo.strategy === "SOLAR_SURPLUS" ? "09:00" : "18:00",
-            departureTime: evDemo.strategy === "SOLAR_SURPLUS" ? "16:00" : "07:00",
+            arrivalTime:
+              evDemo.strategy === "SOLAR_SURPLUS" ? "09:00" : "18:00",
+            departureTime:
+              evDemo.strategy === "SOLAR_SURPLUS" ? "16:00" : "07:00",
             targetSocPercent: "80",
             initialSocPercent: "40",
             minSocPercent: "20",
@@ -442,10 +476,11 @@ async function main() {
             allowSmartCharging: true,
             sourceStatus: "demo",
             sourceUrl: null,
-            notes: "Demo/draft EV and charger inputs. Replace with verified vehicle and charger data before production analysis."
-          }
-        }
-      }
+            notes:
+              "Demo/draft EV and charger inputs. Replace with verified vehicle and charger data before production analysis.",
+          },
+        },
+      },
     });
   }
 }

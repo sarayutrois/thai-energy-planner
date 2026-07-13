@@ -8,6 +8,8 @@ describe("report foundation", () => {
   });
 
   it("creates safe report file names", () => {
-    expect(createReportFileName("บ้าน A / EV", "2026-07-03", "pdf")).toBe("บ้าน-A-EV-2026-07-03.pdf");
+    expect(createReportFileName("บ้าน A / EV", "2026-07-03", "pdf")).toBe(
+      "บ้าน-A-EV-2026-07-03.pdf",
+    );
   });
 });

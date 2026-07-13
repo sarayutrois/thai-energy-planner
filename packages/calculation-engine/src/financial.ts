@@ -28,13 +28,18 @@ export type FinancialCoreResult = {
 
 const zero = new Decimal(0);
 
-export function calculateNPV(cashflows: CashflowItem[], discountRatePercent: number): number {
+export function calculateNPV(
+  cashflows: CashflowItem[],
+  discountRatePercent: number,
+): number {
   const rate = normalizePercent(discountRatePercent, "discountRatePercent");
   return roundMoney(
     cashflows.reduce((sum, cashflow) => {
       validateCashflow(cashflow);
-      return sum.plus(new Decimal(cashflow.amountThb).div(onePlus(rate).pow(cashflow.year)));
-    }, zero)
+      return sum.plus(
+        new Decimal(cashflow.amountThb).div(onePlus(rate).pow(cashflow.year)),
+      );
+    }, zero),
   );
 }
 
@@ -67,17 +72,24 @@ export function calculateIRR(cashflows: CashflowItem[]): number | null {
   return roundPercent(low.plus(high).div(2).mul(100));
 }
 
-export function calculateSimplePayback(cashflows: CashflowItem[]): number | null {
+export function calculateSimplePayback(
+  cashflows: CashflowItem[],
+): number | null {
   return findPaybackYear(cashflows, 0);
 }
 
-export function calculateDiscountedPayback(cashflows: CashflowItem[], discountRatePercent: number): number | null {
+export function calculateDiscountedPayback(
+  cashflows: CashflowItem[],
+  discountRatePercent: number,
+): number | null {
   const rate = normalizePercent(discountRatePercent, "discountRatePercent");
   const discounted = cashflows.map((cashflow) => {
     validateCashflow(cashflow);
     return {
       ...cashflow,
-      amountThb: new Decimal(cashflow.amountThb).div(onePlus(rate).pow(cashflow.year)).toNumber()
+      amountThb: new Decimal(cashflow.amountThb)
+        .div(onePlus(rate).pow(cashflow.year))
+        .toNumber(),
     };
   });
   return findPaybackYear(discounted, 0);
@@ -86,46 +98,71 @@ export function calculateDiscountedPayback(cashflows: CashflowItem[], discountRa
 export function buildSolarCashflows(input: SolarCashflowInput): CashflowItem[] {
   validateSolarCashflowInput(input);
   const projectLifeYears = Math.floor(input.projectLifeYears);
-  const savingEscalation = normalizePercent(input.electricityEscalationRatePercent ?? 0, "electricityEscalationRatePercent");
-  const degradation = normalizePercent(input.solarDegradationRatePercent ?? 0, "solarDegradationRatePercent");
-  const oAndMEscalation = normalizePercent(input.oAndMEscalationRatePercent ?? 0, "oAndMEscalationRatePercent");
+  const savingEscalation = normalizePercent(
+    input.electricityEscalationRatePercent ?? 0,
+    "electricityEscalationRatePercent",
+  );
+  const degradation = normalizePercent(
+    input.solarDegradationRatePercent ?? 0,
+    "solarDegradationRatePercent",
+  );
+  const oAndMEscalation = normalizePercent(
+    input.oAndMEscalationRatePercent ?? 0,
+    "oAndMEscalationRatePercent",
+  );
   const cashflows: CashflowItem[] = [
     {
       year: 0,
       amountThb: roundMoney(new Decimal(input.initialInvestmentThb).negated()),
-      label: "Initial investment"
-    }
+      label: "Initial investment",
+    },
   ];
 
   for (let year = 1; year <= projectLifeYears; year += 1) {
-    const benefitMultiplier = onePlus(savingEscalation).pow(year - 1).mul(oneMinus(degradation).pow(year - 1));
-    const savings = new Decimal(input.annualSavingThb).plus(input.annualExportRevenueThb ?? 0).mul(benefitMultiplier);
-    const oAndM = new Decimal(input.annualOAndMCostThb ?? 0).mul(onePlus(oAndMEscalation).pow(year - 1));
+    const benefitMultiplier = onePlus(savingEscalation)
+      .pow(year - 1)
+      .mul(oneMinus(degradation).pow(year - 1));
+    const savings = new Decimal(input.annualSavingThb)
+      .plus(input.annualExportRevenueThb ?? 0)
+      .mul(benefitMultiplier);
+    const oAndM = new Decimal(input.annualOAndMCostThb ?? 0).mul(
+      onePlus(oAndMEscalation).pow(year - 1),
+    );
     const replacement =
-      input.inverterReplacementYear !== null && input.inverterReplacementYear === year
+      input.inverterReplacementYear !== null &&
+      input.inverterReplacementYear === year
         ? new Decimal(input.inverterReplacementCostThb ?? 0)
         : zero;
 
     cashflows.push({
       year,
       amountThb: roundMoney(savings.minus(oAndM).minus(replacement)),
-      label: `Year ${year}`
+      label: `Year ${year}`,
     });
   }
 
   return cashflows;
 }
 
-export function calculateFinancialResult(cashflows: CashflowItem[], discountRatePercent: number): FinancialCoreResult {
+export function calculateFinancialResult(
+  cashflows: CashflowItem[],
+  discountRatePercent: number,
+): FinancialCoreResult {
   return {
     npvThb: calculateNPV(cashflows, discountRatePercent),
     irrPercent: calculateIRR(cashflows),
     simplePaybackYear: calculateSimplePayback(cashflows),
-    discountedPaybackYear: calculateDiscountedPayback(cashflows, discountRatePercent)
+    discountedPaybackYear: calculateDiscountedPayback(
+      cashflows,
+      discountRatePercent,
+    ),
   };
 }
 
-function findPaybackYear(cashflows: CashflowItem[], startingCumulative: number): number | null {
+function findPaybackYear(
+  cashflows: CashflowItem[],
+  startingCumulative: number,
+): number | null {
   const sorted = [...cashflows].sort((a, b) => a.year - b.year);
   let cumulative = new Decimal(startingCumulative);
   let previousYear = sorted[0]?.year ?? 0;
@@ -151,7 +188,9 @@ function findPaybackYear(cashflows: CashflowItem[], startingCumulative: number):
 
 function validateCashflow(cashflow: CashflowItem) {
   if (!Number.isInteger(cashflow.year) || cashflow.year < 0) {
-    throw new Error(`cashflow year must be a non-negative integer: ${cashflow.year}`);
+    throw new Error(
+      `cashflow year must be a non-negative integer: ${cashflow.year}`,
+    );
   }
   if (!Number.isFinite(cashflow.amountThb)) {
     throw new Error(`cashflow amountThb must be finite: ${cashflow.amountThb}`);
@@ -159,15 +198,21 @@ function validateCashflow(cashflow: CashflowItem) {
 }
 
 function validateSolarCashflowInput(input: SolarCashflowInput) {
-  if (!Number.isFinite(input.initialInvestmentThb) || input.initialInvestmentThb < 0) {
+  if (
+    !Number.isFinite(input.initialInvestmentThb) ||
+    input.initialInvestmentThb < 0
+  ) {
     throw new Error("initialInvestmentThb must be non-negative");
   }
-  if (!Number.isFinite(input.annualSavingThb)) throw new Error("annualSavingThb must be finite");
+  if (!Number.isFinite(input.annualSavingThb))
+    throw new Error("annualSavingThb must be finite");
   if (!Number.isFinite(input.projectLifeYears) || input.projectLifeYears <= 0) {
     throw new Error("projectLifeYears must be greater than 0");
   }
-  if ((input.annualOAndMCostThb ?? 0) < 0) throw new Error("annualOAndMCostThb must be non-negative");
-  if ((input.inverterReplacementCostThb ?? 0) < 0) throw new Error("inverterReplacementCostThb must be non-negative");
+  if ((input.annualOAndMCostThb ?? 0) < 0)
+    throw new Error("annualOAndMCostThb must be non-negative");
+  if ((input.inverterReplacementCostThb ?? 0) < 0)
+    throw new Error("inverterReplacementCostThb must be non-negative");
 }
 
 function normalizePercent(value: number, fieldName: string): Decimal {
@@ -176,7 +221,10 @@ function normalizePercent(value: number, fieldName: string): Decimal {
 }
 
 function npvAtRate(cashflows: Decimal[], rate: Decimal) {
-  return cashflows.reduce((sum, cashflow, year) => sum.plus(cashflow.div(onePlus(rate).pow(year))), zero);
+  return cashflows.reduce(
+    (sum, cashflow, year) => sum.plus(cashflow.div(onePlus(rate).pow(year))),
+    zero,
+  );
 }
 
 function onePlus(value: Decimal) {

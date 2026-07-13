@@ -23,12 +23,21 @@ export type DataQualityResult = {
   reasonTh: string;
 };
 
-export function summarizeMonthlyBills(bills: MonthlyBillInput[]): MonthlyBillSummary {
-  const totalKwh = bills.reduce((sum, bill) => sum.plus(bill.energyKwh), new Decimal(0));
-  const totalCost = bills.reduce((sum, bill) => sum.plus(bill.totalCostThb), new Decimal(0));
+export function summarizeMonthlyBills(
+  bills: MonthlyBillInput[],
+): MonthlyBillSummary {
+  const totalKwh = bills.reduce(
+    (sum, bill) => sum.plus(bill.energyKwh),
+    new Decimal(0),
+  );
+  const totalCost = bills.reduce(
+    (sum, bill) => sum.plus(bill.totalCostThb),
+    new Decimal(0),
+  );
   const monthCount = bills.length;
   const averageKwh = monthCount > 0 ? totalKwh.div(monthCount) : new Decimal(0);
-  const averageCost = monthCount > 0 ? totalCost.div(monthCount) : new Decimal(0);
+  const averageCost =
+    monthCount > 0 ? totalCost.div(monthCount) : new Decimal(0);
   const averageCostPerKwh = totalKwh.gt(0) ? totalCost.div(totalKwh) : null;
 
   return {
@@ -37,17 +46,19 @@ export function summarizeMonthlyBills(bills: MonthlyBillInput[]): MonthlyBillSum
     averageKwh: averageKwh.toNumber(),
     averageCost: averageCost.toNumber(),
     averageCostPerKwh: averageCostPerKwh?.toNumber() ?? null,
-    monthCount
+    monthCount,
   };
 }
 
-export function estimateDataQuality(input: DataQualityInput): DataQualityResult {
+export function estimateDataQuality(
+  input: DataQualityInput,
+): DataQualityResult {
   if (input.source === "interval" && input.intervalMonths >= 12) {
     return {
       level: "high",
       labelTh: "สูง",
       score: 95,
-      reasonTh: "มี Load Profile ครบ 12 เดือน"
+      reasonTh: "มี Load Profile ครบ 12 เดือน",
     };
   }
 
@@ -56,7 +67,7 @@ export function estimateDataQuality(input: DataQualityInput): DataQualityResult 
       level: "medium",
       labelTh: "ปานกลาง",
       score: 70,
-      reasonTh: "มีบิลย้อนหลัง 12 เดือนแต่ยังไม่มี Interval Data"
+      reasonTh: "มีบิลย้อนหลัง 12 เดือนแต่ยังไม่มี Interval Data",
     };
   }
 
@@ -64,7 +75,7 @@ export function estimateDataQuality(input: DataQualityInput): DataQualityResult 
     level: "low",
     labelTh: "ต่ำ",
     score: 40,
-    reasonTh: "ข้อมูลมาจากค่าเฉลี่ยหรือรายการเครื่องใช้ไฟฟ้า"
+    reasonTh: "ข้อมูลมาจากค่าเฉลี่ยหรือรายการเครื่องใช้ไฟฟ้า",
   };
 }
 

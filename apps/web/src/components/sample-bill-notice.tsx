@@ -20,9 +20,19 @@ export function SampleBillNotice() {
 
   return (
     <div className="mb-5 rounded-md border border-warning bg-warning/10 p-4 text-sm leading-6">
-      <p className="font-semibold">กำลังใช้ข้อมูลบิลตัวอย่าง — ตัวเลขเหล่านี้ยังไม่ใช่ข้อมูลค่าไฟของคุณ</p>
-      <p className="mt-1 text-muted-foreground">หน้านี้จะไม่ถือข้อมูลตัวอย่างเป็นข้อมูลจริง และจะไม่บันทึกผลเป็นรายงานของคุณ</p>
-      <Link className="mt-2 inline-flex font-medium text-primary hover:underline" href="/analysis/load-data/bills">ล้างข้อมูลตัวอย่างหรือเริ่มกรอกข้อมูลของฉัน</Link>
+      <p className="font-semibold">
+        กำลังใช้ข้อมูลบิลตัวอย่าง — ตัวเลขเหล่านี้ยังไม่ใช่ข้อมูลค่าไฟของคุณ
+      </p>
+      <p className="mt-1 text-muted-foreground">
+        หน้านี้จะไม่ถือข้อมูลตัวอย่างเป็นข้อมูลจริง
+        และจะไม่บันทึกผลเป็นรายงานของคุณ
+      </p>
+      <Link
+        className="mt-2 inline-flex font-medium text-primary hover:underline"
+        href="/analysis/load-data/bills"
+      >
+        ล้างข้อมูลตัวอย่างหรือเริ่มกรอกข้อมูลของฉัน
+      </Link>
     </div>
   );
 }

@@ -10,28 +10,32 @@ import {
   ResponsiveContainer,
   Tooltip,
   XAxis,
-  YAxis
+  YAxis,
 } from "recharts";
 import type { LoadSummaryMetrics } from "@thai-energy-planner/calculation-engine";
 
-export function LoadDashboardCharts({ summary }: { summary: LoadSummaryMetrics }) {
+export function LoadDashboardCharts({
+  summary,
+}: {
+  summary: LoadSummaryMetrics;
+}) {
   const hourly = summary.hourlyProfile.map((row) => ({
     hour: `${row.hour}:00`,
     energy: row.energyKwh,
-    averageKw: row.averageKw
+    averageKw: row.averageKw,
   }));
   const dayOfWeekLabels = ["อา", "จ", "อ", "พ", "พฤ", "ศ", "ส"];
   const dayOfWeek = summary.energyByDayOfWeek.map((row) => ({
     day: dayOfWeekLabels[row.dayOfWeek] ?? String(row.dayOfWeek),
-    energy: row.energyKwh
+    energy: row.energyKwh,
   }));
   const peakOffPeak = [
     { label: "Peak", energy: summary.peakPeriodKwh },
-    { label: "Off-Peak", energy: summary.offPeakPeriodKwh }
+    { label: "Off-Peak", energy: summary.offPeakPeriodKwh },
   ];
   const duration = summary.loadDurationCurve.slice(0, 24).map((row) => ({
     rank: row.rank,
-    powerKw: row.powerKw
+    powerKw: row.powerKw,
   }));
 
   return (
@@ -44,8 +48,20 @@ export function LoadDashboardCharts({ summary }: { summary: LoadSummaryMetrics }
             <YAxis />
             <Tooltip />
             <Legend />
-            <Line dataKey="energy" name="kWh" stroke="#0369a1" strokeWidth={2} type="monotone" />
-            <Line dataKey="averageKw" name="Average kW" stroke="#16a34a" strokeWidth={2} type="monotone" />
+            <Line
+              dataKey="energy"
+              name="kWh"
+              stroke="#0369a1"
+              strokeWidth={2}
+              type="monotone"
+            />
+            <Line
+              dataKey="averageKw"
+              name="Average kW"
+              stroke="#16a34a"
+              strokeWidth={2}
+              type="monotone"
+            />
           </LineChart>
         </ResponsiveContainer>
       </ChartFrame>
@@ -94,7 +110,13 @@ export function LoadDashboardCharts({ summary }: { summary: LoadSummaryMetrics }
               <XAxis dataKey="rank" />
               <YAxis />
               <Tooltip />
-              <Line dataKey="powerKw" name="kW" stroke="#dc2626" strokeWidth={2} type="monotone" />
+              <Line
+                dataKey="powerKw"
+                name="kW"
+                stroke="#dc2626"
+                strokeWidth={2}
+                type="monotone"
+              />
             </LineChart>
           </ResponsiveContainer>
         </ChartFrame>
@@ -103,7 +125,13 @@ export function LoadDashboardCharts({ summary }: { summary: LoadSummaryMetrics }
   );
 }
 
-function ChartFrame({ children, title }: { children: React.ReactNode; title: string }) {
+function ChartFrame({
+  children,
+  title,
+}: {
+  children: React.ReactNode;
+  title: string;
+}) {
   return (
     <section className="rounded-lg border border-border bg-card p-4">
       <h3 className="mb-3 font-semibold">{title}</h3>

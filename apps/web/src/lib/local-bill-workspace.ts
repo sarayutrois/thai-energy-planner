@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { billWorkspaceStorageKey, type StoredBillWorkspace } from "./local-analysis-snapshot";
+import {
+  billWorkspaceStorageKey,
+  type StoredBillWorkspace,
+} from "./local-analysis-snapshot";
 
 const maxBillRows = 120;
 const storedBillRowSchema = z.object({
@@ -18,11 +21,14 @@ const storedBillWorkspaceSchema = z.object({
   updatedAt: z.string().datetime(),
 });
 
-export function parseStoredBillWorkspace(value: unknown): StoredBillWorkspace | null {
+export function parseStoredBillWorkspace(
+  value: unknown,
+): StoredBillWorkspace | null {
   const parsed = storedBillWorkspaceSchema.safeParse(value);
   if (!parsed.success) return null;
   if (parsed.data.mode === "empty" && parsed.data.rows.length > 0) return null;
-  if (parsed.data.mode !== "empty" && parsed.data.rows.length === 0) return null;
+  if (parsed.data.mode !== "empty" && parsed.data.rows.length === 0)
+    return null;
   return parsed.data;
 }
 

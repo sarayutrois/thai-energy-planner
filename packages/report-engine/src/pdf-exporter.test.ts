@@ -10,17 +10,36 @@ describe("pdf exporter", () => {
       disclaimer: "Screening estimate only.",
       summary: "Demo summary",
       metrics: [{ label: "NPV", value: "1000 THB" }],
-      assumptions: [{ label: "Tariff", value: "Demo tariff without verified Ft." }],
-      references: [{ label: "Solar yield", value: "Demo monthly specific yield." }],
+      assumptions: [
+        { label: "Tariff", value: "Demo tariff without verified Ft." },
+      ],
+      references: [
+        { label: "Solar yield", value: "Demo monthly specific yield." },
+      ],
       sections: [
         {
           title: "Simulation Results",
-          items: [{ label: "Estimated annual savings", value: "17000 - 19000 THB/year" }],
-          paragraphs: ["Rounded range to avoid over-precision."]
-        }
+          items: [
+            {
+              label: "Estimated annual savings",
+              value: "17000 - 19000 THB/year",
+            },
+          ],
+          paragraphs: ["Rounded range to avoid over-precision."],
+        },
       ],
-      recommendations: [{ title: "Check tariff", description: "Use official tariff before deployment." }],
-      limitations: [{ title: "Site survey required", description: "Roof and hidden costs are not included." }]
+      recommendations: [
+        {
+          title: "Check tariff",
+          description: "Use official tariff before deployment.",
+        },
+      ],
+      limitations: [
+        {
+          title: "Site survey required",
+          description: "Roof and hidden costs are not included.",
+        },
+      ],
     });
     const text = new TextDecoder().decode(bytes);
 

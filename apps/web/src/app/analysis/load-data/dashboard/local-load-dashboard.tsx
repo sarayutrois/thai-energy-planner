@@ -76,7 +76,13 @@ export function LocalLoadDashboard() {
       <p className="mt-6 text-sm text-muted-foreground">
         กำลังแสดงข้อมูลจาก:{" "}
         <span className="font-medium text-foreground">{name}</span>
-        <button className="ml-3 text-primary underline underline-offset-4" type="button" onClick={refreshProfiles}>รีเฟรชข้อมูลล่าสุด</button>
+        <button
+          className="ml-3 text-primary underline underline-offset-4"
+          type="button"
+          onClick={refreshProfiles}
+        >
+          รีเฟรชข้อมูลล่าสุด
+        </button>
       </p>
       <div className="mt-4 grid gap-3 md:grid-cols-4">
         <Metric title="Total kWh" value={summary.totalKwh} />

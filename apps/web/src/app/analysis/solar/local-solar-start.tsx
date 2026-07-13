@@ -11,11 +11,13 @@ import type { LocalBillReportSnapshot } from "@/lib/local-analysis-snapshot";
 const audienceProfile = {
   home: "evening_home",
   shop: "daytime_shop",
-  business: "daytime_shop"
+  business: "daytime_shop",
 } satisfies Record<LocalBillReportSnapshot["audience"], string>;
 
 export function LocalSolarStart() {
-  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(null);
+  const [snapshot, setSnapshot] = useState<LocalBillReportSnapshot | null>(
+    null,
+  );
 
   useEffect(() => {
     try {
@@ -28,11 +30,18 @@ export function LocalSolarStart() {
   const suggested = useMemo(() => {
     if (!snapshot) return null;
 
-    const averageMonthlyKwh = snapshot.monthCount > 0 ? snapshot.totalKwh / snapshot.monthCount : 0;
+    const averageMonthlyKwh =
+      snapshot.monthCount > 0 ? snapshot.totalKwh / snapshot.monthCount : 0;
     const daytimeBias = snapshot.audience === "home" ? 0.42 : 0.62;
     const targetSolarKwhPerMonth = averageMonthlyKwh * daytimeBias * 0.85;
-    const systemSizeKwp = clamp(roundToStep(targetSolarKwhPerMonth / 120, 0.5), 2, snapshot.audience === "home" ? 10 : 30);
-    const capexThb = Math.round(systemSizeKwp * (snapshot.audience === "home" ? 43000 : 40000));
+    const systemSizeKwp = clamp(
+      roundToStep(targetSolarKwhPerMonth / 120, 0.5),
+      2,
+      snapshot.audience === "home" ? 10 : 30,
+    );
+    const capexThb = Math.round(
+      systemSizeKwp * (snapshot.audience === "home" ? 43000 : 40000),
+    );
 
     return {
       averageMonthlyKwh,
@@ -40,7 +49,7 @@ export function LocalSolarStart() {
       capexThb,
       profile: audienceProfile[snapshot.audience],
       roofAreaSqm: Math.round(systemSizeKwp * 6),
-      systemSizeKwp
+      systemSizeKwp,
     };
   }, [snapshot]);
 
@@ -60,7 +69,7 @@ export function LocalSolarStart() {
       discountRatePercent: "6",
       exportEnabled: "true",
       exportRateThbPerKwh: "2.2",
-      source: "bills"
+      source: "bills",
     });
     return `/analysis/solar/results?${params.toString()}`;
   }, [snapshot?.audience, suggested]);
@@ -76,7 +85,8 @@ export function LocalSolarStart() {
         </CardHeader>
         <CardContent className="grid gap-4">
           <p className="text-sm leading-6 text-muted-foreground">
-            กรุณาเพิ่มบิลหรือสร้าง Load Profile ก่อน ระบบจึงจะแนะนำขนาด Solar จากข้อมูลการใช้ไฟของคุณได้
+            กรุณาเพิ่มบิลหรือสร้าง Load Profile ก่อน ระบบจึงจะแนะนำขนาด Solar
+            จากข้อมูลการใช้ไฟของคุณได้
           </p>
           <Link
             className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
@@ -100,7 +110,8 @@ export function LocalSolarStart() {
               ตั้งค่า Solar จากบิลที่บันทึกไว้
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนในเซสชันนี้ เป็นข้อมูลประกอบการตัดสินใจเบื้องต้นก่อนตรวจหน้างานและใบเสนอราคาจริง
+              แนะนำค่าเริ่มต้นจากบิล {snapshot.monthCount} เดือนในเซสชันนี้
+              เป็นข้อมูลประกอบการตัดสินใจเบื้องต้นก่อนตรวจหน้างานและใบเสนอราคาจริง
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -111,10 +122,22 @@ export function LocalSolarStart() {
       </CardHeader>
       <CardContent className="grid gap-5">
         <div className="grid gap-3 md:grid-cols-4">
-          <Metric label="ใช้ไฟเฉลี่ย" value={`${formatNumber(suggested.averageMonthlyKwh)} kWh/เดือน`} />
-          <Metric label="ค่าไฟเฉลี่ย" value={`${formatNumber(suggested.averageMonthlyCost)} บาท/เดือน`} />
-          <Metric label="ขนาดเริ่มต้น" value={`${formatNumber(suggested.systemSizeKwp)} kWp`} />
-          <Metric label="งบคร่าว ๆ" value={`${formatNumber(suggested.capexThb)} บาท`} />
+          <Metric
+            label="ใช้ไฟเฉลี่ย"
+            value={`${formatNumber(suggested.averageMonthlyKwh)} kWh/เดือน`}
+          />
+          <Metric
+            label="ค่าไฟเฉลี่ย"
+            value={`${formatNumber(suggested.averageMonthlyCost)} บาท/เดือน`}
+          />
+          <Metric
+            label="ขนาดเริ่มต้น"
+            value={`${formatNumber(suggested.systemSizeKwp)} kWp`}
+          />
+          <Metric
+            label="งบคร่าว ๆ"
+            value={`${formatNumber(suggested.capexThb)} บาท`}
+          />
         </div>
         <div className="flex flex-wrap gap-2">
           <Link
@@ -155,5 +178,7 @@ function roundToStep(value: number, step: number) {
 }
 
 function formatNumber(value: number) {
-  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
+    value,
+  );
 }

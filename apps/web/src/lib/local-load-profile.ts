@@ -72,7 +72,9 @@ export function saveLocalLoadProfileSnapshot(input: {
       ...input,
       generatedAt: now,
     }),
-    ...(input.calibration === undefined ? {} : { calibration: input.calibration }),
+    ...(input.calibration === undefined
+      ? {}
+      : { calibration: input.calibration }),
   };
 
   window.localStorage.setItem(
@@ -215,9 +217,10 @@ export function listLocalLoadProfileSnapshots(): LocalLoadProfileSnapshot[] {
 
 /** Returns the newest snapshot for each visually identical profile, for picker/history UI. */
 export function listDistinctLocalLoadProfileSnapshots(): LocalLoadProfileSnapshot[] {
-  const activeId = typeof window === "undefined"
-    ? null
-    : window.localStorage.getItem(activeLocalLoadProfileIdStorageKey);
+  const activeId =
+    typeof window === "undefined"
+      ? null
+      : window.localStorage.getItem(activeLocalLoadProfileIdStorageKey);
   const snapshots = [...listLocalLoadProfileSnapshots()].sort((left, right) => {
     if (left.id === activeId) return -1;
     if (right.id === activeId) return 1;
@@ -236,8 +239,11 @@ export function listDistinctLocalLoadProfileSnapshots(): LocalLoadProfileSnapsho
   });
 }
 
-export function formatLocalLoadProfileLabel(snapshot: LocalLoadProfileSnapshot) {
-  const days = new Set(snapshot.rows.map((row) => row.timestamp.slice(0, 10))).size;
+export function formatLocalLoadProfileLabel(
+  snapshot: LocalLoadProfileSnapshot,
+) {
+  const days = new Set(snapshot.rows.map((row) => row.timestamp.slice(0, 10)))
+    .size;
   const source = snapshot.calibration
     ? "Load Profile ที่ปรับเทียบกับบิลแล้ว"
     : snapshot.sourceName.replace(/\s*\(ปรับเทียบกับบิล\)\s*/g, "");
