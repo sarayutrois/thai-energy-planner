@@ -31,9 +31,17 @@ type SavedBillContext = {
 };
 
 const tabs = [
-  { key: "overview", href: "/analysis/solar", label: "ภาพรวม" },
-  { key: "config", href: "/analysis/solar/config", label: "สมมติฐาน" },
-  { key: "results", href: "/analysis/solar/results", label: "ผลลัพธ์" },
+  { key: "overview", href: "/analysis/solar", label: "1. ข้อมูลประเมิน" },
+  {
+    key: "config",
+    href: "/analysis/solar/config",
+    label: "2. สมมติฐาน",
+  },
+  {
+    key: "results",
+    href: "/analysis/solar/results",
+    label: "3. ผลการประเมิน",
+  },
   { key: "sizing", href: "/analysis/solar/sizing", label: "ขนาดระบบ" },
   { key: "finance", href: "/analysis/solar/finance", label: "การเงิน" },
   {
@@ -52,6 +60,14 @@ export function SolarPageShell({
   queryString: string;
   children: ReactNode;
 }) {
+  const isPreparationStep = active === "overview" || active === "config";
+  const visibleTabs = isPreparationStep
+    ? tabs.filter((tab) => tab.key === "overview" || tab.key === "config")
+    : tabs;
+  const navigationQueryString = isPreparationStep
+    ? queryString
+    : `${queryString}&confirmed=1`;
+
   return (
     <main className="min-h-screen">
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
@@ -70,17 +86,19 @@ export function SolarPageShell({
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <p className="text-sm text-muted-foreground">
-              เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ
+              {isPreparationStep
+                ? "ตรวจข้อมูลและสมมติฐานก่อนเริ่มประเมิน ระบบจะยังไม่แสดงผลลัพธ์จนกว่าคุณจะสั่งคำนวณ"
+                : "เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ"}
             </p>
           </div>
           <nav
             aria-label="ส่วนการวิเคราะห์ Solar"
             className="flex flex-wrap gap-2"
           >
-            {tabs.map((tab) => (
+            {visibleTabs.map((tab) => (
               <a
                 key={tab.href}
-                href={`${tab.href}?${queryString}`}
+                href={`${tab.href}?${navigationQueryString}`}
                 aria-current={active === tab.key ? "page" : undefined}
                 className={`inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition ${
                   active === tab.key
@@ -103,10 +121,14 @@ export function SolarControls({
   settings,
   action,
   savedBillContext,
+  submitLabel = "คำนวณผลใหม่",
+  showSizingLink = true,
 }: {
   settings: SolarDemoSettings;
   action: string;
   savedBillContext?: SavedBillContext | undefined;
+  submitLabel?: string;
+  showSizingLink?: boolean;
 }) {
   return (
     <Card>
@@ -132,6 +154,9 @@ export function SolarControls({
           className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
         >
           <SavedBillHiddenInputs context={savedBillContext} />
+          {action === "/analysis/solar/results" ? (
+            <input name="confirmed" type="hidden" value="1" />
+          ) : null}
           <Field label="Load profile">
             <select
               name="profile"
@@ -348,17 +373,19 @@ export function SolarControls({
           </Field>
           <div className="flex items-end">
             <Button type="submit" className="w-full">
-              คำนวณผลใหม่
+              {submitLabel}
             </Button>
           </div>
-          <div className="flex items-end">
-            <a
-              href={`/analysis/solar/sizing?${withSavedBillContext(buildSolarQuery(settings), savedBillContext)}`}
-              className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-            >
-              หาขนาดระบบที่เหมาะสม
-            </a>
-          </div>
+          {showSizingLink ? (
+            <div className="flex items-end">
+              <a
+                href={`/analysis/solar/sizing?${withSavedBillContext(buildSolarQuery(settings), savedBillContext)}`}
+                className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+              >
+                หาขนาดระบบที่เหมาะสม
+              </a>
+            </div>
+          ) : null}
         </form>
       </CardContent>
     </Card>

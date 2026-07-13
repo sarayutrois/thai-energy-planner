@@ -89,13 +89,38 @@ test("legacy deep links redirect into the supported user journeys", async ({
   ).toBeVisible();
 });
 
-test("solar overview uses the shared decision-first shell", async ({
+test("solar starts with data review and no automatic result", async ({
   page,
 }) => {
   await page.goto("/analysis/solar");
   await expect(
     page.getByRole("heading", { name: "จำลองการติดตั้งโซลาร์เซลล์บนหลังคา" }),
   ).toBeVisible();
+  await expect(
+    page.getByText("1. ข้อมูลประเมิน", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("2. สมมติฐาน", { exact: true })).toBeVisible();
+  await expect(page.getByText("3. ผลการประเมิน", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(
+    page.getByRole("heading", {
+      name: "ผลการประเมิน Solar จากข้อมูลที่เลือก",
+    }),
+  ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "เริ่มประเมิน Solar" }),
+  ).toHaveCount(0);
+  await page.getByRole("link", { name: "2. สมมติฐาน" }).click();
+  await expect(
+    page.getByRole("button", { name: "ยืนยันสมมติฐานและดูผล" }),
+  ).toBeVisible();
+  await expect(page.getByText("3. ผลการประเมิน", { exact: true })).toHaveCount(
+    0,
+  );
+  await expect(page.getByText("รูปแบบค่าไฟที่เหมาะหลังติด Solar")).toHaveCount(
+    0,
+  );
   await expect(page.getByText("ขั้นตอนที่ 3 จาก 4")).toHaveCount(0);
 });
 
@@ -222,8 +247,15 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
 
   await page.goto("/analysis/solar");
   await expect(
-    page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
+    page.getByRole("heading", { name: "ตรวจข้อมูลก่อนเริ่มประเมิน Solar" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
+  ).toHaveCount(0);
+  await page.getByRole("button", { name: "เริ่มประเมิน Solar" }).click();
+  await expect(
+    page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
+  ).toBeVisible({ timeout: 15_000 });
   await expect(
     page.getByRole("button", { name: "บันทึกเป็นรายงาน" }),
   ).toBeVisible({ timeout: 15_000 });
@@ -593,9 +625,7 @@ test("bill workspace exports and imports JSON and CSV", async ({ page }) => {
     .getByRole("button", { name: "ทดลองด้วยข้อมูลตัวอย่าง" })
     .first()
     .click();
-  await page
-    .getByText("นำเข้า ส่งออก และเครื่องมือ", { exact: true })
-    .click();
+  await page.getByText("นำเข้า ส่งออก และเครื่องมือ", { exact: true }).click();
 
   for (const name of ["ส่งออก JSON", "ส่งออก CSV"]) {
     const downloadPromise = page.waitForEvent("download");

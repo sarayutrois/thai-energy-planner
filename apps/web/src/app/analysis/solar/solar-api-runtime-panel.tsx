@@ -54,6 +54,7 @@ export function SolarApiRuntimePanel({
   > | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
   const runAnalysis = useCallback(
     async (profileSnapshot: LocalLoadProfileSnapshot) => {
@@ -140,10 +141,18 @@ export function SolarApiRuntimePanel({
   );
 
   useEffect(() => {
-    const next = readLocalLoadProfileSnapshot();
-    setSnapshot(next);
-    if (next) void runAnalysis(next);
-  }, [runAnalysis]);
+    setSnapshot(readLocalLoadProfileSnapshot());
+    setIsHydrated(true);
+  }, []);
+
+  if (!isHydrated)
+    return (
+      <Card className="border-dashed">
+        <CardContent className="p-6 text-sm text-muted-foreground">
+          กำลังตรวจข้อมูลการใช้ไฟที่บันทึกไว้…
+        </CardContent>
+      </Card>
+    );
 
   if (!snapshot)
     return (
@@ -151,13 +160,14 @@ export function SolarApiRuntimePanel({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileUp className="h-5 w-5 text-primary" />
-            ข้อมูลยังไม่เพียงพอสำหรับประเมิน Solar
+            เพิ่มข้อมูลก่อนเริ่มประเมิน Solar
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground">
           <p>
-            สร้างหรือนำเข้า Load Profile ก่อน เพื่อคำนวณขนาดระบบ ระยะเวลาคืนทุน
-            และผลประหยัดได้อย่างน่าเชื่อถือ
+            ระบบจะไม่สร้างผลลัพธ์จากค่าตัวอย่างให้โดยอัตโนมัติ
+            กรุณาสร้างหรือนำเข้า Load Profile ก่อน
+            แล้วกลับมาตรวจข้อมูลและกดเริ่มประเมินด้วยตัวเอง
           </p>
           <div className="flex flex-wrap gap-2">
             <a
@@ -189,10 +199,15 @@ export function SolarApiRuntimePanel({
           <div>
             <CardTitle className="flex items-center gap-2">
               <ServerCog className="h-5 w-5 text-primary" />
-              ผลการประเมิน Solar จากข้อมูลที่เลือก
+              {payload
+                ? "ผลการประเมิน Solar จากข้อมูลที่เลือก"
+                : "ตรวจข้อมูลก่อนเริ่มประเมิน Solar"}
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              ใช้ “{snapshot.sourceName}” จำนวน{" "}
+              {payload
+                ? "ผลลัพธ์นี้ใช้"
+                : "ระบบพบข้อมูลที่เคยบันทึกไว้ แต่ยังไม่ได้เริ่มคำนวณ ใช้"}{" "}
+              “{snapshot.sourceName}” จำนวน{" "}
               {snapshot.rowCount.toLocaleString("th-TH")} ช่วงข้อมูล · อัปเดต{" "}
               {formatDate(snapshot.updatedAt)}
             </p>
@@ -211,6 +226,30 @@ export function SolarApiRuntimePanel({
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
+        {!payload ? (
+          <div className="rounded-xl border border-primary/25 bg-background p-4">
+            <p className="font-semibold">ข้อมูลที่จะใช้ในการประเมินครั้งนี้</p>
+            <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
+              <Metric label="แหล่งข้อมูล" value={snapshot.sourceName} />
+              <Metric
+                label="ปริมาณการใช้ไฟในชุดข้อมูล"
+                value={`${formatNumber(snapshot.totalKwh)} kWh`}
+              />
+              <Metric
+                label="ขนาด Solar เริ่มต้น"
+                value={`${formatNumber(settings.systemSizeKwp)} kWp`}
+              />
+              <Metric
+                label="เงินลงทุนตั้งต้น"
+                value={`${formatNumber(settings.capexThb)} บาท`}
+              />
+            </div>
+            <p className="mt-3 text-xs leading-5 text-muted-foreground">
+              ตัวเลขขนาดระบบและเงินลงทุนเป็นสมมติฐานตั้งต้น
+              ยังไม่ใช่คำแนะนำหรือผลการประเมิน คุณสามารถแก้ไขได้ก่อนเริ่มคำนวณ
+            </p>
+          </div>
+        ) : null}
         {dataStatus.warning ? (
           <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
             ผลลัพธ์นี้เป็นการประเมินเบื้องต้น ความแม่นยำจะเพิ่มขึ้นเมื่อใช้ Load
@@ -246,10 +285,14 @@ export function SolarApiRuntimePanel({
           <Button
             disabled={isLoading}
             onClick={() => void runAnalysis(snapshot)}
-            variant="outline"
+            variant={payload ? "outline" : "default"}
           >
             <RefreshCw className="h-4 w-4" />
-            {isLoading ? "กำลังคำนวณ..." : "คำนวณผล"}
+            {isLoading
+              ? "กำลังประเมิน..."
+              : payload
+                ? "คำนวณใหม่"
+                : "เริ่มประเมิน Solar"}
           </Button>
           <a
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
@@ -261,7 +304,7 @@ export function SolarApiRuntimePanel({
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
             href="/analysis/solar/config"
           >
-            แก้ไขข้อมูลสำหรับประเมิน Solar
+            ตรวจและแก้สมมติฐาน Solar
           </a>
         </div>
         <LocalBillResultContext

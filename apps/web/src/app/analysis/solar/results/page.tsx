@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 import {
@@ -24,6 +25,11 @@ export default async function SolarResultsPage({
   searchParams?: Promise<SolarSearchParams>;
 }) {
   const params = (await searchParams) ?? {};
+  const confirmed = Array.isArray(params.confirmed)
+    ? params.confirmed[0]
+    : params.confirmed;
+  if (confirmed !== "1") redirect("/analysis/solar");
+
   const { analysis, settings, queryString, savedBillContext } =
     getSolarDemo(params);
   const reportDraft = buildSolarReportDraft(analysis, settings);
