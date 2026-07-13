@@ -46,6 +46,7 @@
 - ปุ่มหลักหน้าเริ่มต้นนำผู้ใช้ไปสร้างรูปแบบการใช้ไฟเสมอ และเอาปุ่มสร้างโหลดที่ซ้ำออก; การอัปโหลดไฟล์คงเป็นทางเลือกสำหรับผู้ที่มีข้อมูลละเอียด
 - ปรับข้อความเป้าหมายและหน้าแรกให้สื่อว่า Load Profile คือข้อมูลตั้งต้น ส่วนบิลใช้ปรับผลประมาณการให้ใกล้เคียงการใช้จริง
 - ตรวจ Acceptance Criteria: `npm run format`, `npm run lint`, `npm run typecheck`, `npm test` (241 tests), `npm run build` (51 routes) และ `npm run test:e2e` (18 tests) ผ่านทั้งหมด; เพิ่ม E2E ป้องกันการสลับลำดับกลับ
+- Release: commit `c9aae45` ถูก push ไป `origin/staging` และ deploy production สำเร็จเป็น `dpl_HtEtq5FMJB9sLNAKV8VPzXpC986L` ที่ `https://thai-energy-planner-web.vercel.app`
 
 ## Recovery Phase 1 — Production UI audit
 
