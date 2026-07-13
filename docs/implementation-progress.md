@@ -30,6 +30,7 @@
 - ตรวจ Acceptance Criteria: `MainNav` ถูกลบและไม่มีหน้าใดอ้างอิง; AppShell เป็น navigation เดียว; module Battery/EV/Ecosystem ยังไม่ถูกเสนอในเมนูและ deep link ถูกกั้นไว้
 - การทดสอบ: `npm test` ผ่าน 241 tests, `npm run typecheck` ผ่าน, `npm run lint` ผ่าน, `npm run build` ผ่าน (54 routes), `npm run test:e2e` ผ่าน 15 tests และ `git diff --check` ผ่าน
 - หมายเหตุ: build เตือนเรื่อง Next.js ESLint plugin configuration ที่มีอยู่เดิม แต่ไม่ทำให้ lint หรือ build ล้มเหลว
+- Release: commit `f662bba` ถูก push ไป `origin/staging` และ deploy production สำเร็จเป็น `dpl_2LBsQDUGiH8rgg2rvkR6nZVV3k4V`; ตรวจ production route สำคัญและ redirect หลัง deploy ผ่าน
 
 ## Phase 0 — Audit Current State
 
