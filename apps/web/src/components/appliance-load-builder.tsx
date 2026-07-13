@@ -357,6 +357,21 @@ type Draft = {
   endDate: string;
 };
 
+function persistApplianceDraft(draft: Draft) {
+  try {
+    if (draft.mode === "empty")
+      window.localStorage.removeItem(applianceWorkspaceStorageKey);
+    else
+      window.localStorage.setItem(
+        applianceWorkspaceStorageKey,
+        JSON.stringify(draft),
+      );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function createDailySchedules(item: ApplianceInput): ApplianceScheduleInput[] {
   const sourceSchedules = item.schedules?.length
     ? item.schedules
@@ -460,23 +475,17 @@ export function ApplianceLoadBuilder({
     if (!hydrated) return;
     setAutoSaveLabel("กำลังบันทึก...");
     const timer = window.setTimeout(() => {
-      if (mode === "empty")
-        window.localStorage.removeItem(applianceWorkspaceStorageKey);
-      else {
-        const draft: Draft = {
-          mode,
-          appliances,
-          intervalMinutes,
-          startDate,
-          endDate,
-        };
-        window.localStorage.setItem(
-          applianceWorkspaceStorageKey,
-          JSON.stringify(draft),
-        );
-      }
+      const persisted = persistApplianceDraft({
+        mode,
+        appliances,
+        intervalMinutes,
+        startDate,
+        endDate,
+      });
       setAutoSaveLabel(
-        `บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`,
+        persisted
+          ? `บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`
+          : "ไม่สามารถบันทึกพื้นที่ทำงานในอุปกรณ์นี้ได้",
       );
     }, 500);
     return () => window.clearTimeout(timer);
@@ -683,6 +692,13 @@ export function ApplianceLoadBuilder({
       )
     )
       return;
+    persistApplianceDraft({
+      mode,
+      appliances,
+      intervalMinutes,
+      startDate,
+      endDate,
+    });
     const rows = simulation.intervals;
     const snapshot = saveLocalLoadProfileSnapshot({
       sourceName: "Load Profile จากเครื่องใช้ไฟฟ้า",

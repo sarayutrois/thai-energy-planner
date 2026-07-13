@@ -83,33 +83,38 @@ export function SolarPageShell({
           title="จำลองการติดตั้งโซลาร์เซลล์บนหลังคา"
           description="ประเมินสัดส่วนไฟ Solar ที่ใช้เอง ระยะเวลาคืนทุน ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์ โดยไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด"
         />
-        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <p className="text-sm text-muted-foreground">
-              {isPreparationStep
-                ? "ตรวจข้อมูลและสมมติฐานก่อนเริ่มประเมิน ระบบจะยังไม่แสดงผลลัพธ์จนกว่าคุณจะสั่งคำนวณ"
-                : "เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ"}
-            </p>
+        <div className="mt-5 rounded-2xl border border-border/80 bg-card/70 p-4 shadow-panel md:p-5">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
+                ขั้นตอนการประเมิน Solar
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                {isPreparationStep
+                  ? "ตรวจข้อมูลและสมมติฐานก่อนเริ่มประเมิน ระบบจะยังไม่แสดงผลลัพธ์จนกว่าคุณจะสั่งคำนวณ"
+                  : "เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ"}
+              </p>
+            </div>
+            <nav
+              aria-label="ขั้นตอนการประเมิน Solar"
+              className="flex flex-wrap gap-2"
+            >
+              {visibleTabs.map((tab) => (
+                <a
+                  key={tab.href}
+                  href={`${tab.href}?${navigationQueryString}`}
+                  aria-current={active === tab.key ? "step" : undefined}
+                  className={`inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition ${
+                    active === tab.key
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border bg-background text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  {tab.label}
+                </a>
+              ))}
+            </nav>
           </div>
-          <nav
-            aria-label="ส่วนการวิเคราะห์ Solar"
-            className="flex flex-wrap gap-2"
-          >
-            {visibleTabs.map((tab) => (
-              <a
-                key={tab.href}
-                href={`${tab.href}?${navigationQueryString}`}
-                aria-current={active === tab.key ? "page" : undefined}
-                className={`inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition ${
-                  active === tab.key
-                    ? "border-primary bg-primary text-primary-foreground"
-                    : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
-                }`}
-              >
-                {tab.label}
-              </a>
-            ))}
-          </nav>
         </div>
         <div className="mt-6 grid gap-6">{children}</div>
       </section>

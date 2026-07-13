@@ -284,3 +284,14 @@
 - แก้กรณีเบราว์เซอร์หรือระบบปฏิบัติการเปิด Reduce Motion แล้ว Hero กลายเป็นพื้นหลังสีเข้มจนดูเหมือนวิดีโอไม่โหลด
 - เพิ่ม poster frame จากฟุตเทจจริงที่เวลา 0.5 วินาที ทำให้ผู้ใช้เห็นภาพ Solar ทันทีระหว่างโหลดและเมื่อหยุดวิดีโอ
 - โหมดปกติจะเริ่มเล่นหลัง component พร้อม ส่วน Reduce Motion จะแสดง poster แบบหยุดนิ่งพร้อมปุ่ม Play โดยไม่ซ่อนวิดีโอหรือปุ่มควบคุม
+
+## Review hardening — Solar navigation, tariff copy and complete workflow
+
+- สถานะ: แก้โค้ดและตรวจ regression ตามข้อสังเกตใน `thai_energy_planner_web_review.md` แล้ว
+- ตรวจพบว่า Solar ใช้ `AppShell` และเมนูหลักชุดเดียวกับหน้าอื่นอยู่แล้ว; แถบที่ดูคล้าย navigation อีกยุคเป็นลิงก์ย่อยของ Solar จึงจัดให้อยู่ใน contextual card พร้อมหัวข้อและ accessible label “ขั้นตอนการประเมิน Solar” และใช้ `aria-current="step"` เพื่อแยกความหมายจากเมนูหลัก
+- แก้สรุปอัตราค่าไฟบ้านจากการแสดงเพียง tier แรก `3.2484 บาท/หน่วย` เป็นช่วงอัตราฐานแบบขั้นบันได `3.2484–4.4217 บาท/หน่วย` พร้อมบอกว่าคิดแยกตามช่วงหน่วย ก่อน Ft และ VAT; อัตราที่มีค่าเดียวจะแสดงแบบค่าเดียวตามเดิม
+- ขยาย E2E workflow ให้ยืนยันการคง Load Profile หลัง refresh, เดินจากบิล + เครื่องใช้ไฟฟ้า → TOU → Solar → รายงาน และดาวน์โหลด JSON จริงก่อนตรวจ stale-result guard
+- แก้ race condition ที่พบจาก full E2E: ปุ่มบันทึก Load Profile จะเขียน appliance draft ลงอุปกรณ์ทันที ไม่ต้องรอ debounce 500 ms ของ auto-save จึง refresh หรือไปหน้าถัดไปทันทีโดยรายการไม่หาย
+- เพิ่ม regression ว่า Solar มีเมนูหลักเพียง navigation เดียว, step navigation มี landmark แยกชัด และหน้า Solar ที่ viewport 390 px ไม่มี horizontal overflow
+- ตรวจ Acceptance Criteria: ไม่มี navigation เก่าซ้ำ, ผู้ใช้ไม่ตีความอัตราขั้นแรกเป็นอัตราคงที่, ข้อมูลยังอยู่หลัง refresh, เส้นทางวิเคราะห์และส่งออกรายงานทำงานครบ และ mobile ไม่ล้นแนวนอน
+- การทดสอบ: `npm run lint`, `npm run typecheck`, `git diff --check`, unit/integration 243 tests, full E2E 22 tests และ production build 51 routes ผ่านทั้งหมด; full E2E เป็นตัวตรวจพบและยืนยันการแก้ immediate-refresh race condition

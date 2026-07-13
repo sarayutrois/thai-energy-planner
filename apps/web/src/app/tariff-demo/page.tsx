@@ -369,8 +369,15 @@ function TariffSummary({
 }) {
   const snapshot = result.tariffSnapshot;
   const ftPeriod = getFtPeriod(result, billDate);
-  const baseRate =
-    snapshot.tariffVersion.energyRateTiers[0]?.rateThbPerKwh ?? null;
+  const baseRates = snapshot.tariffVersion.energyRateTiers
+    .map((tier) => Number(tier.rateThbPerKwh))
+    .filter((rate) => Number.isFinite(rate));
+  const minimumBaseRate = baseRates.length ? Math.min(...baseRates) : null;
+  const maximumBaseRate = baseRates.length ? Math.max(...baseRates) : null;
+  const hasTieredBaseRate =
+    minimumBaseRate !== null &&
+    maximumBaseRate !== null &&
+    minimumBaseRate !== maximumBaseRate;
   return (
     <Card>
       <CardHeader>
@@ -400,13 +407,21 @@ function TariffSummary({
             }
           />
           <Summary
-            label="อัตราค่าไฟฐาน"
-            value={
-              baseRate === null
-                ? "ไม่มีข้อมูล"
-                : `${formatRate(baseRate)} บาท/หน่วย`
+            label={
+              hasTieredBaseRate ? "อัตราค่าไฟฐานแบบขั้นบันได" : "อัตราค่าไฟฐาน"
             }
-            unit="อัตราเริ่มต้นก่อน Ft และ VAT"
+            value={
+              minimumBaseRate === null || maximumBaseRate === null
+                ? "ไม่มีข้อมูล"
+                : hasTieredBaseRate
+                  ? `${formatRate(minimumBaseRate)}–${formatRate(maximumBaseRate)} บาท/หน่วย`
+                  : `${formatRate(minimumBaseRate)} บาท/หน่วย`
+            }
+            unit={
+              hasTieredBaseRate
+                ? "คิดแยกตามช่วงหน่วย ก่อน Ft และ VAT"
+                : "ก่อน Ft และ VAT"
+            }
           />
           <Summary
             label="ค่า Ft ปัจจุบัน"

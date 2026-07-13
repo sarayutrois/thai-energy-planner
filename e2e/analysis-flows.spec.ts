@@ -262,6 +262,11 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
     .click();
   await page.getByRole("button", { name: "ใช้ชุดนี้เป็นจุดเริ่มต้น" }).click();
   await page.getByRole("button", { name: "บันทึก Load Profile" }).click();
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "สร้างรูปแบบการใช้ไฟรายวัน" }),
+  ).toBeVisible();
+  await expect(page.getByText("คำนวณจากรายการของคุณ")).toBeVisible();
 
   await page.goto("/analysis/scenarios");
   await expect(
@@ -307,6 +312,15 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
     page.getByRole("main").getByText("Solar", { exact: true }),
   ).toBeVisible();
   await expect(page.getByText("เปิดรายงานเพื่อส่งออก")).toBeVisible();
+  await page.getByText("เปิดรายงานเพื่อส่งออก").click();
+  await expect(
+    page.getByRole("button", { name: "ดาวน์โหลด JSON" }),
+  ).toBeVisible();
+  const reportDownload = page.waitForEvent("download");
+  await page.getByRole("button", { name: "ดาวน์โหลด JSON" }).click();
+  await expect((await reportDownload).suggestedFilename()).toMatch(/\.json$/);
+
+  await page.goto("/analysis/reports");
 
   await page.evaluate((key) => {
     const workspace = JSON.parse(window.localStorage.getItem(key) ?? "{}");
@@ -330,9 +344,26 @@ test("production navigation uses Thai theme label and tariff route", async ({
 
   const tariffLink = page.locator('header a[href="/analysis/tariff"]');
   await expect(tariffLink).toHaveAttribute("href", "/analysis/tariff");
+
+  await page.goto("/analysis/solar");
+  await expect(page.locator('header nav[aria-label="เมนูหลัก"]')).toHaveCount(
+    1,
+  );
+  await expect(
+    page.locator('header nav[aria-label="เมนูหลัก"] > div'),
+  ).toHaveCount(5);
+  await expect(
+    page.getByRole("navigation", { name: "ขั้นตอนการประเมิน Solar" }),
+  ).toBeVisible();
+
   await page.goto("/analysis/tariff");
   await expect(
     page.getByRole("heading", { name: "ตรวจสอบอัตราค่าไฟที่ใช้คำนวณ" }),
+  ).toBeVisible();
+  await expect(page.getByText("อัตราค่าไฟฐานแบบขั้นบันได")).toBeVisible();
+  await expect(page.getByText("3.2484–4.4217 บาท/หน่วย")).toBeVisible();
+  await expect(
+    page.getByText("คิดแยกตามช่วงหน่วย ก่อน Ft และ VAT"),
   ).toBeVisible();
 });
 
@@ -384,9 +415,13 @@ test("start flow supports keyboard focus and a narrow mobile viewport", async ({
   await page.goto("/analysis/solar");
   await expect(
     page.locator(
-      'nav[aria-label="ส่วนการวิเคราะห์ Solar"] a[aria-current="page"]',
+      'nav[aria-label="ขั้นตอนการประเมิน Solar"] a[aria-current="step"]',
     ),
   ).toHaveCount(1);
+  const solarHasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth + 1,
+  );
+  expect(solarHasHorizontalOverflow).toBe(false);
 });
 
 test("the guided journey creates a load profile before collecting bills", async ({
