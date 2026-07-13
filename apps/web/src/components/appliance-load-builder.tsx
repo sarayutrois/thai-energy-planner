@@ -535,10 +535,10 @@ export function ApplianceLoadBuilder({
         <h2 className="text-lg font-semibold">2. ตรวจสอบผลการคำนวณ</h2>
         <p className="mt-1 text-sm font-medium text-muted-foreground">{applianceSourceLabel(mode)}</p>
         <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-          <Metric icon={<Gauge className="h-5 w-5" />} label="Peak Load" value={hasAppliances ? `${formatNumber(peakKw)} kW` : "N/A"} />
-          <Metric icon={<Zap className="h-5 w-5" />} label="พลังงานต่อวัน" value={hasAppliances ? `${formatNumber(dailyKwh)} kWh/วัน` : "N/A"} />
-          <Metric icon={<ReceiptText className="h-5 w-5" />} label="พลังงานต่อเดือน" value={hasAppliances ? `${formatNumber(monthlyKwh)} kWh/เดือน` : "N/A"} />
-          <Metric icon={<CheckCircle2 className="h-5 w-5" />} label="ความน่าเชื่อถือ" value={hasAppliances ? `${quality.label} · ${quality.score}/100` : "ยังไม่มีข้อมูล"} detail={hasAppliances ? quality.detail : undefined} />
+          <Metric icon={<Gauge className="h-5 w-5" />} label="กำลังไฟสูงสุด" value={hasAppliances ? `${formatNumber(peakKw)} kW` : "—"} />
+          <Metric icon={<Zap className="h-5 w-5" />} label="พลังงานต่อวัน" value={hasAppliances ? `${formatNumber(dailyKwh)} kWh/วัน` : "—"} />
+          <Metric icon={<ReceiptText className="h-5 w-5" />} label="พลังงานต่อเดือน" value={hasAppliances ? `${formatNumber(monthlyKwh)} kWh/เดือน` : "—"} />
+          <Metric icon={<CheckCircle2 className="h-5 w-5" />} label="ความน่าเชื่อถือ" value={hasAppliances ? `${quality.label} · ${quality.score}/100` : "ยังประเมินไม่ได้"} detail={hasAppliances ? quality.detail : undefined} />
         </div>
         <div className="mt-5 h-[300px] rounded-lg border border-border p-3">
           {chartData.some((row) => row.loadKw > 0) ? (

@@ -12,7 +12,7 @@ export default async function BillsPage({ searchParams }: { searchParams?: Promi
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="mb-5 flex flex-wrap gap-2">
-          <Badge>Manual Bill Input</Badge>
+          <Badge>กรอกบิลค่าไฟ</Badge>
           <Badge variant="outline">เริ่มจากข้อมูลที่มีจริง</Badge>
         </div>
         <h1 className="text-3xl font-semibold tracking-normal">กรอกบิลค่าไฟย้อนหลัง</h1>

@@ -169,7 +169,7 @@ export function GuidedBillWorkspace({
                 type="button"
               >
                 <Download aria-hidden="true" className="h-4 w-4" />
-                Export JSON
+                ส่งออก JSON
               </button>
               <button
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
@@ -177,7 +177,7 @@ export function GuidedBillWorkspace({
                 type="button"
               >
                 <Download aria-hidden="true" className="h-4 w-4" />
-                Export CSV
+                ส่งออก CSV
               </button>
               <button
                 className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
@@ -185,7 +185,7 @@ export function GuidedBillWorkspace({
                 type="button"
               >
                 <Upload aria-hidden="true" className="h-4 w-4" />
-                Import JSON/CSV
+                นำเข้า JSON/CSV
               </button>
               <AiScannerButton 
                 onScanSuccess={(bill) => {
@@ -356,11 +356,11 @@ export function GuidedBillWorkspace({
       ) : null}
 
       <div className="grid gap-3 md:grid-cols-5">
-        <Metric label="จำนวนเดือน" value={hasBillData ? `${summary.monthCount}` : "N/A"} />
-        <Metric label="หน่วยรวม" value={hasBillData ? `${formatNumber(summary.totalKwh)} kWh` : "N/A"} />
-        <Metric label="ค่าไฟรวม" value={hasBillData ? `${formatNumber(summary.totalCostThb)} บาท` : "N/A"} />
-        <Metric label="เฉลี่ยต่อเดือน" value={hasBillData ? `${formatNumber(summary.totalCostThb / summary.monthCount)} บาท` : "N/A"} />
-        <Metric label="คุณภาพข้อมูล" value={mode === "sample" ? "ข้อมูลตัวอย่าง" : hasBillData ? `${dataQuality.labelTh} (${dataQuality.score})` : "ยังไม่มีข้อมูล"} />
+        <Metric label="จำนวนเดือน" value={`${summary.monthCount}`} />
+        <Metric label="หน่วยรวม" value={hasBillData ? `${formatNumber(summary.totalKwh)} kWh` : "—"} />
+        <Metric label="ค่าไฟรวม" value={hasBillData ? `${formatNumber(summary.totalCostThb)} บาท` : "—"} />
+        <Metric label="เฉลี่ยต่อเดือน" value={hasBillData ? `${formatNumber(summary.totalCostThb / summary.monthCount)} บาท` : "—"} />
+        <Metric label="คุณภาพข้อมูล" value={mode === "sample" ? "ข้อมูลตัวอย่าง" : hasBillData ? `${dataQuality.labelTh} (${dataQuality.score})` : "ยังประเมินไม่ได้"} />
       </div>
 
       {hasBillData ? <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">

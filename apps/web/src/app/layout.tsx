@@ -10,5 +10,5 @@ const prompt = Prompt({ weight: ["300", "400", "500", "600", "700"], subsets: ["
 export const metadata: Metadata = { title: "Thai Energy Planner", description: "วิเคราะห์ค่าไฟ เปรียบเทียบ Normal/TOU และประเมิน Solar จากข้อมูลที่ตรวจสอบได้" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="th" className={`${inter.variable} ${prompt.variable}`} suppressHydrationWarning><body><ThemeProvider attribute="class" defaultTheme="light" forcedTheme="light" disableTransitionOnChange><AppShell>{children}</AppShell></ThemeProvider></body></html>;
+  return <html lang="th" className={`${inter.variable} ${prompt.variable}`} suppressHydrationWarning><body><ThemeProvider attribute="class" defaultTheme="light" disableTransitionOnChange><AppShell>{children}</AppShell></ThemeProvider></body></html>;
 }

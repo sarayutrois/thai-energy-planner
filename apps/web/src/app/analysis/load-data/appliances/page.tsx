@@ -8,7 +8,7 @@ export default function AppliancesPage() {
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:py-9">
         <div className="flex flex-wrap gap-2">
-          <Badge>Load Profile</Badge>
+          <Badge>รูปแบบการใช้ไฟ</Badge>
           <Badge variant="outline">ค่าประมาณจากข้อมูลที่ผู้ใช้ระบุ</Badge>
         </div>
         <h1 className="mt-4 text-3xl font-semibold tracking-tight">สร้างรูปแบบการใช้ไฟรายวัน</h1>
