@@ -295,3 +295,15 @@
 - เพิ่ม regression ว่า Solar มีเมนูหลักเพียง navigation เดียว, step navigation มี landmark แยกชัด และหน้า Solar ที่ viewport 390 px ไม่มี horizontal overflow
 - ตรวจ Acceptance Criteria: ไม่มี navigation เก่าซ้ำ, ผู้ใช้ไม่ตีความอัตราขั้นแรกเป็นอัตราคงที่, ข้อมูลยังอยู่หลัง refresh, เส้นทางวิเคราะห์และส่งออกรายงานทำงานครบ และ mobile ไม่ล้นแนวนอน
 - การทดสอบ: `npm run lint`, `npm run typecheck`, `git diff --check`, unit/integration 243 tests, full E2E 22 tests และ production build 51 routes ผ่านทั้งหมด; full E2E เป็นตัวตรวจพบและยืนยันการแก้ immediate-refresh race condition
+
+## Maintenance — Usable Thai PDF reports
+
+- สถานะ: แก้ตัวสร้าง PDF ที่ผู้ใช้ดาวน์โหลดจากหน้ารายงานแล้ว
+- ตรวจไฟล์จริง `thai-energy-planner-bill-summary.pdf` พบว่ามีขนาดเพียง 1,487 bytes, ใช้ Helvetica, มีหน้าเดียว และแทนข้อความภาษาไทยทั้งหมดด้วย `?` จึงยืนยันว่าไฟล์เดิมไม่พร้อมใช้งาน
+- เปลี่ยนปุ่มดาวน์โหลด PDF ให้ render รายงานจาก HTML/CSS ที่ผู้ใช้เห็นจริงเป็น A4 โดยรองรับภาษาไทย สี ตาราง หลายหน้า และบังคับชุดสีสว่างสำหรับเอกสาร แม้หน้าเว็บอยู่ใน dark mode
+- ซ่อนปุ่มควบคุมออกจากเนื้อหา PDF, แสดงสถานะ “กำลังสร้าง PDF...” ระหว่างทำงาน และมีข้อความแนะนำให้ใช้การพิมพ์เมื่อสร้างไฟล์ไม่สำเร็จ
+- เปลี่ยนปุ่มพิมพ์เป็น “พิมพ์ / บันทึก PDF” เพื่อสื่อว่าผู้ใช้ยังสามารถใช้ print dialog สร้าง PDF แบบเลือกได้
+- ลบ text-only PDF exporter เก่าที่ทำลาย Unicode ออกจาก public report engine เพื่อป้องกันการนำกลับมาใช้อีก
+- เพิ่ม E2E ตรวจ signature `%PDF-` และกำหนดให้ไฟล์ PDF ที่ดาวน์โหลดมีขนาดมากกว่า 10 KB ไม่ใช่ placeholder ขนาดเล็ก
+- Visual QA: สร้างรายงานบิล 3 เดือนจากหน้าเว็บจริง ได้ PDF 275,792 bytes; render ภาพกลับมาตรวจแล้วพบว่าหัวเรื่อง KPI คำแนะนำ ตาราง และข้อความกำกับภาษาไทยอ่านได้ครบ
+- การทดสอบ: formatting ของไฟล์ที่แก้, `git diff --check`, `npm run lint`, `npm run typecheck`, unit/integration 242 tests, full E2E 22 tests และ production build 51 routes ผ่านทั้งหมด

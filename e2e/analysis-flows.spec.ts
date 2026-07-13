@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 import * as XLSX from "xlsx";
 
 const billWorkspaceKey = "thai-energy-planner.bill-workspace.v1";
@@ -772,13 +773,20 @@ test("saved bill report exports all formats and invokes print", async ({
     await page.getByRole("button", { name }).click();
     const download = await downloadPromise;
     expect(download.suggestedFilename()).toMatch(/\.(pdf|json|csv)$/);
+    if (name === "ดาวน์โหลด PDF") {
+      const downloadPath = await download.path();
+      expect(downloadPath).not.toBeNull();
+      const content = await readFile(downloadPath!);
+      expect(content.subarray(0, 5).toString()).toBe("%PDF-");
+      expect(content.byteLength).toBeGreaterThan(10_000);
+    }
   }
 
   await page.evaluate(() => {
     window.print = () =>
       document.documentElement.setAttribute("data-print-called", "true");
   });
-  await page.getByRole("button", { name: "พิมพ์" }).click();
+  await page.getByRole("button", { name: "พิมพ์ / บันทึก PDF" }).click();
   await expect(page.locator("html")).toHaveAttribute(
     "data-print-called",
     "true",

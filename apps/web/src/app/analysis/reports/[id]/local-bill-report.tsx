@@ -66,7 +66,10 @@ export function LocalBillReport() {
   }
 
   return (
-    <article className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none">
+    <article
+      className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none"
+      id="bill-report-pdf"
+    >
       <header className="border-b border-border pb-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
@@ -94,6 +97,7 @@ export function LocalBillReport() {
             }))}
             fileBaseName="thai-energy-planner-bill-summary"
             jsonData={snapshot}
+            pdfTargetId="bill-report-pdf"
           />
         </div>
       </header>

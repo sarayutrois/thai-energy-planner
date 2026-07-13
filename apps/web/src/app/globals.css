@@ -79,6 +79,27 @@
     --off-peak: 154 54% 55%;
   }
 
+  [data-pdf-exporting="true"] {
+    color-scheme: light;
+    --background: 36 24% 97%;
+    --foreground: 222 38% 11%;
+    --surface: 0 0% 100%;
+    --surface-elevated: 0 0% 100%;
+    --card: 0 0% 100%;
+    --card-foreground: 222 32% 13%;
+    --primary: 24 92% 47%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 36 30% 93%;
+    --secondary-foreground: 222 32% 13%;
+    --muted: 34 21% 93%;
+    --muted-foreground: 218 14% 37%;
+    --accent: 191 31% 93%;
+    --accent-foreground: 207 63% 25%;
+    --border: 34 16% 86%;
+    background: hsl(var(--card));
+    color: hsl(var(--card-foreground));
+  }
+
   * {
     @apply border-border;
     box-sizing: border-box;

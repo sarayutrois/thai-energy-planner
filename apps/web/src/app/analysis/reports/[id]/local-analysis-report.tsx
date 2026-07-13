@@ -86,7 +86,10 @@ export function LocalAnalysisReport({ id }: { id: string }) {
   const pdfLabel = isSolarReport ? solarReadinessCopy.pdfCta : undefined;
 
   return (
-    <article className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none">
+    <article
+      className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none"
+      id="analysis-report-pdf"
+    >
       <header className="border-b border-border pb-5">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
           <div>
@@ -107,13 +110,14 @@ export function LocalAnalysisReport({ id }: { id: string }) {
               {isCurrent ? "ข้อมูลปัจจุบัน" : "ผลลัพธ์ล้าสมัย"}
             </Badge>
           </div>
-          <div className="flex flex-wrap gap-2 print:hidden">
+          <div className="flex flex-wrap gap-2 print:hidden" data-pdf-exclude>
             {isCurrent ? (
               <ReportActions
                 csvRows={report.resultRows}
                 fileBaseName={report.id}
                 jsonData={report}
                 pdfLabel={pdfLabel}
+                pdfTargetId="analysis-report-pdf"
               />
             ) : null}
             <button
