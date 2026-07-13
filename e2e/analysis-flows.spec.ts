@@ -1,10 +1,36 @@
 import { expect, test } from "@playwright/test";
 
 const billWorkspaceKey = "thai-energy-planner.bill-workspace.v1";
+const applianceWorkspaceKey = "thai-energy-planner.appliance-workspace.v3";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate((key) => window.localStorage.removeItem(key), billWorkspaceKey);
+  await page.evaluate((key) => window.localStorage.removeItem(key), applianceWorkspaceKey);
+});
+
+test("query context keeps Bills and Appliances on the same empty-state flow", async ({ page }) => {
+  const billUrls = ["/analysis/load-data/bills", "/analysis/load-data/bills?audience=home&source=bills"];
+  for (const url of billUrls) {
+    await page.goto(url);
+    const content = await page.locator("main").innerText();
+    expect(content).toContain("ยังไม่มีข้อมูลค่าไฟ");
+    expect(content).toContain("จำนวนเดือน\n0");
+    expect(content).toContain("ยังประเมินไม่ได้");
+    expect(content).not.toContain("Manual Bill Input");
+    expect(content).not.toContain("Battery");
+    expect(content).not.toContain("EV");
+  }
+
+  const applianceUrls = ["/analysis/load-data/appliances", "/analysis/load-data/appliances?audience=home&source=appliances"];
+  for (const url of applianceUrls) {
+    await page.goto(url);
+    const content = await page.locator("main").innerText();
+    expect(content).toContain("ยังไม่มีอุปกรณ์");
+    expect(content).toContain("ยังประเมินไม่ได้");
+    expect(content).not.toContain("Battery");
+    expect(content).not.toContain("EV");
+  }
 });
 
 test("legacy analysis entry redirects to the start flow", async ({ page }) => {
