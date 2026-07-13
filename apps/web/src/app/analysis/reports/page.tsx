@@ -5,24 +5,16 @@ import { MainNav } from "@/components/main-nav";
 import { LocalAnalysisReportCards } from "./local-analysis-report-cards";
 import { LocalReportCard } from "./local-report-card";
 import { ReportReadinessPanel } from "./report-readiness-panel";
+import { PageHeader } from "@/components/ui/page-layout";
 
 export default function AnalysisReportsPage() {
   return (
     <main className="min-h-screen">
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
-        <div className="flex flex-wrap gap-2">
-          <Badge>รายงาน</Badge>
-          <Badge variant="outline">ส่งต่อผลวิเคราะห์</Badge>
-        </div>
-        <div className="mt-4 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">รายงานผลวิเคราะห์</h1>
-            <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-              หน้านี้รวมรายงานที่สร้างจากข้อมูลบิลและผลวิเคราะห์ที่บันทึกไว้ในเซสชันนี้
-              ถ้ายังไม่มีรายงาน ให้เริ่มจากเพิ่มบิลหรือคำนวณผล Normal/TOU และ Solar แล้วกดบันทึกเป็นรายงาน
-            </p>
-          </div>
+        <PageHeader eyebrow="ผลลัพธ์ · รายงาน" title="รายงานผลวิเคราะห์" description="รวมรายงานที่สร้างจากบิลและผลวิเคราะห์ที่บันทึกไว้ หากยังไม่มีรายงาน ให้เริ่มจากเพิ่มบิลหรือวิเคราะห์ค่าไฟและ Solar ก่อน" />
+        <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+          <div><h2 className="text-xl font-semibold">รายงานที่บันทึกไว้</h2><p className="mt-2 text-sm leading-6 text-muted-foreground">รายงานจะแสดงเฉพาะผลที่มีข้อมูลต้นทางและสมมติฐานย้อนหลังได้</p></div>
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center gap-2">

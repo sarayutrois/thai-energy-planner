@@ -46,6 +46,22 @@ const config: Config = {
         warning: {
           DEFAULT: "hsl(var(--warning))",
           foreground: "hsl(var(--warning-foreground))"
+        },
+        information: {
+          DEFAULT: "hsl(var(--information))",
+          foreground: "hsl(var(--information-foreground))"
+        },
+        surface: {
+          DEFAULT: "hsl(var(--surface))",
+          elevated: "hsl(var(--surface-elevated))"
+        },
+        chart: {
+          primary: "hsl(var(--chart-primary))",
+          secondary: "hsl(var(--chart-secondary))",
+          grid: "hsl(var(--chart-grid))",
+          solar: "hsl(var(--chart-solar))",
+          peak: "hsl(var(--on-peak))",
+          offPeak: "hsl(var(--off-peak))"
         }
       },
       borderRadius: {

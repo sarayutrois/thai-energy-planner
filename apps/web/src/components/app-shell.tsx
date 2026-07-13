@@ -15,6 +15,7 @@ import {
   X
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { AnalysisProgress } from "@/components/analysis-progress";
 
 type NavigationItem = {
   label: string;
@@ -22,26 +23,33 @@ type NavigationItem = {
   icon: typeof Gauge;
 };
 
-const navigationItems: NavigationItem[] = [
-  { label: "เริ่มวิเคราะห์", href: "/analysis/new", icon: Gauge },
-  { label: "ข้อมูลการใช้ไฟ", href: "/analysis/load-data", icon: UploadCloud },
-  { label: "ค่าไฟ", href: "/analysis/tariff", icon: Calculator },
-  { label: "เปรียบเทียบแผน", href: "/analysis/scenarios", icon: BarChart3 },
-  { label: "Solar", href: "/analysis/solar", icon: SunMedium },
-  { label: "รายงาน", href: "/analysis/reports", icon: FileText }
+const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
+  { label: "ภาพรวม", items: [{ label: "เริ่มวิเคราะห์", href: "/analysis/new", icon: Gauge }] },
+  { label: "ข้อมูลของฉัน", items: [{ label: "บิลและรูปแบบการใช้ไฟ", href: "/analysis/load-data", icon: UploadCloud }] },
+  { label: "การวิเคราะห์", items: [
+    { label: "ค่าไฟและ TOU", href: "/analysis/scenarios", icon: Calculator },
+    { label: "Solar", href: "/analysis/solar", icon: SunMedium },
+    { label: "เปรียบเทียบทางเลือก", href: "/analysis/scenarios/compare", icon: BarChart3 },
+  ] },
+  { label: "ผลลัพธ์", items: [{ label: "คำแนะนำและรายงาน", href: "/analysis/reports", icon: FileText }] },
+  { label: "เพิ่มเติม", items: [
+    { label: "แบตเตอรี่", href: "/analysis/battery", icon: Gauge },
+    { label: "รถยนต์ไฟฟ้า", href: "/analysis/ev", icon: Gauge },
+    { label: "อัตราค่าไฟและสมมติฐาน", href: "/analysis/tariff", icon: Calculator },
+  ] },
 ];
 
 const breadcrumbLabels: Array<{ href: string; label: string }> = [
-  { href: "/analysis/load-data/appliances", label: "เครื่องใช้ไฟฟ้า" },
+  { href: "/analysis/load-data/appliances", label: "สร้างรูปแบบการใช้ไฟ" },
   { href: "/analysis/load-data/dashboard", label: "ตรวจสอบข้อมูล" },
   { href: "/analysis/load-data/bills", label: "บิลค่าไฟ" },
-  { href: "/analysis/load-data/import", label: "อัปโหลดข้อมูล" },
-  { href: "/analysis/load-data", label: "ข้อมูลการใช้ไฟ" },
-  { href: "/analysis/scenarios", label: "เปรียบเทียบแผน" },
+  { href: "/analysis/load-data/import", label: "นำเข้าข้อมูลมิเตอร์" },
+  { href: "/analysis/load-data", label: "ข้อมูลของฉัน" },
+  { href: "/analysis/scenarios", label: "ค่าไฟและ TOU" },
   { href: "/analysis/solar", label: "Solar" },
   { href: "/analysis/battery", label: "Battery" },
-  { href: "/analysis/ecosystem", label: "Ecosystem" },
-  { href: "/analysis/ev", label: "EV" },
+  { href: "/analysis/ecosystem", label: "การวิเคราะห์เพิ่มเติม" },
+  { href: "/analysis/ev", label: "รถยนต์ไฟฟ้า" },
   { href: "/analysis/reports", label: "รายงาน" },
   { href: "/analysis/new", label: "เริ่มวิเคราะห์" },
   { href: "/analysis/tariff", label: "ค่าไฟ" }
@@ -114,18 +122,25 @@ export function AppHeader() {
               <span className="hidden sm:inline">Thai Energy Planner</span>
             </Link>
           </div>
-          <nav className="hidden items-center gap-1 lg:flex" aria-label="เมนูหลัก">{navigationItems.map((item) => navLink(item))}</nav>
+          <nav className="hidden items-center gap-1 lg:flex" aria-label="เมนูหลัก">
+            {navigationGroups.map((group) => <div className="group relative" key={group.label}>
+              <button className="inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring" type="button">{group.label}<ChevronRight aria-hidden="true" className="h-3.5 w-3.5 rotate-90" /></button>
+              <div className="invisible absolute left-0 top-full z-50 mt-2 min-w-60 rounded-lg border border-border bg-popover p-1 opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                {group.items.map((item) => navLink(item))}
+              </div>
+            </div>)}
+          </nav>
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link className="hidden h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 sm:inline-flex" href="/analysis/new">เริ่มต้น</Link>
           </div>
         </div>
       </PageContainer>
-      {isOpen ? <div className="border-t border-border bg-background shadow-lg lg:hidden"><PageContainer><nav className="flex flex-col gap-1 py-3" aria-label="เมนูหลักบนมือถือ">{navigationItems.map((item) => navLink(item, true))}</nav></PageContainer></div> : null}
+      {isOpen ? <div className="border-t border-border bg-background shadow-lg lg:hidden"><PageContainer><nav className="grid gap-3 py-4" aria-label="เมนูหลักบนมือถือ">{navigationGroups.map((group) => <div key={group.label}><p className="px-3 pb-1 text-xs font-semibold text-muted-foreground">{group.label}</p><div className="grid gap-1">{group.items.map((item) => navLink(item, true))}</div></div>)}</nav></PageContainer></div> : null}
     </header>
   );
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  return <><AppHeader /><div className="border-b border-border bg-muted/20"><PageContainer><Breadcrumbs /></PageContainer></div>{children}</>;
+  return <><AppHeader /><div className="border-b border-border bg-muted/20"><PageContainer><Breadcrumbs /></PageContainer></div><AnalysisProgress />{children}</>;
 }

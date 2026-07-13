@@ -10,6 +10,7 @@ import { SolarLocationFields } from "@/components/solar-location-fields";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
 import { buildSolarQuery, solarProfileOptions } from "@/lib/solar-demo";
 import { formatApproximateMoneyRange, solarReadinessCopy } from "@/lib/solar-readiness-copy";
+import { PageHeader } from "@/components/ui/page-layout";
 
 type SavedBillContext = {
   audience?: string | undefined;
@@ -30,19 +31,9 @@ export function SolarPageShell({ active, queryString, children }: { active: stri
     <main className="min-h-screen">
       <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
-        <div className="flex flex-wrap gap-2">
-          <Badge>ประเมินโซลาร์เซลล์</Badge>
-          <Badge variant="outline">แบบจำลองติดตั้งโซลาร์เซลล์</Badge>
-          <Badge variant="warning">ข้อมูลเพื่อประกอบการตัดสินใจ</Badge>
-        </div>
-        <div className="mt-4 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-normal">จำลองการติดตั้งโซลาร์เซลล์บนหลังคา</h1>
-            <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
-              ประเมินสัดส่วนไฟ Solar ที่ใช้ภายในสถานที่, รายรับจากไฟฟ้าที่ส่งกลับเข้าสู่ระบบ, ระยะเวลาคืนทุน, มูลค่าปัจจุบันสุทธิ, ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์
-              โดยผลลัพธ์เป็นเพียงการประมาณการเบื้องต้น ไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด
-            </p>
-          </div>
+        <PageHeader eyebrow={<><Badge>ประเมินโซลาร์เซลล์</Badge><Badge className="ml-2" variant="warning">ข้อมูลเพื่อประกอบการตัดสินใจ</Badge></>} title="จำลองการติดตั้งโซลาร์เซลล์บนหลังคา" description="ประเมินสัดส่วนไฟ Solar ที่ใช้เอง ระยะเวลาคืนทุน ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์ โดยไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด" />
+        <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div><p className="text-sm text-muted-foreground">เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ</p></div>
           <div className="flex flex-wrap gap-2">
             {tabs.map((tab) => (
               <a
@@ -113,8 +104,8 @@ export function SolarControls({
           <Field label="Model detail">
             <select name="modelMode" defaultValue={settings.modelMode} className={inputClassName}>
               <option value="easy">แบบประเมินเบื้องต้น</option>
-              <option value="advanced">Advanced assumptions</option>
-              <option value="xhigh">Detailed review</option>
+              <option value="advanced">สมมติฐานขั้นสูง</option>
+              <option value="xhigh">ตรวจสอบรายละเอียด</option>
             </select>
           </Field>
           <SolarLocationFields province={settings.province} latitude={settings.latitude} longitude={settings.longitude} />
@@ -191,8 +182,8 @@ export function SolarControls({
           </Field>
           <Field label="เปิดรับไฟฟ้าที่ส่งกลับเข้าสู่ระบบ">
             <select name="exportEnabled" defaultValue={String(settings.exportEnabled)} className={inputClassName}>
-              <option value="true">Enabled</option>
-              <option value="false">Disabled</option>
+              <option value="true">เปิดใช้</option>
+              <option value="false">ไม่เปิดใช้</option>
             </select>
           </Field>
           <Field label="อัตรารับซื้อไฟฟ้า (บาท/kWh)">
@@ -264,6 +255,14 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
       <Metric label="IRR" value={analysis.financial.irrPercent === null ? "-" : `${formatNumber(analysis.financial.irrPercent)}%`} />
     </div>
   );
+}
+
+export function SolarDecisionSummary({ analysis }: { analysis: SolarAnalysisResult }) {
+  const recommended = analysis.sizing.recommended;
+  const recommendation = analysis.recommendations[0];
+  const decision = recommendation?.title ?? (recommended ? `Solar มีแนวโน้มเหมาะที่ขนาด ${formatNumber(recommended.systemSizeKwp)} kWp` : "ยังไม่แนะนำติดตั้ง Solar ตามข้อมูลปัจจุบัน");
+  const reason = recommendation?.explanation ?? (recommended ? "ขนาดนี้ผ่านเกณฑ์ความคุ้มค่าของแบบจำลองภายใต้สมมติฐานปัจจุบัน" : "ยังไม่มีขนาดระบบที่ผ่านเกณฑ์ความคุ้มค่าของแบบจำลอง");
+  return <section className="rounded-xl border border-primary/35 bg-primary/5 p-5 md:p-6"><div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between"><div className="max-w-2xl"><p className="text-sm font-semibold text-primary">คำแนะนำหลัก</p><h2 className="mt-2 text-2xl font-semibold tracking-tight">{decision}</h2><p className="mt-3 text-sm leading-6 text-muted-foreground">{reason}</p>{recommendation?.nextAction ? <p className="mt-3 text-sm font-medium">ขั้นตอนถัดไป: {recommendation.nextAction}</p> : null}</div><Badge variant={analysis.modelQuality.score >= 70 ? "success" : "warning"}>ความมั่นใจ {analysis.modelQuality.label} · {analysis.modelQuality.score}/100</Badge></div><div className="mt-5 grid gap-3 sm:grid-cols-3"><Metric label="ผลประหยัดสุทธิโดยประมาณ" value={`${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี`} /><Metric label="ระยะเวลาคืนทุน" value={analysis.financial.simplePaybackYears ? `${analysis.financial.simplePaybackYears} ปี` : "ยังประเมินไม่ได้"} /><Metric label="ขนาดที่ผ่านเกณฑ์" value={recommended ? `${formatNumber(recommended.systemSizeKwp)} kWp` : "ไม่มี"} /></div></section>;
 }
 
 export function ModelQualityPanel({ analysis }: { analysis: SolarAnalysisResult }) {
@@ -354,22 +353,22 @@ export function BillComparisonTable({ analysis }: { analysis: SolarAnalysisResul
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <Calculator aria-hidden="true" className="h-5 w-5 text-primary" />
-          Bill comparison
+          เปรียบเทียบค่าไฟ
         </CardTitle>
       </CardHeader>
       <CardContent>
         <Table>
           <thead className="bg-muted text-muted-foreground">
             <tr>
-              <Th>Scenario</Th>
-              <Th>Bill/month</Th>
-              <Th>Bill/year</Th>
+              <Th>ทางเลือก</Th>
+              <Th>ค่าไฟ/เดือน</Th>
+              <Th>ค่าไฟ/ปี</Th>
               <Th>ไฟฟ้าจากโครงข่าย (kWh/ปี)</Th>
               <Th>ไฟฟ้าที่ส่งกลับเข้าสู่ระบบ (kWh/ปี)</Th>
-              <Th>Bill savings/year</Th>
+              <Th>ประหยัดค่าไฟ/ปี</Th>
               <Th>รายได้จากไฟฟ้าที่ส่งกลับ (บาท/ปี)</Th>
-              <Th>Net/month</Th>
-              <Th>Tariff status</Th>
+              <Th>สุทธิ/เดือน</Th>
+              <Th>สถานะอัตราค่าไฟ</Th>
             </tr>
           </thead>
           <tbody>
@@ -400,7 +399,7 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary" />
-          Solar size optimization
+          เปรียบเทียบขนาดระบบ Solar
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -458,7 +457,7 @@ export function FinancialTable({ analysis }: { analysis: SolarAnalysisResult }) 
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <CircleDollarSign aria-hidden="true" className="h-5 w-5 text-primary" />
-          Financial result
+          ผลการประเมินทางการเงิน
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -472,13 +471,13 @@ export function FinancialTable({ analysis }: { analysis: SolarAnalysisResult }) 
           <thead className="bg-muted text-muted-foreground">
             <tr>
               <Th>Year</Th>
-              <Th>Bill savings</Th>
+              <Th>ประหยัดค่าไฟ</Th>
               <Th>รายได้จากไฟฟ้าที่ส่งกลับ</Th>
               <Th>O&M</Th>
               <Th>Inverter</Th>
-              <Th>Net cash flow</Th>
-              <Th>Cumulative</Th>
-              <Th>Discounted cumulative</Th>
+              <Th>กระแสเงินสดสุทธิ</Th>
+              <Th>สะสม</Th>
+              <Th>สะสมคิดลด</Th>
             </tr>
           </thead>
           <tbody>
@@ -609,7 +608,7 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Assumptions and data sources</CardTitle>
+        <CardTitle>สมมติฐานและแหล่งข้อมูล</CardTitle>
       </CardHeader>
       <CardContent>
         <Table>

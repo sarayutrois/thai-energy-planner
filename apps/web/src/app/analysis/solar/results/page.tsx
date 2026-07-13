@@ -7,6 +7,7 @@ import {
   RecommendationCards,
   SolarChartsSection,
   SolarControls,
+  SolarDecisionSummary,
   SolarPageShell,
   SolarSummary
 } from "../solar-page-parts";
@@ -22,22 +23,23 @@ export default async function SolarResultsPage({ searchParams }: { searchParams?
 
   return (
     <SolarPageShell active="results" queryString={queryString}>
-      <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
-      <div className="flex items-center justify-between mt-4">
+      <div id="solar-report" className="space-y-6">
+      <SolarDecisionSummary analysis={analysis} />
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <h2 className="text-xl font-semibold">สรุปผลการวิเคราะห์</h2>
         <ExportReportButton targetId="solar-report" filename="solar-analysis-report.pdf" />
       </div>
-      <div id="solar-report" className="space-y-6 pt-4">
-      <SolarApiRuntimePanel settings={settings} />
+      <RecommendationCards analysis={analysis} />
+      <ModelQualityPanel analysis={analysis} />
       <details className="rounded-xl border border-border bg-card p-4">
-        <summary className="cursor-pointer font-semibold">ดูรายละเอียดการคำนวณตามค่ามาตรฐานของระบบ</summary>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">ส่วนนี้เป็นผลจากรูปแบบการใช้ไฟมาตรฐาน ใช้เปรียบเทียบสมมติฐานเท่านั้น ไม่ใช่ผลหลักจาก Load Profile ที่เลือกด้านบน</p>
+        <summary className="cursor-pointer font-semibold">ปรับสมมติฐานและดูรายละเอียดการคำนวณ</summary>
+        <p className="mt-2 text-sm leading-6 text-muted-foreground">ผลนี้เป็นแบบจำลองเบื้องต้นจากสมมติฐานที่เลือก ควรตรวจสอบข้อมูลจริงและแหล่งข้อมูลทางการก่อนลงทุน</p>
         <div className="mt-4 grid gap-6">
+          <SolarControls settings={settings} action="/analysis/solar/results" savedBillContext={savedBillContext} />
+          <SolarApiRuntimePanel settings={settings} />
           <SolarSummary analysis={analysis} />
-          <ModelQualityPanel analysis={analysis} />
           <BillComparisonTable analysis={analysis} />
           <SolarChartsSection analysis={analysis} />
-          <RecommendationCards analysis={analysis} />
         </div>
       </details>
       <AiExecutiveSummary analysis={analysis} />
