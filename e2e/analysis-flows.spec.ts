@@ -275,6 +275,38 @@ test("the guided start and data hub share one production navigation", async ({
   }
 });
 
+test("the guided journey creates a load profile before collecting bills", async ({
+  page,
+}) => {
+  await page.goto("/analysis/new");
+  const primaryStart = page.getByRole("link", {
+    name: "สร้างรูปแบบการใช้ไฟ",
+    exact: true,
+  });
+  await expect(primaryStart).toHaveCount(1);
+  await expect(primaryStart).toHaveAttribute(
+    "href",
+    /\/analysis\/load-data\/appliances/,
+  );
+
+  await page.goto("/analysis/load-data/appliances");
+  const progress = page.locator('aside[aria-label="ความคืบหน้าการวิเคราะห์"]');
+  const progressItems = progress.locator("ol > li");
+  await expect(progressItems.nth(0)).toContainText("1. เริ่มต้น");
+  await expect(progressItems.nth(1)).toContainText("2. รูปแบบการใช้ไฟ");
+  await expect(progressItems.nth(2)).toContainText("3. บิลค่าไฟ");
+  await expect(progressItems.nth(1).locator("a")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+
+  await page.goto("/analysis/load-data/bills");
+  await expect(progressItems.nth(2).locator("a")).toHaveAttribute(
+    "aria-current",
+    "step",
+  );
+});
+
 test("experimental modules stay behind the unavailable boundary", async ({
   page,
   request,

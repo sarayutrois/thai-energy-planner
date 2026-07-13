@@ -166,10 +166,7 @@ export function StartAnalysisWizard() {
       ),
     [audience],
   );
-  const goalPrimaryHref =
-    goal === "tou" || goal === "understand"
-      ? appliancesHref
-      : buildAnalysisStartHref("/analysis/load-data/bills", audience, "bills");
+  const goalPrimaryHref = appliancesHref;
 
   function chooseGoal(value: AnalysisGoal) {
     setGoal(value);
@@ -224,13 +221,6 @@ export function StartAnalysisWizard() {
               >
                 อัปโหลดไฟล์โหลด
                 <FileSpreadsheet aria-hidden="true" className="h-5 w-5" />
-              </a>
-              <a
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card px-5 text-base font-medium text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                href={appliancesHref}
-              >
-                สร้างโหลดจากเครื่องใช้ไฟฟ้า
-                <PlugZap aria-hidden="true" className="h-5 w-5 text-primary" />
               </a>
               <button
                 className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card px-5 text-base font-medium text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"

@@ -39,6 +39,14 @@
 - Production deployment: `dpl_2QVzFMZJvtMEajpkMZsJjJMMAvG5` พร้อม alias `https://thai-energy-planner-web.vercel.app`
 - ตรวจ Acceptance Criteria หลัง deploy: `/api/health`, `/analysis/new`, `/analysis/load-data`, `/analysis/solar` และ `/analysis/reports` ตอบ 200; Battery/EV/Ecosystem root และ deep link แสดง unavailable boundary; `/api/observability/web-vitals` รับ allow-listed Solar metric และตอบ 204
 
+## Maintenance Phase 6 — Guided data-order correction
+
+- สถานะ: เสร็จแล้ว
+- ปรับลำดับหลักเป็น เริ่มต้น → รูปแบบการใช้ไฟ → บิลค่าไฟ → วิเคราะห์ทางเลือก → สรุปและรายงาน โดยแยก route matching ของแต่ละขั้นเพื่อไม่ให้ path `/analysis/load-data/bills` ถูกนับเป็นขั้นรูปแบบการใช้ไฟ
+- ปุ่มหลักหน้าเริ่มต้นนำผู้ใช้ไปสร้างรูปแบบการใช้ไฟเสมอ และเอาปุ่มสร้างโหลดที่ซ้ำออก; การอัปโหลดไฟล์คงเป็นทางเลือกสำหรับผู้ที่มีข้อมูลละเอียด
+- ปรับข้อความเป้าหมายและหน้าแรกให้สื่อว่า Load Profile คือข้อมูลตั้งต้น ส่วนบิลใช้ปรับผลประมาณการให้ใกล้เคียงการใช้จริง
+- ตรวจ Acceptance Criteria: `npm run format`, `npm run lint`, `npm run typecheck`, `npm test` (241 tests), `npm run build` (51 routes) และ `npm run test:e2e` (18 tests) ผ่านทั้งหมด; เพิ่ม E2E ป้องกันการสลับลำดับกลับ
+
 ## Recovery Phase 1 — Production UI audit
 
 - สถานะ: เสร็จแล้ว

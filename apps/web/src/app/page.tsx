@@ -49,9 +49,9 @@ export default function Home() {
               จากข้อมูลจริง
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
-              เพิ่มข้อมูลจากบิลค่าไฟหนึ่งใบ
-              แล้วค่อยสร้างรูปแบบการใช้ไฟเพื่อเปรียบเทียบค่าไฟแบบปกติ TOU และ
-              Solar อย่างเข้าใจง่าย
+              สร้างรูปแบบการใช้ไฟจากเครื่องใช้ไฟฟ้าหรือไฟล์โหลดก่อน
+              แล้วใช้บิลค่าไฟช่วยปรับผลเปรียบเทียบแบบปกติ TOU และ Solar
+              ให้ใกล้เคียงการใช้งานจริง
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
               <Link

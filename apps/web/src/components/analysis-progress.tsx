@@ -11,6 +11,7 @@ import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
 type Step = {
   label: string;
   href: string;
+  activePaths: string[];
   done: boolean;
   missing: string;
 };
@@ -40,30 +41,43 @@ function buildSteps(): Step[] {
     {
       label: "เริ่มต้น",
       href: "/analysis/new",
+      activePaths: ["/analysis/new"],
       done: true,
       missing: "เลือกเป้าหมาย",
     },
     {
-      label: "บิลค่าไฟ",
-      href: "/analysis/load-data/bills",
-      done: hasBills,
-      missing: "เพิ่มบิลอย่างน้อย 1 เดือน",
-    },
-    {
       label: "รูปแบบการใช้ไฟ",
-      href: "/analysis/load-data",
+      href: "/analysis/load-data/appliances",
+      activePaths: [
+        "/analysis/load-data",
+        "/analysis/load-data/appliances",
+        "/analysis/load-data/import",
+        "/analysis/load-data/upload",
+      ],
       done: hasProfile,
       missing: "สร้างจากเครื่องใช้ไฟฟ้าหรือนำเข้าไฟล์",
     },
     {
+      label: "บิลค่าไฟ",
+      href: "/analysis/load-data/bills",
+      activePaths: [
+        "/analysis/load-data/bills",
+        "/analysis/load-data/dashboard",
+      ],
+      done: hasBills,
+      missing: "เพิ่มบิลอย่างน้อย 1 เดือน",
+    },
+    {
       label: "วิเคราะห์ทางเลือก",
       href: "/analysis/scenarios",
+      activePaths: ["/analysis/scenarios", "/analysis/solar"],
       done: hasAnalysis,
       missing: "เทียบ TOU หรือ Solar",
     },
     {
       label: "สรุปและรายงาน",
       href: "/analysis/reports",
+      activePaths: ["/analysis/reports"],
       done: false,
       missing: "สร้างรายงานเมื่อพร้อม",
     },
@@ -92,10 +106,12 @@ export function AnalysisProgress() {
     return null;
   const currentIndex = Math.max(
     0,
-    steps.findIndex(
-      (step) =>
-        pathname === step.href ||
-        (step.href !== "/analysis/new" && pathname.startsWith(`${step.href}/`)),
+    steps.findIndex((step) =>
+      step.activePaths.some(
+        (path) =>
+          pathname === path ||
+          (path !== "/analysis/load-data" && pathname.startsWith(`${path}/`)),
+      ),
     ),
   );
 
