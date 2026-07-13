@@ -311,35 +311,41 @@ function BreakdownTable({ scenario }: { scenario: ScenarioResult }) {
         <thead className="bg-muted text-muted-foreground">
           <tr>
             <th className="px-3 py-2">องค์ประกอบค่าไฟ</th>
-            <th className="px-3 py-2">ปริมาณ</th>
-            <th className="px-3 py-2">อัตรา</th>
-            <th className="px-3 py-2">จำนวนเงิน</th>
+            <th className="px-3 py-2 text-right">ปริมาณ</th>
+            <th className="px-3 py-2 text-right">อัตรา</th>
+            <th className="px-3 py-2 text-right">จำนวนเงิน (บาท)</th>
           </tr>
         </thead>
         <tbody>
           {scenario.calculationTrace.lineItems.map((item) => (
             <tr key={item.component} className="border-t border-border">
               <td className="px-3 py-2">{item.labelTh}</td>
-              <td className="px-3 py-2">
-                {item.quantity} {item.unit}
+              <td className="px-3 py-2 text-right tabular-nums">
+                {formatQuantity(item.quantity)} {item.unit}
               </td>
-              <td className="px-3 py-2">{item.rate ?? "-"}</td>
-              <td className="px-3 py-2">
-                {formatNumber(Number(item.amountThb))}
+              <td className="px-3 py-2 text-right tabular-nums">
+                {formatRate(item.rate)}
+              </td>
+              <td className="px-3 py-2 text-right tabular-nums">
+                {formatMoney(Number(item.amountThb))}
               </td>
             </tr>
           ))}
           <tr className="border-t border-border font-medium">
             <td className="px-3 py-2">VAT</td>
-            <td className="px-3 py-2">-</td>
-            <td className="px-3 py-2">-</td>
-            <td className="px-3 py-2">{formatNumber(scenario.vat)}</td>
+            <td className="px-3 py-2 text-right">-</td>
+            <td className="px-3 py-2 text-right">-</td>
+            <td className="px-3 py-2 text-right tabular-nums">
+              {formatMoney(scenario.vat)}
+            </td>
           </tr>
           <tr className="border-t border-border font-semibold">
             <td className="px-3 py-2">รวมสุทธิ</td>
-            <td className="px-3 py-2">-</td>
-            <td className="px-3 py-2">-</td>
-            <td className="px-3 py-2">{formatNumber(scenario.grandTotal)}</td>
+            <td className="px-3 py-2 text-right">-</td>
+            <td className="px-3 py-2 text-right">-</td>
+            <td className="px-3 py-2 text-right tabular-nums">
+              {formatMoney(scenario.grandTotal)}
+            </td>
           </tr>
         </tbody>
       </table>
@@ -414,6 +420,30 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
     value,
   );
+}
+
+function formatQuantity(value: number | string) {
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "-";
+  return new Intl.NumberFormat("th-TH", {
+    maximumFractionDigits: 2,
+  }).format(numericValue);
+}
+
+function formatRate(value: number | string | null | undefined) {
+  if (value === null || value === undefined) return "-";
+  const numericValue = Number(value);
+  if (!Number.isFinite(numericValue)) return "-";
+  return new Intl.NumberFormat("th-TH", {
+    maximumFractionDigits: 4,
+  }).format(numericValue);
+}
+
+function formatMoney(value: number) {
+  return new Intl.NumberFormat("th-TH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(value);
 }
 
 function formatSigned(value: number) {

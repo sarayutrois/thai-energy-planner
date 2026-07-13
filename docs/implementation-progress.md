@@ -238,3 +238,11 @@
 - ตรวจ Acceptance Criteria: 4 เป้าหมายให้คำแนะนำต่างกัน, Load Profile มาก่อนบิล, decision-first results, navigation ระบบเดียว, experimental modules ไม่ปรากฏเป็นฟังก์ชันพร้อมใช้, export/import/report และ mobile keyboard flow ทำงานครบ
 - การทดสอบรอบ release: `npm run format`, `git diff --check`, `npm run lint`, `npm run typecheck`, `npm test` ผ่าน 243 tests, `npm run test:e2e` ผ่าน 20 tests และ `npm run build` ผ่าน 51 routes
 - Release procedure: commit และ push เฉพาะไฟล์ในขอบเขตนี้ไป `origin/staging` แล้ว deploy production หลังทุก gate ผ่าน
+
+## Maintenance — Scenario bill breakdown number formatting
+
+- สถานะ: เสร็จแล้ว
+- ปรับตารางรายละเอียดค่าไฟของทางเลือกที่เหมาะ: ปริมาณแสดงสูงสุด 2 ตำแหน่งทศนิยม, อัตราแสดงสูงสุด 4 ตำแหน่ง, จำนวนเงินและ VAT/รวมสุทธิคง 2 ตำแหน่งพร้อมตัวคั่นหลักพัน
+- จัดคอลัมน์ตัวเลขชิดขวาและใช้ tabular numerals เพื่อให้จุดทศนิยมอ่านเทียบกันได้ง่าย
+- การเปลี่ยนแปลงเกิดเฉพาะ presentation: engine ยังคงเก็บค่าความละเอียดเดิมและไม่มีการเปลี่ยนสูตรคำนวณ
+- การทดสอบ: `npm run lint`, `npm run typecheck` และ targeted E2E Flow C ผ่าน
