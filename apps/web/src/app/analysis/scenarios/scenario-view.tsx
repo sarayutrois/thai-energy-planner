@@ -1,5 +1,6 @@
 import type {
   ScenarioComparisonResult,
+  ScenarioRecommendation,
   ScenarioResult,
 } from "@thai-energy-planner/calculation-engine";
 import {
@@ -24,21 +25,17 @@ export function ScenarioView({
     (scenario) => scenario.kind === "LOAD_SHIFT_TO_OFF_PEAK",
   );
   const loadShift = shifted?.calculationTrace.loadShift;
-  const primaryRecommendation = comparison.recommendations[0];
   const bestScenario = comparison.bestScenario;
 
   return (
     <div className="grid gap-5">
       <DecisionStory
         title={formatScenarioName(bestScenario.name)}
-        reason={
-          primaryRecommendation?.explanation ??
-          formatBreakEvenSummary(comparison)
-        }
+        reason={formatDecisionReason(comparison)}
         evidence={[
           {
-            label: "ผลต่างจากแผนฐาน",
-            value: `${formatSigned(bestScenario.savingsAnnual)} บาท/ปี`,
+            label: "ประหยัดได้โดยประมาณ",
+            value: `${formatNumber(bestScenario.savingsAnnual)} บาท/ปี`,
           },
           {
             label: "สัดส่วน Off-Peak ปัจจุบัน",
@@ -49,11 +46,10 @@ export function ScenarioView({
             value: `${comparison.dataQuality.metrics.intervalDays} วัน`,
           },
         ]}
-        limitations={comparison.dataQuality.limitations.slice(0, 2)}
-        nextAction={
-          primaryRecommendation?.nextAction ??
-          "ตรวจรายการเครื่องใช้ไฟฟ้าที่สามารถย้ายเวลาใช้งานได้ก่อนตัดสินใจเปลี่ยนมิเตอร์"
-        }
+        limitations={comparison.dataQuality.limitations
+          .slice(0, 2)
+          .map((limitation) => formatDataLimitation(limitation, comparison))}
+        nextAction={formatDecisionNextAction(comparison)}
         confidence={`ความน่าเชื่อถือ ${formatDataQuality(comparison.dataQuality.level)} · ${comparison.dataQuality.score}/100`}
         tone={comparison.dataQuality.level === "LOW" ? "caution" : "positive"}
       />
@@ -223,10 +219,10 @@ export function ScenarioView({
                 </div>
                 <h3 className="mt-3 font-semibold">{recommendation.title}</h3>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {recommendation.explanation}
+                  {formatRecommendationExplanation(recommendation)}
                 </p>
                 <p className="mt-2 text-sm font-medium">
-                  {recommendation.nextAction}
+                  {formatRecommendationNextAction(recommendation)}
                 </p>
               </div>
             ))}
@@ -280,7 +276,9 @@ export function ScenarioView({
               {comparison.dataQuality.limitations.length > 0 ? (
                 <ul className="mt-2 list-disc pl-5 text-muted-foreground">
                   {comparison.dataQuality.limitations.map((limitation) => (
-                    <li key={limitation}>{limitation}</li>
+                    <li key={limitation}>
+                      {formatDataLimitation(limitation, comparison)}
+                    </li>
                   ))}
                 </ul>
               ) : null}
@@ -414,6 +412,84 @@ function formatBreakEvenSummary(comparison: ScenarioComparisonResult) {
   return saving > 0
     ? `จากรูปแบบการใช้ไฟปัจจุบัน มิเตอร์ TOU ประหยัดกว่ามิเตอร์ปกติประมาณ ${formatNumber(saving)} บาท/เดือน.`
     : "จากรูปแบบการใช้ไฟปัจจุบัน มิเตอร์ TOU ยังไม่ช่วยลดค่าไฟมากกว่ามิเตอร์ปกติ.";
+}
+
+function formatDecisionReason(comparison: ScenarioComparisonResult) {
+  const best = comparison.bestScenario;
+  if (best.savingsMonthly > 0) {
+    return `${formatScenarioName(best.name)} ลดค่าไฟได้ประมาณ ${formatNumber(best.savingsMonthly)} บาท/เดือน หรือ ${formatNumber(best.savingsAnnual)} บาท/ปี เมื่อเทียบกับมิเตอร์ปกติในรูปแบบการใช้ไฟเดียวกัน`;
+  }
+
+  return `${formatScenarioName(best.name)} มีค่าไฟประมาณ ${formatNumber(best.grandTotal)} บาท/เดือน และยังเป็นทางเลือกที่เหมาะที่สุดจากข้อมูลชุดนี้`;
+}
+
+function formatDecisionNextAction(comparison: ScenarioComparisonResult) {
+  switch (comparison.bestScenario.kind) {
+    case "LOAD_SHIFT_TO_OFF_PEAK":
+    case "CUSTOM_LOAD_SHIFT":
+      return "เลือกเครื่องใช้ไฟฟ้าที่เลื่อนเวลาได้ แล้วย้ายไปใช้ช่วง Off-Peak ก่อนตรวจสอบเงื่อนไขเปลี่ยนมิเตอร์ TOU";
+    case "CURRENT_TOU":
+      return "ตรวจสอบเงื่อนไขและค่าใช้จ่ายในการเปลี่ยนมิเตอร์ TOU กับหน่วยงานไฟฟ้าก่อนดำเนินการ";
+    default:
+      return "เก็บข้อมูลการใช้ไฟเพิ่มและตรวจรายการเครื่องใช้ไฟฟ้าที่เลื่อนเวลาได้ ก่อนพิจารณาเปลี่ยนมิเตอร์";
+  }
+}
+
+function formatRecommendationExplanation(
+  recommendation: ScenarioRecommendation,
+) {
+  const metric = (key: string) =>
+    typeof recommendation.supportingMetrics[key] === "number"
+      ? recommendation.supportingMetrics[key]
+      : 0;
+
+  switch (recommendation.type) {
+    case "insufficient_data":
+      return `ข้อมูลมีคะแนนความน่าเชื่อถือ ${formatNumber(metric("dataQualityScore"))}/100 และครอบคลุม ${formatNumber(metric("intervalDays"))} วัน จึงควรเก็บข้อมูลเพิ่มก่อนตัดสินใจ`;
+    case "switch_tou":
+      return `มิเตอร์ TOU ลดค่าไฟได้ประมาณ ${formatNumber(metric("monthlySavingsThb"))} บาท/เดือน หรือ ${formatNumber(metric("annualSavingsThb"))} บาท/ปี จากรูปแบบการใช้ไฟปัจจุบัน`;
+    case "shift_then_tou":
+      return `เมื่อย้ายการใช้ไฟประมาณ ${formatNumber(metric("requiredShiftKwhPerMonth"))} kWh/เดือนไปช่วง Off-Peak มิเตอร์ TOU จะช่วยประหยัดได้ประมาณ ${formatNumber(metric("shiftedMonthlySavingsThb"))} บาท/เดือน`;
+    case "stay_normal":
+      return `มิเตอร์ปกติมีค่าไฟประมาณ ${formatNumber(metric("normalMonthlyBillThb"))} บาท/เดือน และยังคุ้มกว่าการเปลี่ยนมิเตอร์จากข้อมูลชุดนี้`;
+    case "high_peak_load":
+      return `ใช้ไฟช่วง Peak ประมาณ ${formatNumber(metric("peakKwh"))} kWh/เดือน จากการใช้ไฟทั้งหมด ${formatNumber(metric("totalKwh"))} kWh/เดือน จึงยังมีโอกาสลดค่าไฟด้วยการย้ายเวลาใช้งาน`;
+    case "future_solar_candidate":
+      return `ใช้ไฟช่วงกลางวันประมาณ ${formatNumber(metric("daytimeKwh"))} kWh/เดือน จากทั้งหมด ${formatNumber(metric("totalKwh"))} kWh/เดือน จึงเหมาะสำหรับนำไปประเมิน Solar ต่อ`;
+    case "night_load_candidate":
+      return `ใช้ไฟช่วงกลางคืนประมาณ ${formatNumber(metric("nighttimeKwh"))} kWh/เดือน ซึ่งสอดคล้องกับช่วง Off-Peak และเป็นสัญญาณที่ดีสำหรับมิเตอร์ TOU`;
+  }
+}
+
+function formatRecommendationNextAction(
+  recommendation: ScenarioRecommendation,
+) {
+  if (recommendation.type === "stay_normal") {
+    return "เก็บข้อมูลโหลดเพิ่มหรือทดลองย้ายเวลาใช้ไฟ ก่อนพิจารณาเปลี่ยนมิเตอร์";
+  }
+
+  return recommendation.nextAction;
+}
+
+function formatDataLimitation(
+  limitation: string,
+  comparison: ScenarioComparisonResult,
+) {
+  if (
+    limitation ===
+    "Interval data is shorter than 30 days, so monthly behavior is estimated."
+  ) {
+    return `ข้อมูลรายช่วงเวลาครอบคลุม ${comparison.dataQuality.metrics.intervalDays} วัน ซึ่งน้อยกว่า 30 วัน ระบบจึงประมาณพฤติกรรมการใช้ไฟรายเดือนจากข้อมูลที่มี`;
+  }
+
+  if (
+    limitation ===
+    "Some missing or irregular intervals may affect scenario accuracy."
+  ) {
+    return "ข้อมูลบางช่วงขาดหายหรือมีระยะเวลาไม่สม่ำเสมอ จึงอาจกระทบความแม่นยำของผลเปรียบเทียบ";
+  }
+
+  return limitation;
 }
 
 function formatNumber(value: number) {

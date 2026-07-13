@@ -207,9 +207,17 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
       name: "เปรียบเทียบจาก Load Profile ที่บันทึกไว้",
     }),
   ).toBeVisible();
-  await expect(page.getByText("คำตอบจากข้อมูลชุดนี้")).toBeVisible();
-  await expect(page.getByText("หลักฐานสำคัญ")).toBeVisible();
-  await expect(page.getByText("สิ่งที่ควรทำต่อ")).toBeVisible();
+  const decisionAnswer = page.getByRole("region", {
+    name: "คำตอบหลักจากผลการวิเคราะห์",
+  });
+  await expect(decisionAnswer).toBeVisible();
+  await expect(decisionAnswer.getByText("คำตอบหลักของคุณ")).toBeVisible();
+  await expect(decisionAnswer.getByText("ตัวเลขที่ยืนยันคำตอบ")).toBeVisible();
+  await expect(decisionAnswer.getByText("ขั้นตอนถัดไป")).toBeVisible();
+  await expect(decisionAnswer).not.toContainText("THB/month");
+  await expect(decisionAnswer).not.toContainText(
+    "Interval data is shorter than 30 days",
+  );
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
   await page.goto("/analysis/solar");
