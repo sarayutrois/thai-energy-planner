@@ -1,6 +1,7 @@
 import { CanonicalScenarioPanel } from "./canonical-scenario-panel";
 import { SampleBillNotice } from "@/components/sample-bill-notice";
 import { PageHeader } from "@/components/ui/page-layout";
+import { AnalysisGoalBanner } from "@/components/analysis-goal-banner";
 
 export default function ScenariosPage() {
   return (
@@ -11,6 +12,7 @@ export default function ScenariosPage() {
           title="เปรียบเทียบค่าไฟจากรูปแบบการใช้ไฟของคุณ"
           description="ระบบใช้รูปแบบการใช้ไฟที่เลือก เพื่อเทียบค่าไฟแบบปกติ TOU และการย้ายเวลาใช้ไฟ พร้อมอัตราที่ตรวจสอบแหล่งอ้างอิงได้"
         />
+        <AnalysisGoalBanner />
         <SampleBillNotice />
         <CanonicalScenarioPanel />
       </section>

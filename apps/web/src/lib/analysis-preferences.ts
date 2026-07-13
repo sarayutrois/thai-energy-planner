@@ -32,6 +32,49 @@ export const analysisGoalCopy: Record<
   },
 };
 
+export type AnalysisGoalGuidance = {
+  primaryAction: string;
+  primaryHref: string;
+  focus: string;
+  preferredReportModule: "scenario" | "solar" | null;
+};
+
+export const analysisGoalGuidance: Record<AnalysisGoal, AnalysisGoalGuidance> =
+  {
+    save: {
+      primaryAction: "ดูโอกาสลดค่าไฟ",
+      primaryHref: "/analysis/load-data/dashboard",
+      focus:
+        "จัดลำดับเดือนและอุปกรณ์ที่ควรตรวจ พร้อมชี้โอกาสลดค่าใช้จ่ายก่อนลงทุน",
+      preferredReportModule: "scenario",
+    },
+    tou: {
+      primaryAction: "เปรียบเทียบ Normal / TOU",
+      primaryHref: "/analysis/scenarios",
+      focus:
+        "เน้นสัดส่วนการใช้ไฟช่วง Peak ค่าไฟ Normal เทียบ TOU และปริมาณโหลดที่ควรย้ายเวลา",
+      preferredReportModule: "scenario",
+    },
+    solar: {
+      primaryAction: "ประเมินความคุ้มค่า Solar",
+      primaryHref: "/analysis/solar",
+      focus:
+        "เน้นการใช้ไฟกลางวัน ขนาดระบบที่เหมาะ ผลประหยัด เงินลงทุน และระยะคืนทุน",
+      preferredReportModule: "solar",
+    },
+    understand: {
+      primaryAction: "ดูภาพรวมการใช้ไฟ",
+      primaryHref: "/analysis/load-data/dashboard",
+      focus:
+        "เน้นรูปแบบโหลด 24 ชั่วโมง ช่วงใช้ไฟสูงสุด และอุปกรณ์ที่มีผลต่อการใช้ไฟมากที่สุด",
+      preferredReportModule: null,
+    },
+  };
+
+export function getAnalysisGoalGuidance(goal: AnalysisGoal) {
+  return analysisGoalGuidance[goal];
+}
+
 export function isAnalysisGoal(value: unknown): value is AnalysisGoal {
   return (
     value === "save" ||

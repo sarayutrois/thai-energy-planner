@@ -14,7 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SolarAnalysisCharts } from "@/components/solar-analysis-charts";
+import { SolarAnalysisChartPanel } from "@/components/solar-analysis-chart-panel";
 import { SolarLocationFields } from "@/components/solar-location-fields";
 import type { SolarDemoSettings } from "@/lib/solar-demo";
 import { buildSolarQuery, solarProfileOptions } from "@/lib/solar-demo";
@@ -23,6 +23,7 @@ import {
   solarReadinessCopy,
 } from "@/lib/solar-readiness-copy";
 import { PageHeader } from "@/components/ui/page-layout";
+import { DecisionStory } from "@/components/decision-story";
 
 type SavedBillContext = {
   audience?: string | undefined;
@@ -72,12 +73,16 @@ export function SolarPageShell({
               เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
+          <nav
+            aria-label="ส่วนการวิเคราะห์ Solar"
+            className="flex flex-wrap gap-2"
+          >
             {tabs.map((tab) => (
               <a
                 key={tab.href}
                 href={`${tab.href}?${queryString}`}
-                className={`inline-flex h-9 items-center rounded-md border px-3 text-sm font-medium transition ${
+                aria-current={active === tab.key ? "page" : undefined}
+                className={`inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition ${
                   active === tab.key
                     ? "border-primary bg-primary text-primary-foreground"
                     : "border-border bg-card text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -86,7 +91,7 @@ export function SolarPageShell({
                 {tab.label}
               </a>
             ))}
-          </div>
+          </nav>
         </div>
         <div className="mt-6 grid gap-6">{children}</div>
       </section>
@@ -140,7 +145,7 @@ export function SolarControls({
               ))}
             </select>
           </Field>
-          <Field label="Baseline meter">
+          <Field label="รูปแบบมิเตอร์ฐาน">
             <select
               name="baseline"
               defaultValue={settings.baseline}
@@ -176,7 +181,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Roof area (sqm)">
+          <Field label="พื้นที่หลังคา (ตร.ม.)">
             <input
               name="roofAreaSqm"
               type="number"
@@ -186,7 +191,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Roof azimuth (degree)">
+          <Field label="ทิศหลังคา (องศา)">
             <input
               name="roofAzimuth"
               type="number"
@@ -197,7 +202,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Roof tilt (degree)">
+          <Field label="ความเอียงหลังคา (องศา)">
             <input
               name="roofTilt"
               type="number"
@@ -230,7 +235,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Degradation (%/year)">
+          <Field label="การเสื่อมประสิทธิภาพ (%/ปี)">
             <input
               name="degradationPercentPerYear"
               type="number"
@@ -241,7 +246,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="CAPEX (baht)">
+          <Field label="เงินลงทุนเริ่มต้น (บาท)">
             <input
               name="capexThb"
               type="number"
@@ -251,7 +256,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="O&M (baht/year)">
+          <Field label="ค่าดูแลรักษา (บาท/ปี)">
             <input
               name="oAndMCostPerYear"
               type="number"
@@ -261,7 +266,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Project life (years)">
+          <Field label="อายุโครงการ (ปี)">
             <input
               name="projectLifeYears"
               type="number"
@@ -291,7 +296,7 @@ export function SolarControls({
               className={inputClassName}
             />
           </Field>
-          <Field label="Inverter replacement (baht)">
+          <Field label="ค่าเปลี่ยนอินเวอร์เตอร์ (บาท)">
             <input
               name="inverterReplacementCostThb"
               type="number"
@@ -393,7 +398,10 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
   const recommended = analysis.sizing.recommended;
   return (
     <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-7">
-      <Metric label="Best after solar" value={comparison.bestWithSolar.label} />
+      <Metric
+        label="รูปแบบค่าไฟที่เหมาะหลังติด Solar"
+        value={comparison.bestWithSolar.label}
+      />
       <Metric
         helpText={solarReadinessCopy.estimatedSavingsHint}
         label="ประมาณการประหยัด/ปี"
@@ -421,7 +429,7 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
       />
       <Metric
         label="NPV"
-        value={`${formatNumber(analysis.financial.npvThb)} baht`}
+        value={`${formatNumber(analysis.financial.npvThb)} บาท`}
       />
       <Metric
         label="IRR"
@@ -452,53 +460,44 @@ export function SolarDecisionSummary({
     (recommended
       ? "ขนาดนี้ผ่านเกณฑ์ความคุ้มค่าของแบบจำลองภายใต้สมมติฐานปัจจุบัน"
       : "ยังไม่มีขนาดระบบที่ผ่านเกณฑ์ความคุ้มค่าของแบบจำลอง");
+  const firstRisk = analysis.modelQuality.risks[0];
   return (
-    <section className="rounded-xl border border-primary/35 bg-primary/5 p-5 md:p-6">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <div className="max-w-2xl">
-          <p className="text-sm font-semibold text-primary">คำแนะนำหลัก</p>
-          <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-            {decision}
-          </h2>
-          <p className="mt-3 text-sm leading-6 text-muted-foreground">
-            {reason}
-          </p>
-          {recommendation?.nextAction ? (
-            <p className="mt-3 text-sm font-medium">
-              ขั้นตอนถัดไป: {recommendation.nextAction}
-            </p>
-          ) : null}
-        </div>
-        <Badge
-          variant={analysis.modelQuality.score >= 70 ? "success" : "warning"}
-        >
-          ความมั่นใจ {analysis.modelQuality.label} ·{" "}
-          {analysis.modelQuality.score}/100
-        </Badge>
-      </div>
-      <div className="mt-5 grid gap-3 sm:grid-cols-3">
-        <Metric
-          label="ผลประหยัดสุทธิโดยประมาณ"
-          value={`${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี`}
-        />
-        <Metric
-          label="ระยะเวลาคืนทุน"
-          value={
-            analysis.financial.simplePaybackYears
-              ? `${analysis.financial.simplePaybackYears} ปี`
-              : "ยังประเมินไม่ได้"
-          }
-        />
-        <Metric
-          label="ขนาดที่ผ่านเกณฑ์"
-          value={
-            recommended
-              ? `${formatNumber(recommended.systemSizeKwp)} kWp`
-              : "ไม่มี"
-          }
-        />
-      </div>
-    </section>
+    <DecisionStory
+      eyebrow="คำแนะนำ Solar หลัก"
+      title={decision}
+      reason={reason}
+      evidence={[
+        {
+          label: "ผลประหยัดสุทธิโดยประมาณ",
+          value: `${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี`,
+        },
+        {
+          label: "ระยะเวลาคืนทุน",
+          value: analysis.financial.simplePaybackYears
+            ? `${analysis.financial.simplePaybackYears} ปี`
+            : "ยังประเมินไม่ได้",
+        },
+        {
+          label: "ขนาดที่ผ่านเกณฑ์",
+          value: recommended
+            ? `${formatNumber(recommended.systemSizeKwp)} kWp`
+            : "ไม่มี",
+        },
+      ]}
+      limitations={
+        firstRisk
+          ? [`${firstRisk.title}: ${firstRisk.explanation}`]
+          : [
+              "ผลนี้เป็นแบบจำลองเบื้องต้น ควรตรวจสอบหน้างานและใบเสนอราคาจริงก่อนลงทุน",
+            ]
+      }
+      nextAction={
+        recommendation?.nextAction ??
+        "ตรวจสอบพื้นที่ติดตั้งและข้อมูลการใช้ไฟกลางวันก่อนขอใบเสนอราคา"
+      }
+      confidence={`ความมั่นใจ ${analysis.modelQuality.label} · ${analysis.modelQuality.score}/100`}
+      tone={analysis.modelQuality.score >= 70 ? "positive" : "caution"}
+    />
   );
 }
 
@@ -519,13 +518,13 @@ export function ModelQualityPanel({
       <CardContent className="grid gap-4">
         <div className="grid gap-3 md:grid-cols-4">
           <Metric label="ระดับความมั่นใจ" value={quality.label} />
-          <Metric label="Score" value={`${quality.score}/100`} />
+          <Metric label="คะแนนความมั่นใจ" value={`${quality.score}/100`} />
           <Metric
-            label="Detail mode"
+            label="ระดับรายละเอียด"
             value={quality.detailLevel.toUpperCase()}
           />
           <Metric
-            label="จำนวน risk flags"
+            label="จำนวนความเสี่ยงที่พบ"
             value={String(quality.risks.length)}
           />
         </div>
@@ -560,8 +559,8 @@ export function ModelQualityPanel({
         </div>
         {quality.risks.length === 0 ? (
           <EmptyState
-            title="No material risk flags"
-            text="ยังต้องตรวจสอบแหล่งข้อมูลทางการก่อนใช้ประกอบการลงทุนจริง"
+            title="ไม่พบความเสี่ยงสำคัญจากแบบจำลอง"
+            text="ยังควรตรวจสอบข้อมูลหน้างานและแหล่งข้อมูลทางการก่อนลงทุนจริง"
           />
         ) : null}
       </CardContent>
@@ -577,14 +576,14 @@ export function SolarChartsSection({
   if (analysis.selfConsumption.intervalResults.length === 0) {
     return (
       <EmptyState
-        title="No interval data"
-        text="Import load and solar profiles before using charts."
+        title="ยังไม่มีข้อมูลรายช่วงเวลา"
+        text="นำเข้าข้อมูลการใช้ไฟและข้อมูล Solar ก่อนแสดงกราฟ"
       />
     );
   }
 
   return (
-    <SolarAnalysisCharts
+    <SolarAnalysisChartPanel
       intervals={analysis.selfConsumption.intervalResults
         .slice(0, 48)
         .map((row) => ({
@@ -728,14 +727,14 @@ export function SizingTable({ analysis }: { analysis: SolarAnalysisResult }) {
               <Th>kWp</Th>
               <Th>
                 <span className="inline-flex items-center gap-1">
-                  Generation/year
+                  ผลิตไฟต่อปี
                   <HelpIcon text={solarReadinessCopy.yieldHint} />
                 </span>
               </Th>
-              <Th>Self-used/year</Th>
+              <Th>ใช้เองต่อปี</Th>
               <Th>ไฟฟ้าที่ส่งกลับ/ปี</Th>
               <Th>Self-use</Th>
-              <Th>Benefit/year</Th>
+              <Th>ผลประหยัดต่อปี</Th>
               <Th>ระยะเวลาคืนทุน</Th>
               <Th>NPV</Th>
               <Th>IRR</Th>
@@ -789,7 +788,7 @@ export function FinancialTable({
         <div className="grid gap-3 md:grid-cols-4">
           <Metric
             label="Initial investment"
-            value={`${formatNumber(analysis.financial.initialInvestmentThb)} baht`}
+            value={`${formatNumber(analysis.financial.initialInvestmentThb)} บาท`}
           />
           <Metric
             label="ระยะเวลาคืนทุนคิดลด"
@@ -862,7 +861,7 @@ export function SensitivityTable({
         <div className="grid gap-3 md:grid-cols-4">
           <Metric
             label="Base NPV"
-            value={`${formatNumber(analysis.sensitivity.baseNpvThb)} baht`}
+            value={`${formatNumber(analysis.sensitivity.baseNpvThb)} บาท`}
           />
           <Metric
             label="Most impactful"
@@ -873,7 +872,7 @@ export function SensitivityTable({
             value={
               analysis.sensitivity.breakEvenCapexThb === null
                 ? "-"
-                : `${formatNumber(analysis.sensitivity.breakEvenCapexThb)} baht`
+                : `${formatNumber(analysis.sensitivity.breakEvenCapexThb)} บาท`
             }
           />
           <Metric
@@ -935,14 +934,14 @@ export function RecommendationCards({
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <SunMedium aria-hidden="true" className="h-5 w-5 text-primary" />
-          Recommendations
+          คำแนะนำ
         </CardTitle>
       </CardHeader>
       <CardContent className="grid gap-3 lg:grid-cols-2">
         {analysis.recommendations.length === 0 ? (
           <EmptyState
-            title="No recommendations"
-            text="Run the simulation to generate recommendations."
+            title="ยังไม่มีคำแนะนำ"
+            text="เริ่มคำนวณเพื่อสร้างคำแนะนำจากข้อมูลของคุณ"
           />
         ) : null}
         {analysis.recommendations.map((recommendation) => (
@@ -981,12 +980,12 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
   const rows = [
     ["Solar size", `${assumptions.systemSizeKwp} kWp`],
     ["Province / area", assumptions.province],
-    ["Roof area", `${assumptions.roofAreaSqm ?? "-"} sqm`],
-    ["Roof azimuth", `${assumptions.roofAzimuth ?? "-"} degree`],
-    ["Roof tilt", `${assumptions.roofTilt ?? "-"} degree`],
+    ["พื้นที่หลังคา", `${assumptions.roofAreaSqm ?? "-"} ตร.ม.`],
+    ["ทิศหลังคา", `${assumptions.roofAzimuth ?? "-"} องศา`],
+    ["ความเอียงหลังคา", `${assumptions.roofTilt ?? "-"} องศา`],
     ["System loss", `${assumptions.systemLossPercent}%`],
     ["Shading loss", `${assumptions.shadingLossPercent}%`],
-    ["Degradation", `${assumptions.degradationPercentPerYear}%/year`],
+    ["การเสื่อมประสิทธิภาพ", `${assumptions.degradationPercentPerYear}%/ปี`],
     ["Yield data status", assumptions.yieldSource.status],
     [
       "Yield source",
@@ -996,17 +995,17 @@ export function ConfigDetails({ analysis }: { analysis: SolarAnalysisResult }) {
     ["อัตรารับซื้อไฟฟ้า", `${exportPolicy.exportRateThbPerKwh} บาท/kWh`],
     ["กำลังส่งกลับสูงสุด", `${exportPolicy.exportLimitKw ?? "-"} kW`],
     ["แหล่งอ้างอิงอัตรารับซื้อ", exportPolicy.sourceUrl ?? exportPolicy.notes],
-    ["Project life", `${financial.projectLifeYears} years`],
-    ["Discount rate", `${financial.discountRatePercent}%`],
+    ["อายุโครงการ", `${financial.projectLifeYears} ปี`],
+    ["อัตราคิดลด", `${financial.discountRatePercent}%`],
     [
       "Electricity escalation",
-      `${financial.electricityEscalationRatePercent}%/year`,
+      `${financial.electricityEscalationRatePercent}%/ปี`,
     ],
-    ["CAPEX", `${formatNumber(financial.capexThb)} baht`],
-    ["O&M", `${formatNumber(financial.oAndMCostPerYear)} baht/year`],
+    ["เงินลงทุน", `${formatNumber(financial.capexThb)} บาท`],
+    ["ค่าดูแลรักษา", `${formatNumber(financial.oAndMCostPerYear)} บาท/ปี`],
     [
       "Inverter replacement",
-      `${formatNumber(financial.inverterReplacementCostThb)} baht in year ${financial.inverterReplacementYear ?? "-"}`,
+      `${formatNumber(financial.inverterReplacementCostThb)} บาท ในปีที่ ${financial.inverterReplacementYear ?? "-"}`,
     ],
   ];
 
@@ -1050,10 +1049,7 @@ function StressCase({
         {caseResult.label}
       </p>
       <div className="mt-3 grid gap-2 text-sm">
-        <InfoRow
-          label="NPV"
-          value={`${formatNumber(caseResult.npvThb)} baht`}
-        />
+        <InfoRow label="NPV" value={`${formatNumber(caseResult.npvThb)} บาท`} />
         <InfoRow
           label="ระยะเวลาคืนทุน"
           value={

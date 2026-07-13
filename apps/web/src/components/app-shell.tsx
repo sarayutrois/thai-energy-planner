@@ -145,7 +145,7 @@ export function AppHeader() {
         href={item.href}
         onClick={() => setIsOpen(false)}
         aria-current={active ? "page" : undefined}
-        className={`inline-flex items-center gap-2 rounded-md px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-ring ${
+        className={`inline-flex items-center gap-2 rounded-lg px-3 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-ring ${
           mobile ? "h-10" : "h-9"
         } ${active ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-muted hover:text-foreground"}`}
       >
@@ -156,9 +156,9 @@ export function AppHeader() {
   };
 
   return (
-    <header className="sticky top-0 z-50 border-b border-border bg-background/90 backdrop-blur">
+    <header className="glass-surface sticky top-0 z-50 border-b border-border/70 shadow-[0_1px_0_hsl(var(--foreground)/0.03)]">
       <PageContainer>
-        <div className="flex h-16 items-center justify-between gap-3">
+        <div className="flex h-[4.5rem] items-center justify-between gap-3">
           <div className="flex items-center gap-2">
             <button
               aria-label={isOpen ? "ปิดเมนู" : "เปิดเมนู"}
@@ -178,7 +178,7 @@ export function AppHeader() {
               onClick={() => setIsOpen(false)}
               aria-label="Thai Energy Planner"
             >
-              <span className="flex h-9 w-9 items-center justify-center rounded-md bg-primary text-primary-foreground">
+              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-md shadow-primary/15">
                 <Gauge className="h-5 w-5" />
               </span>
               <span className="hidden sm:inline">Thai Energy Planner</span>
@@ -191,7 +191,11 @@ export function AppHeader() {
             {navigationGroups.map((group) => (
               <div className="group relative" key={group.label}>
                 <button
-                  className="inline-flex h-9 items-center gap-1 rounded-md px-3 text-sm font-medium text-muted-foreground transition hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                  className={`inline-flex h-9 items-center gap-1 rounded-lg px-3 text-sm font-medium transition hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring ${
+                    group.items.some((item) => isActive(pathname, item.href))
+                      ? "bg-muted text-foreground"
+                      : "text-muted-foreground"
+                  }`}
                   type="button"
                 >
                   {group.label}
@@ -200,7 +204,7 @@ export function AppHeader() {
                     className="h-3.5 w-3.5 rotate-90"
                   />
                 </button>
-                <div className="invisible absolute left-0 top-full z-50 mt-2 min-w-60 rounded-lg border border-border bg-popover p-1 opacity-0 shadow-lg transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
+                <div className="invisible absolute left-0 top-full z-50 mt-2 min-w-60 rounded-xl border border-border bg-popover/95 p-1.5 opacity-0 shadow-float backdrop-blur-xl transition group-focus-within:visible group-focus-within:opacity-100 group-hover:visible group-hover:opacity-100">
                   {group.items.map((item) => navLink(item))}
                 </div>
               </div>
@@ -209,7 +213,7 @@ export function AppHeader() {
           <div className="flex items-center gap-2">
             <ThemeToggle />
             <Link
-              className="hidden h-9 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition hover:bg-primary/90 sm:inline-flex"
+              className="hidden h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md sm:inline-flex"
               href="/analysis/new"
             >
               เริ่มต้น
@@ -242,14 +246,22 @@ export function AppHeader() {
 export function AppShell({ children }: { children: React.ReactNode }) {
   return (
     <>
+      <a
+        className="fixed left-4 top-3 z-[100] -translate-y-20 rounded-full bg-foreground px-4 py-2 text-sm font-semibold text-background shadow-lg transition focus:translate-y-0"
+        href="#main-content"
+      >
+        ข้ามไปเนื้อหาหลัก
+      </a>
       <AppHeader />
-      <div className="border-b border-border bg-muted/20">
+      <div className="border-b border-border/70 bg-background/60">
         <PageContainer>
           <Breadcrumbs />
         </PageContainer>
       </div>
       <AnalysisProgress />
-      {children}
+      <div className="content-enter" id="main-content" tabIndex={-1}>
+        {children}
+      </div>
     </>
   );
 }

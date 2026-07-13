@@ -18,51 +18,63 @@ const journeys = [
     icon: Wrench,
     title: "สร้าง Load Profile",
     text: "ระบุเครื่องใช้ไฟฟ้า กำลังไฟ และช่วงเวลาใช้งาน เพื่อดูโหลด 24 ชั่วโมง",
-  },
-  {
-    href: "/analysis/load-data/bills",
-    icon: ReceiptText,
-    title: "เพิ่มข้อมูลจากบิล",
-    text: "กรอกหน่วยไฟและค่าไฟย้อนหลัง เพื่อปรับผลประมาณการให้ใกล้เคียงการใช้จริง",
+    step: "ทำก่อน",
+    featured: true,
   },
   {
     href: "/analysis/load-data/import",
     icon: FileSpreadsheet,
-    title: "นำเข้าข้อมูลมิเตอร์",
+    title: "หรือ นำเข้าข้อมูลมิเตอร์",
     text: "อัปโหลด CSV หรือ XLSX ที่มีข้อมูลราย 15, 30 หรือ 60 นาที",
+    step: "ถ้ามีไฟล์",
+    featured: false,
   },
+  {
+    href: "/analysis/load-data/bills",
+    icon: ReceiptText,
+    title: "เพิ่มข้อมูลจากบิลภายหลัง",
+    text: "ใช้หน่วยไฟและค่าไฟย้อนหลังปรับ Load Profile ให้ใกล้เคียงการใช้จริงมากขึ้น",
+    step: "ขั้นเสริม",
+    featured: false,
+  },
+];
+
+const workflow = [
+  "เลือกเป้าหมาย",
+  "สร้างรูปแบบการใช้ไฟ",
+  "เพิ่มบิลเพื่อปรับความแม่นยำ",
+  "ดูคำแนะนำและรายงาน",
 ];
 
 export default function Home() {
   return (
     <main className="min-h-screen bg-background">
-      <section className="border-b border-border">
-        <div className="mx-auto grid w-full max-w-7xl gap-10 px-4 py-14 md:px-6 lg:grid-cols-[1.05fr_0.95fr] lg:py-20">
+      <section className="relative overflow-hidden border-b border-border/70">
+        <div className="pointer-events-none absolute inset-x-0 top-0 -z-10 h-[32rem] bg-[radial-gradient(circle_at_75%_15%,hsl(var(--primary)/0.12),transparent_38%)]" />
+        <div className="mx-auto grid w-full max-w-7xl gap-12 px-4 py-16 md:px-6 lg:grid-cols-[1.08fr_0.92fr] lg:py-24">
           <div className="flex flex-col justify-center">
             <div className="flex flex-wrap gap-2">
               <Badge>Thai Energy Planner</Badge>
               <Badge variant="outline">สำหรับเจ้าของบ้าน</Badge>
             </div>
-            <h1 className="mt-6 text-4xl font-semibold tracking-tight md:text-5xl">
-              วางแผนค่าไฟของคุณ
-              <br />
-              จากข้อมูลจริง
+            <h1 className="mt-7 max-w-3xl text-5xl font-semibold leading-[1.08] tracking-[-0.045em] md:text-6xl">
+              เข้าใจค่าไฟ แล้วตัดสินใจเรื่องพลังงานได้ชัดขึ้น
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-8 text-muted-foreground md:text-lg">
               สร้างรูปแบบการใช้ไฟจากเครื่องใช้ไฟฟ้าหรือไฟล์โหลดก่อน
               แล้วใช้บิลค่าไฟช่วยปรับผลเปรียบเทียบแบบปกติ TOU และ Solar
               ให้ใกล้เคียงการใช้งานจริง
             </p>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row">
               <Link
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-base font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-semibold text-primary-foreground shadow-md shadow-primary/15 transition hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-lg focus:outline-none focus:ring-2 focus:ring-ring"
                 href="/analysis/new"
               >
-                เริ่มวิเคราะห์
+                เลือกเป้าหมายและเริ่มวิเคราะห์
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </Link>
               <Link
-                className="inline-flex h-11 items-center justify-center rounded-md border border-border bg-card px-5 text-base font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center rounded-full border border-border bg-card/80 px-6 text-base font-semibold transition hover:-translate-y-0.5 hover:bg-card hover:shadow-sm focus:outline-none focus:ring-2 focus:ring-ring"
                 href="#prepare"
               >
                 ดูสิ่งที่ต้องเตรียม
@@ -74,7 +86,7 @@ export default function Home() {
           </div>
           <section
             aria-label="ตัวอย่างผลลัพธ์"
-            className="surface-elevated rounded-2xl border border-border p-5 shadow-panel md:p-7"
+            className="surface-elevated rounded-[2rem] border border-border/80 p-5 shadow-float md:p-7"
           >
             <div className="flex items-center justify-between gap-3">
               <div>
@@ -107,6 +119,16 @@ export default function Home() {
               />
               เริ่มจากข้อมูลขั้นต่ำ แล้วเพิ่มความแม่นยำได้ภายหลัง
             </div>
+            <ol className="mt-6 grid gap-2 border-t border-border/70 pt-5">
+              {workflow.map((step, index) => (
+                <li className="flex items-center gap-3 text-sm" key={step}>
+                  <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-foreground text-xs font-semibold text-background">
+                    {index + 1}
+                  </span>
+                  <span className="font-medium">{step}</span>
+                </li>
+              ))}
+            </ol>
           </section>
         </div>
       </section>
@@ -118,27 +140,34 @@ export default function Home() {
           <p className="text-sm font-semibold text-primary">
             เริ่มได้ด้วยข้อมูลที่มี
           </p>
-          <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-            เลือกทางที่สะดวกที่สุด
+          <h2 className="mt-2 text-3xl font-semibold tracking-tight md:text-4xl">
+            เริ่มจากรูปแบบการใช้ไฟ แล้วค่อยเพิ่มบิล
           </h2>
           <p className="mt-3 leading-7 text-muted-foreground">
-            ไม่ต้องกรอกข้อมูลเชิงวิศวกรรมทั้งหมด
-            ระบบจะแสดงความน่าเชื่อถือของผลตามข้อมูลที่เพิ่มเข้ามา
+            Load Profile ทำให้ระบบรู้ว่าใช้ไฟช่วงใด
+            ส่วนบิลช่วยปรับขนาดการใช้ไฟและค่าใช้จ่ายให้ใกล้ความจริง
+            จึงไม่ต้องเริ่มจากบิลก่อน
           </p>
         </div>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
+        <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">
           {journeys.map((journey) => (
             <Link
-              className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
+              className={`block rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring ${journey.featured ? "md:col-span-2" : ""}`}
               href={journey.href}
               key={journey.href}
             >
-              <Card className="h-full transition hover:-translate-y-0.5 hover:border-primary hover:shadow-panel">
-                <CardContent className="p-6">
-                  <journey.icon
-                    aria-hidden="true"
-                    className="h-7 w-7 text-primary"
-                  />
+              <Card
+                className={`h-full transition hover:-translate-y-1 hover:border-primary/60 hover:shadow-float ${journey.featured ? "border-primary/35 bg-primary/5" : ""}`}
+              >
+                <CardContent className="p-6 md:p-7">
+                  <div className="flex items-start justify-between gap-3">
+                    <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                      <journey.icon aria-hidden="true" className="h-6 w-6" />
+                    </span>
+                    <Badge variant={journey.featured ? "success" : "outline"}>
+                      {journey.step}
+                    </Badge>
+                  </div>
                   <h3 className="mt-5 text-lg font-semibold">
                     {journey.title}
                   </h3>
@@ -146,7 +175,9 @@ export default function Home() {
                     {journey.text}
                   </p>
                   <span className="mt-5 inline-flex items-center gap-2 text-sm font-semibold text-primary">
-                    เริ่มจากทางนี้
+                    {journey.featured
+                      ? "เริ่มสร้างรูปแบบการใช้ไฟ"
+                      : "ดูทางเลือกนี้"}
                     <ArrowRight aria-hidden="true" className="h-4 w-4" />
                   </span>
                 </CardContent>

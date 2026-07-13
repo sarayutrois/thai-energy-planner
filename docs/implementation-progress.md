@@ -151,3 +151,90 @@
 - ตรวจ Acceptance Criteria: ไม่มี route หลักหรือ deep link ที่กำหนดเปิด Scenario/Estimate UI เก่า, Solar overview ใช้ shell กลาง, เมนูไม่ชี้ไปฟีเจอร์ที่ยังไม่พร้อม, theme label และ tariff route ยังถูกต้อง
 - การทดสอบ: `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, `npm run test:e2e` ผ่านทั้งหมด; E2E 14 tests ผ่าน และตรวจ DOM บน localhost ของ Solar ซ้ำ
 - Release: พร้อม commit และ push หลังตรวจ clean diff; ไม่ได้ deploy ในรอบนี้
+
+## Product refinement Phase 1 — Goal-aware recommendations
+
+- สถานะ: เสร็จแล้ว
+- เชื่อมเป้าหมาย 4 แบบกับพฤติกรรมจริงของระบบ: ลดค่าไฟ, ตรวจความเหมาะสมของ TOU, ประเมิน Solar และทำความเข้าใจการใช้ไฟ
+- แต่ละเป้าหมายเปลี่ยนลำดับคำแนะนำ จุดโฟกัส ปุ่มดำเนินการถัดไป และปลายทางที่เหมาะสม โดยไม่เปลี่ยนสูตรหรือค่าผลการคำนวณ
+- หน้าบิล, TOU, Solar และรายงานแสดงเป้าหมายที่กำลังใช้ เพื่อให้ผู้ใช้เข้าใจว่าระบบกำลังจัดลำดับคำแนะนำจากอะไร
+- หน้ารายงานจัดลำดับความพร้อมของโมดูลตามเป้าหมาย และยังคงแสดงผลลัพธ์โมดูลอื่นเพื่อให้เปลี่ยนใจภายหลังได้
+- ตรวจ Acceptance Criteria: เป้าหมายทั้ง 4 ให้คำแนะนำและ CTA ต่างกัน, ไปยังปลายทางต่างกันตามเจตนา, การคำนวณเดิมไม่ถูกแก้ และไม่มีเส้นทางใดถูกปิดกั้น
+- การทดสอบ: `npm run lint`, `npm run typecheck`, web unit tests 51 tests, targeted E2E ครบ 4 เป้าหมาย และ `npm run build` ผ่าน (51 routes)
+
+## Product refinement Phase 2 — Decision-first content hierarchy
+
+- สถานะ: เสร็จแล้ว
+- เพิ่มโครงเนื้อหาร่วมแบบ คำตอบ → เหตุผล → หลักฐานสำคัญ → ข้อจำกัด → สิ่งที่ควรทำต่อ เพื่อให้ผู้ใช้เข้าใจข้อสรุปก่อนอ่านรายละเอียดเชิงเทคนิค
+- หน้าเปรียบเทียบ Normal / TOU แสดงแผนที่เหมาะสม ผลต่างรายปี สัดส่วน Off-Peak ช่วงข้อมูล ระดับความน่าเชื่อถือ และข้อจำกัดไว้ก่อนตารางกับกราฟ
+- หน้าผล Solar ใช้โครงคำแนะนำเดียวกัน พร้อมผลประหยัด ระยะคืนทุน ขนาดที่ผ่านเกณฑ์ risk สำคัญ และ next action
+- หน้ารายงานย้ายสถานะความพร้อมและข้อมูลที่ยังขาดขึ้นก่อนรายการรายงาน เพื่อให้ผู้ใช้รู้ทันทีว่าสร้างหรือส่งออกรายงานได้หรือยัง
+- แก้การแปลระดับคุณภาพข้อมูลให้รองรับค่าจริงจาก engine (`HIGH/MEDIUM/LOW`) และไม่แสดงระดับต่ำผิดพลาดเมื่อข้อมูลมีคุณภาพสูง
+- ตรวจ Acceptance Criteria: หน้าผลลัพธ์หลักมีข้อสรุปก่อนรายละเอียด, มีเหตุผลและหลักฐานตรวจย้อนกลับได้, แสดงข้อจำกัดใกล้คำแนะนำ และบอกการดำเนินการถัดไปอย่างชัดเจน
+- การทดสอบ: `npm run lint`, `npm run typecheck` และ targeted E2E ตั้งแต่บิล + Load Profile → TOU → Solar → รายงานผ่าน
+
+## Product refinement Phase 3 — Modern visual foundation
+
+- สถานะ: เสร็จแล้ว
+- ปรับ design tokens ของพื้นหลัง ตัวอักษร muted surface เส้นขอบ radius และเงา ให้มี contrast ชัดแต่พื้นผิวเบาลง พร้อมรองรับ light/dark theme เดิม
+- เพิ่มพื้นหลังแบบแสงอ่อน, translucent sticky header และ elevated surface เพื่อสร้างมิติแบบเรียบโดยไม่รบกวนกราฟหรือข้อมูลตัวเลข
+- ปรับ shared Card, Button, Badge และ PageHeader ให้ใช้ radius, spacing, typography, hover, active และ focus treatment เดียวกัน
+- navigation desktop แสดงกลุ่มที่กำลังใช้งานแม้ dropdown ปิดอยู่ และปรับ popover/header ให้มีลำดับชั้นชัดขึ้น
+- เพิ่ม global visible focus, text rendering, balanced heading และ reduced-motion เดิมยังทำงาน เพื่อไม่แลกความทันสมัยกับ accessibility
+- แนวทางภาพอ้างอิงจากหน้า iPad ปัจจุบันของ Apple เฉพาะหลักการ hierarchy, whitespace และ lightweight surfaces โดยคงภาษาและตัวตนของผลิตภัณฑ์วางแผนพลังงาน
+- ตรวจ Acceptance Criteria: shared components ใช้ token กลาง, navigation มี active state ชัด, focus มองเห็นได้, dark mode มี token ครบ และ production CSS compile สำเร็จ
+- การทดสอบ: `npm run lint`, `npm run typecheck` และ `npm run build` ผ่าน (51 routes)
+
+## Product refinement Phase 4 — Home and guided-start redesign
+
+- สถานะ: เสร็จแล้ว
+- ออกแบบ hero หน้าแรกใหม่ให้สื่อคุณค่าหลักและแสดง workflow 4 ขั้น: เลือกเป้าหมาย → สร้างรูปแบบการใช้ไฟ → เพิ่มบิลเพื่อปรับความแม่นยำ → ดูคำแนะนำและรายงาน
+- ปรับส่วนเริ่มต้นของหน้าแรกให้การ์ดสร้าง Load Profile เด่นและใหญ่ที่สุด, การนำเข้าไฟล์เป็นทางเลือกของผู้มีข้อมูลละเอียด และบิลเป็นขั้นเสริมภายหลัง
+- หน้าเริ่มวิเคราะห์แสดงผลของเป้าหมายทั้ง 4 ชัดขึ้นด้วยข้อความ “ระบบจะเน้น” ที่ต่างกัน และสถานะด้านข้างใช้ focus จริงจาก goal guidance
+- แยกขั้นสร้าง Load Profile ออกจากขั้นเพิ่มบิลอย่างชัดเจน: เครื่องใช้ไฟฟ้า/ไฟล์โหลดอยู่ขั้นที่ 3, บิลอยู่ขั้นที่ 4 พร้อมบอกว่าข้ามและกลับมาเพิ่มภายหลังได้
+- เพิ่ม `aria-pressed` ให้ตัวเลือกเป้าหมายและประเภทผู้ใช้ เพื่อให้สถานะเลือกสื่อสารกับ assistive technology
+- ตรวจ Acceptance Criteria: CTA หลักยังพาไปสร้างรูปแบบการใช้ไฟ, บิลไม่ถูกเสนอเป็นจุดเริ่มต้นหลัก, 4 เป้าหมายอธิบายผลคำแนะนำต่างกัน และลำดับบนหน้าตรงกับ progress tracker
+- การทดสอบ: `npm run lint`, `npm run typecheck`, targeted E2E ยืนยัน Load Profile อยู่ก่อนบิล และ `npm run build` ผ่าน (51 routes)
+
+## Product refinement Phase 5 — Results and reports redesign
+
+- สถานะ: เสร็จแล้ว
+- หน้า Normal / TOU แยก card เลือกข้อมูลต้นทางออกจากผลลัพธ์ เพื่อลด card ซ้อน card และให้ decision summary เป็นชั้นหลักของหน้า
+- ย้ายตารางเปรียบเทียบขนาดใหญ่และกราฟไว้ใน disclosure “ดูตารางและกราฟเปรียบเทียบ” ผู้ใช้ทั่วไปจึงเห็นคำตอบกับคำแนะนำก่อน ส่วนผู้ตรวจสอบยังเปิดรายละเอียดได้ครบ
+- หน้ารายงานจัด analysis report เป็น responsive grid, ใช้สีเส้นขอบสื่อสถานะข้อมูลปัจจุบัน/ล้าสมัย และทำรายงานบิลล่าสุดให้เด่นขึ้น
+- แปลข้อความเทคนิคที่ยังเป็นอังกฤษใน TOU, Solar และรายงาน เช่นหัวตาราง หน่วยเงิน ความมั่นใจ ความเสี่ยง และสมมติฐาน ให้เป็นภาษาไทยสม่ำเสมอ
+- คงตัวเลข การคำนวณ trace สมมติฐาน export และข้อมูลต้นทางเดิมทั้งหมด เปลี่ยนเฉพาะ presentation และ copy
+- ตรวจ Acceptance Criteria: คำตอบอยู่ก่อนรายละเอียด, ตารางและกราฟยังเข้าถึงได้, รายงานล่าสุด/ล้าสมัยมองแยกได้ และ flow บันทึก TOU + Solar ไปหน้ารายงานยังทำงาน
+- การทดสอบ: `npm run lint`, `npm run typecheck`, targeted E2E บิล + Load Profile → TOU → Solar → รายงาน และ `npm run build` ผ่าน (51 routes)
+
+## Product refinement Phase 6 — Form and data-entry refinement
+
+- สถานะ: เสร็จแล้ว
+- รวมปุ่มนำเข้า ส่งออก สแกน สำรองข้อมูล และเริ่มใหม่ของหน้าบิลไว้ใน disclosure เดียว เพื่อลดปุ่มรองที่แย่งความสนใจจากการกรอกข้อมูล
+- เพิ่ม accessible label ให้ input/select รายบิลทุกช่อง, รองรับ decimal input บนอุปกรณ์มือถือ และใช้ `aria-invalid` พร้อมพื้นหลังเตือนกับแถวที่ validation ไม่ผ่าน
+- save status ของหน้าบิลและหน้าเครื่องใช้ไฟฟ้าใช้ `aria-live` เพื่อแจ้งสถานะบันทึกโดยไม่ต้องย้าย focus
+- ลบปุ่มตัวอย่างที่ทำงานซ้ำในหน้าเครื่องใช้ไฟฟ้า เหลือ “ใช้ชุดนี้เป็นจุดเริ่มต้น” และ “ล้างและเลือกชุดใหม่” ที่ความหมายต่างกันชัดเจน
+- ปรับแถบ action ของ Load Profile ให้ปุ่มบันทึกอย่างเดียวเป็น secondary และ “บันทึกแล้วกรอกบิล” เป็น primary ตาม workflow ที่กำหนด
+- ปรับ card ของ form/result และ sticky action bar ให้ใช้ visual system เดียวกัน พร้อมเพิ่ม label และ input mode ให้ shared fields
+- ตรวจ Acceptance Criteria: ปุ่มหลักหนึ่งรายการต่อบริบท, เครื่องมือขั้นสูงยังเข้าถึงได้, validation สื่อสารทั้งภาพและ accessibility, schema/ข้อมูลที่บันทึกไม่เปลี่ยน
+- การทดสอบ: `npm run lint`, `npm run typecheck` และ targeted E2E ครอบคลุม empty-state/entry ของบิลและเครื่องใช้ไฟฟ้าผ่าน 2 tests
+
+## Product refinement Phase 7 — Motion, accessibility and performance
+
+- สถานะ: เสร็จแล้ว
+- เพิ่ม skip link “ข้ามไปเนื้อหาหลัก” เป็น focus แรกของหน้า และเพิ่ม target ที่รับ keyboard focus ได้ใน AppShell
+- แท็บ Solar เปลี่ยนเป็น navigation landmark พร้อม `aria-label` และ `aria-current="page"` เพื่อบอกสถานะหน้าปัจจุบัน
+- เพิ่ม page-enter transition ระยะสั้นและ skeleton ของกราฟ โดย media query `prefers-reduced-motion` เดิมจะลด animation/transition เหลือทันที
+- แยก Recharts ของ Solar เป็น lazy-loaded client chunk พร้อม loading skeleton ทำให้ route ที่ไม่ต้องแสดงกราฟไม่แบก chart bundle ตั้งแต่แรก
+- ผล build: `/analysis/solar` First Load JS ลดประมาณ 327 → 214 kB, `/analysis/solar/results` ลด 502 → 389 kB และ Solar finance/sizing/sensitivity ลดเหลือประมาณ 106 kB
+- ตรวจ Acceptance Criteria: keyboard เห็น skip link, choice state ใช้ ARIA, mobile 390px ไม่มี horizontal overflow, Solar tab มี current state เดียว และ reduced-motion ยังคงครอบคลุม motion ใหม่
+- การทดสอบ: `npm run lint`, `npm run typecheck`, `npm run build` (51 routes) และ targeted mobile/keyboard E2E ผ่าน
+
+## Product refinement Phase 8 — Full regression and release readiness
+
+- สถานะ: ผ่านการตรวจทั้งหมดและพร้อม release
+- ตรวจครบทุก Phase ว่าเปลี่ยนเฉพาะ orchestration, copy, UI, accessibility และ code splitting; ไม่เปลี่ยนสูตรคำนวณ tariff/scenario/Solar หรือ localStorage schema
+- แก้ regression ที่พบระหว่าง full E2E: เคส export เดิมคลิกปุ่มที่ย้ายเข้า disclosure โดยไม่เปิดเมนูก่อน ปรับ test ให้จำลองขั้นตอนผู้ใช้จริง แล้วรันทั้งชุดซ้ำจนผ่าน
+- ตรวจ Acceptance Criteria: 4 เป้าหมายให้คำแนะนำต่างกัน, Load Profile มาก่อนบิล, decision-first results, navigation ระบบเดียว, experimental modules ไม่ปรากฏเป็นฟังก์ชันพร้อมใช้, export/import/report และ mobile keyboard flow ทำงานครบ
+- การทดสอบรอบ release: `npm run format`, `git diff --check`, `npm run lint`, `npm run typecheck`, `npm test` ผ่าน 243 tests, `npm run test:e2e` ผ่าน 20 tests และ `npm run build` ผ่าน 51 routes
+- Release procedure: commit และ push เฉพาะไฟล์ในขอบเขตนี้ไป `origin/staging` แล้ว deploy production หลังทุก gate ผ่าน

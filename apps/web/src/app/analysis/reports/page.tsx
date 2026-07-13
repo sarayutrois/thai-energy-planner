@@ -5,6 +5,7 @@ import { LocalAnalysisReportCards } from "./local-analysis-report-cards";
 import { LocalReportCard } from "./local-report-card";
 import { ReportReadinessPanel } from "./report-readiness-panel";
 import { PageHeader } from "@/components/ui/page-layout";
+import { AnalysisGoalBanner } from "@/components/analysis-goal-banner";
 
 export default function AnalysisReportsPage() {
   return (
@@ -15,7 +16,12 @@ export default function AnalysisReportsPage() {
           title="รายงานผลวิเคราะห์"
           description="รวมรายงานที่สร้างจากบิลและผลวิเคราะห์ที่บันทึกไว้ หากยังไม่มีรายงาน ให้เริ่มจากเพิ่มบิลหรือวิเคราะห์ค่าไฟและ Solar ก่อน"
         />
-        <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+        <AnalysisGoalBanner />
+        <div className="mt-6">
+          <ReportReadinessPanel />
+        </div>
+
+        <div className="mt-8 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
           <div>
             <h2 className="text-xl font-semibold">รายงานที่บันทึกไว้</h2>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
@@ -48,13 +54,9 @@ export default function AnalysisReportsPage() {
           </Card>
         </div>
 
-        <div className="mt-8 grid gap-4 lg:grid-cols-[1fr_320px]">
-          <div className="grid gap-4">
-            <LocalReportCard />
-            <LocalAnalysisReportCards />
-          </div>
-
-          <ReportReadinessPanel />
+        <div className="mt-6 grid gap-4">
+          <LocalReportCard />
+          <LocalAnalysisReportCards />
         </div>
       </section>
     </main>

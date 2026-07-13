@@ -2,6 +2,7 @@ import { SampleBillNotice } from "@/components/sample-bill-notice";
 import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
 import { SolarApiRuntimePanel } from "./solar-api-runtime-panel";
 import { SolarPageShell } from "./solar-page-parts";
+import { AnalysisGoalBanner } from "@/components/analysis-goal-banner";
 
 export default async function SolarOverviewPage({
   searchParams,
@@ -12,6 +13,7 @@ export default async function SolarOverviewPage({
 
   return (
     <SolarPageShell active="overview" queryString={queryString}>
+      <AnalysisGoalBanner />
       <SampleBillNotice />
       <SolarApiRuntimePanel settings={settings} />
     </SolarPageShell>

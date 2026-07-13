@@ -178,135 +178,138 @@ export function CanonicalScenarioPanel() {
   }
 
   return (
-    <Card className="mt-6 border-primary/40 bg-primary/5">
-      <CardHeader>
-        <div className="flex flex-wrap items-start justify-between gap-3">
-          <div>
-            <CardTitle>เปรียบเทียบจาก Load Profile ที่บันทึกไว้</CardTitle>
-            <p className="mt-2 text-sm text-muted-foreground">
-              ใช้ “{profile.name}” จาก {profileSourceLabel(profile.source.kind)}{" "}
-              โดยไม่มีข้อมูลตัวอย่างปะปน
-            </p>
-          </div>
-          <Badge variant="success">ข้อมูลพร้อมคำนวณ</Badge>
-        </div>
-      </CardHeader>
-      <CardContent className="grid gap-5">
-        <section className="rounded-md border border-border bg-background p-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+    <section className="mt-6 grid gap-6">
+      <Card className="border-primary/30 bg-primary/5">
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p className="text-xs font-medium text-muted-foreground">
-                Load Profile ที่กำลังใช้
-              </p>
-              <p className="mt-1 font-semibold">
-                {formatLocalLoadProfileLabel(activeSnapshot)}
-              </p>
-              <p className="mt-1 text-xs text-muted-foreground">
-                อัปเดต{" "}
-                {new Date(activeSnapshot.updatedAt).toLocaleString(
-                  "th-TH-u-ca-gregory",
-                  { dateStyle: "medium", timeStyle: "short" },
-                )}
+              <CardTitle>เปรียบเทียบจาก Load Profile ที่บันทึกไว้</CardTitle>
+              <p className="mt-2 text-sm text-muted-foreground">
+                ใช้ “{profile.name}” จาก{" "}
+                {profileSourceLabel(profile.source.kind)}{" "}
+                โดยไม่มีข้อมูลตัวอย่างปะปน
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <button
-                className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
-                type="button"
-                onClick={refreshProfiles}
-              >
-                <RefreshCw className="h-4 w-4" />
-                รีเฟรชข้อมูลล่าสุด
-              </button>
-              {profiles.length > 1 ? (
+            <Badge variant="success">ข้อมูลพร้อมคำนวณ</Badge>
+          </div>
+        </CardHeader>
+        <CardContent className="grid gap-5">
+          <section className="rounded-md border border-border bg-background p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <div>
+                <p className="text-xs font-medium text-muted-foreground">
+                  Load Profile ที่กำลังใช้
+                </p>
+                <p className="mt-1 font-semibold">
+                  {formatLocalLoadProfileLabel(activeSnapshot)}
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  อัปเดต{" "}
+                  {new Date(activeSnapshot.updatedAt).toLocaleString(
+                    "th-TH-u-ca-gregory",
+                    { dateStyle: "medium", timeStyle: "short" },
+                  )}
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <button
                   className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
                   type="button"
-                  onClick={() => setShowHistory((visible) => !visible)}
+                  onClick={refreshProfiles}
                 >
-                  <History className="h-4 w-4" />
-                  {showHistory ? "ซ่อนประวัติ" : "ดูประวัติ"}
+                  <RefreshCw className="h-4 w-4" />
+                  รีเฟรชข้อมูลล่าสุด
                 </button>
-              ) : null}
+                {profiles.length > 1 ? (
+                  <button
+                    className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
+                    type="button"
+                    onClick={() => setShowHistory((visible) => !visible)}
+                  >
+                    <History className="h-4 w-4" />
+                    {showHistory ? "ซ่อนประวัติ" : "ดูประวัติ"}
+                  </button>
+                ) : null}
+              </div>
             </div>
+            {showHistory ? (
+              <div className="mt-4 grid gap-2 border-t border-border pt-4">
+                {profiles.map((item) => (
+                  <button
+                    key={item.id}
+                    className={`flex items-center justify-between gap-3 rounded-md border p-3 text-left text-sm hover:bg-muted ${item.id === activeSnapshot.id ? "border-primary bg-primary/5" : "border-border"}`}
+                    type="button"
+                    onClick={() => {
+                      const selected = selectLocalLoadProfileSnapshot(item.id);
+                      setSnapshot(selected);
+                      setShowHistory(false);
+                      refreshProfiles();
+                    }}
+                  >
+                    <span>
+                      <span className="block font-medium">
+                        {formatLocalLoadProfileLabel(item)}
+                      </span>
+                      <span className="mt-1 block text-xs text-muted-foreground">
+                        อัปเดต{" "}
+                        {new Date(item.updatedAt).toLocaleString(
+                          "th-TH-u-ca-gregory",
+                          { dateStyle: "medium", timeStyle: "short" },
+                        )}
+                      </span>
+                    </span>
+                    {item.id === activeSnapshot.id ? (
+                      <Check className="h-4 w-4 text-primary" />
+                    ) : null}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+          </section>
+          <div className="flex flex-wrap gap-3">
+            <label className="grid gap-1 text-sm font-medium">
+              การไฟฟ้า
+              <select
+                className="h-10 rounded-md border border-input bg-background px-3"
+                value={authority}
+                onChange={(event) =>
+                  setAuthority(event.target.value as Authority)
+                }
+              >
+                <option value="PEA">PEA</option>
+                <option value="MEA">MEA</option>
+              </select>
+            </label>
+            <label className="grid gap-1 text-sm font-medium">
+              ประเภทผู้ใช้
+              <select
+                className="h-10 rounded-md border border-input bg-background px-3"
+                value={customerSegment}
+                onChange={(event) =>
+                  setCustomerSegment(
+                    event.target.value as "residential" | "small_business",
+                  )
+                }
+              >
+                <option value="residential">บ้านพักอาศัย</option>
+                <option value="small_business">ธุรกิจขนาดเล็ก</option>
+              </select>
+            </label>
           </div>
-          {showHistory ? (
-            <div className="mt-4 grid gap-2 border-t border-border pt-4">
-              {profiles.map((item) => (
-                <button
-                  key={item.id}
-                  className={`flex items-center justify-between gap-3 rounded-md border p-3 text-left text-sm hover:bg-muted ${item.id === activeSnapshot.id ? "border-primary bg-primary/5" : "border-border"}`}
-                  type="button"
-                  onClick={() => {
-                    const selected = selectLocalLoadProfileSnapshot(item.id);
-                    setSnapshot(selected);
-                    setShowHistory(false);
-                    refreshProfiles();
-                  }}
-                >
-                  <span>
-                    <span className="block font-medium">
-                      {formatLocalLoadProfileLabel(item)}
-                    </span>
-                    <span className="mt-1 block text-xs text-muted-foreground">
-                      อัปเดต{" "}
-                      {new Date(item.updatedAt).toLocaleString(
-                        "th-TH-u-ca-gregory",
-                        { dateStyle: "medium", timeStyle: "short" },
-                      )}
-                    </span>
-                  </span>
-                  {item.id === activeSnapshot.id ? (
-                    <Check className="h-4 w-4 text-primary" />
-                  ) : null}
-                </button>
-              ))}
-            </div>
-          ) : null}
-        </section>
-        <div className="flex flex-wrap gap-3">
-          <label className="grid gap-1 text-sm font-medium">
-            การไฟฟ้า
-            <select
-              className="h-10 rounded-md border border-input bg-background px-3"
-              value={authority}
-              onChange={(event) =>
-                setAuthority(event.target.value as Authority)
-              }
-            >
-              <option value="PEA">PEA</option>
-              <option value="MEA">MEA</option>
-            </select>
-          </label>
-          <label className="grid gap-1 text-sm font-medium">
-            ประเภทผู้ใช้
-            <select
-              className="h-10 rounded-md border border-input bg-background px-3"
-              value={customerSegment}
-              onChange={(event) =>
-                setCustomerSegment(
-                  event.target.value as "residential" | "small_business",
-                )
-              }
-            >
-              <option value="residential">บ้านพักอาศัย</option>
-              <option value="small_business">ธุรกิจขนาดเล็ก</option>
-            </select>
-          </label>
-        </div>
-        {result && "error" in result ? (
-          <p className="text-sm text-destructive">{result.error}</p>
-        ) : null}
-        {result && !("error" in result) ? (
-          <ScenarioView comparison={result} />
-        ) : null}
-        <LocalBillResultContext
-          enabled={Boolean(reportDraft && hasBillContext)}
-          moduleName="Normal / TOU"
-          reportDraft={reportDraft}
-        />
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+      {result && "error" in result ? (
+        <p className="text-sm text-destructive">{result.error}</p>
+      ) : null}
+      {result && !("error" in result) ? (
+        <ScenarioView comparison={result} />
+      ) : null}
+      <LocalBillResultContext
+        enabled={Boolean(reportDraft && hasBillContext)}
+        moduleName="Normal / TOU"
+        reportDraft={reportDraft}
+      />
+    </section>
   );
 }
 

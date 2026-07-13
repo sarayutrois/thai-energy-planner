@@ -40,6 +40,12 @@ import {
 import { completedBillInputs } from "./bill-workspace-state";
 import { AiScannerButton } from "./ai-scanner-button";
 import { LocalDataBackupControls } from "@/components/local-data-backup-controls";
+import {
+  analysisGoalCopy,
+  getAnalysisGoalGuidance,
+  type AnalysisGoal,
+} from "@/lib/analysis-preferences";
+import { useAnalysisGoal } from "@/lib/use-analysis-goal";
 
 const audienceProfile: Record<AnalysisAudience, string> = {
   home: "evening_home",
@@ -80,6 +86,8 @@ export function GuidedBillWorkspace({
     upsertRow,
   } = useBillWorkspace(initialBills, audience);
   const router = useRouter();
+  const goal = useAnalysisGoal();
+  const goalGuidance = getAnalysisGoalGuidance(goal);
 
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
@@ -88,6 +96,15 @@ export function GuidedBillWorkspace({
   const completedBills = useMemo(
     () => completedBillInputs(validation.bills),
     [validation.bills],
+  );
+  const invalidRowNumbers = useMemo(
+    () =>
+      new Set(
+        validation.issues
+          .map((issue) => issue.rowNumber)
+          .filter((rowNumber): rowNumber is number => rowNumber !== undefined),
+      ),
+    [validation.issues],
   );
   const summary = useMemo(
     () => summarizeBills(completedBills),
@@ -105,8 +122,13 @@ export function GuidedBillWorkspace({
   );
   const recommendations = useMemo(
     () =>
-      hasBillData ? buildBillRecommendations(completedBills, summary) : [],
-    [completedBills, hasBillData, summary],
+      hasBillData
+        ? [
+            buildGoalBillRecommendation(goal, summary),
+            ...buildBillRecommendations(completedBills, summary),
+          ]
+        : [],
+    [completedBills, goal, hasBillData, summary],
   );
   const averageMonthlyKwh = useMemo(
     () => (summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0),
@@ -168,7 +190,7 @@ export function GuidedBillWorkspace({
     router.push(`/analysis/reports/${localBillReportId}`);
   }
 
-  function proceedToLoadComparison() {
+  function proceedToGoalAnalysis() {
     window.localStorage.setItem(
       billWorkspaceStorageKey,
       JSON.stringify({
@@ -179,7 +201,7 @@ export function GuidedBillWorkspace({
       }),
     );
     window.localStorage.removeItem(billReportStorageKey);
-    router.push("/analysis/load-data/dashboard");
+    router.push(goal === "solar" ? solarHref : goalGuidance.primaryHref);
   }
 
   return (
@@ -200,71 +222,82 @@ export function GuidedBillWorkspace({
                 ช่องอื่นใช้ช่วยจำแนกข้อมูลให้รายงานอ่านง่ายขึ้น
               </p>
             </div>
-            <div className="flex flex-wrap gap-2">
-              <Badge variant="outline">{saveStatus}</Badge>
+            <div className="flex flex-wrap items-start gap-2">
+              <Badge variant="outline" aria-live="polite">
+                {saveStatus}
+              </Badge>
               <button
-                className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-9 items-center justify-center rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 onClick={loadExample}
                 type="button"
               >
                 ทดลองด้วยข้อมูลตัวอย่าง
               </button>
-              <button
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={exportWorkspace}
-                type="button"
-              >
-                <Download aria-hidden="true" className="h-4 w-4" />
-                ส่งออก JSON
-              </button>
-              <button
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={exportWorkspaceCsv}
-                type="button"
-              >
-                <Download aria-hidden="true" className="h-4 w-4" />
-                ส่งออก CSV
-              </button>
-              <button
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={() => fileInputRef.current?.click()}
-                type="button"
-              >
-                <Upload aria-hidden="true" className="h-4 w-4" />
-                นำเข้า JSON/CSV
-              </button>
-              <AiScannerButton
-                onScanSuccess={(bill) => {
-                  upsertRow({
-                    month: bill.month,
-                    energyKwh: String(bill.energyKwh),
-                    totalCostThb: String(bill.totalCostThb),
-                    ...(bill.authority && {
-                      authority: bill.authority as "PEA" | "MEA",
-                    }),
-                  });
-                }}
-              />
-              <LocalDataBackupControls />
-              <input
-                accept="application/json,text/csv,.json,.csv"
-                className="hidden"
-                onChange={(event) => {
-                  void importWorkspace(event.target.files?.[0], () => {
-                    if (fileInputRef.current) fileInputRef.current.value = "";
-                  });
-                }}
-                ref={fileInputRef}
-                type="file"
-              />
-              <button
-                className="inline-flex h-9 items-center justify-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={resetWorkspace}
-                type="button"
-              >
-                <RotateCcw aria-hidden="true" className="h-4 w-4" />
-                เริ่มใหม่
-              </button>
+              <details className="relative">
+                <summary className="inline-flex h-9 cursor-pointer list-none items-center justify-center rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring">
+                  นำเข้า ส่งออก และเครื่องมือ
+                </summary>
+                <div className="absolute right-0 top-11 z-20 flex min-w-64 flex-col gap-2 rounded-xl border border-border bg-popover p-3 shadow-float">
+                  <button
+                    className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium hover:bg-muted"
+                    onClick={exportWorkspace}
+                    type="button"
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    ส่งออก JSON
+                  </button>
+                  <button
+                    className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium hover:bg-muted"
+                    onClick={exportWorkspaceCsv}
+                    type="button"
+                  >
+                    <Download aria-hidden="true" className="h-4 w-4" />
+                    ส่งออก CSV
+                  </button>
+                  <button
+                    className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium hover:bg-muted"
+                    onClick={() => fileInputRef.current?.click()}
+                    type="button"
+                  >
+                    <Upload aria-hidden="true" className="h-4 w-4" />
+                    นำเข้า JSON/CSV
+                  </button>
+                  <AiScannerButton
+                    onScanSuccess={(bill) => {
+                      upsertRow({
+                        month: bill.month,
+                        energyKwh: String(bill.energyKwh),
+                        totalCostThb: String(bill.totalCostThb),
+                        ...(bill.authority && {
+                          authority: bill.authority as "PEA" | "MEA",
+                        }),
+                      });
+                    }}
+                  />
+                  <LocalDataBackupControls />
+                  <input
+                    accept="application/json,text/csv,.json,.csv"
+                    aria-label="เลือกไฟล์บิล JSON หรือ CSV"
+                    className="hidden"
+                    onChange={(event) => {
+                      void importWorkspace(event.target.files?.[0], () => {
+                        if (fileInputRef.current)
+                          fileInputRef.current.value = "";
+                      });
+                    }}
+                    ref={fileInputRef}
+                    type="file"
+                  />
+                  <button
+                    className="inline-flex h-9 items-center gap-2 rounded-lg px-3 text-sm font-medium hover:bg-muted"
+                    onClick={resetWorkspace}
+                    type="button"
+                  >
+                    <RotateCcw aria-hidden="true" className="h-4 w-4" />
+                    เริ่มใหม่
+                  </button>
+                </div>
+              </details>
             </div>
           </div>
         </CardHeader>
@@ -282,10 +315,15 @@ export function GuidedBillWorkspace({
                 </tr>
               </thead>
               <tbody>
-                {rows.map((row) => (
-                  <tr key={row.id} className="border-t border-border">
+                {rows.map((row, rowIndex) => (
+                  <tr
+                    key={row.id}
+                    className={`border-t border-border ${invalidRowNumbers.has(rowIndex + 1) ? "bg-warning/5" : ""}`}
+                  >
                     <td className="px-3 py-2">
                       <input
+                        aria-label={`เดือนของบิลรายการที่ ${rowIndex + 1}`}
+                        aria-invalid={invalidRowNumbers.has(rowIndex + 1)}
                         className="h-10 w-full rounded-md border border-input px-3"
                         min="2020-01"
                         max="2030-12"
@@ -298,19 +336,26 @@ export function GuidedBillWorkspace({
                     </td>
                     <td className="px-3 py-2">
                       <input
+                        aria-label={`หน่วยไฟ kWh ของบิลรายการที่ ${rowIndex + 1}`}
+                        aria-invalid={invalidRowNumbers.has(rowIndex + 1)}
                         className="h-10 w-full rounded-md border border-input px-3"
+                        inputMode="decimal"
                         min="0"
                         onChange={(event) =>
                           updateRow(row.id, { energyKwh: event.target.value })
                         }
                         placeholder="เช่น 420"
+                        step="0.01"
                         type="number"
                         value={row.energyKwh}
                       />
                     </td>
                     <td className="px-3 py-2">
                       <input
+                        aria-label={`ค่าไฟรวมของบิลรายการที่ ${rowIndex + 1}`}
+                        aria-invalid={invalidRowNumbers.has(rowIndex + 1)}
                         className="h-10 w-full rounded-md border border-input px-3"
+                        inputMode="decimal"
                         min="0"
                         onChange={(event) =>
                           updateRow(row.id, {
@@ -318,12 +363,14 @@ export function GuidedBillWorkspace({
                           })
                         }
                         placeholder="เช่น 1810"
+                        step="0.01"
                         type="number"
                         value={row.totalCostThb}
                       />
                     </td>
                     <td className="px-3 py-2">
                       <select
+                        aria-label={`การไฟฟ้าของบิลรายการที่ ${rowIndex + 1}`}
                         className="h-10 w-full rounded-md border border-input px-3"
                         onChange={(event) =>
                           updateRow(row.id, {
@@ -339,6 +386,7 @@ export function GuidedBillWorkspace({
                     </td>
                     <td className="px-3 py-2">
                       <select
+                        aria-label={`ประเภทมิเตอร์ของบิลรายการที่ ${rowIndex + 1}`}
                         className="h-10 w-full rounded-md border border-input px-3"
                         onChange={(event) =>
                           updateRow(row.id, {
@@ -354,7 +402,7 @@ export function GuidedBillWorkspace({
                     </td>
                     <td className="px-3 py-2">
                       <button
-                        aria-label="ลบเดือนนี้"
+                        aria-label={`ลบบิลรายการที่ ${rowIndex + 1}`}
                         className="inline-flex h-10 w-10 items-center justify-center rounded-md border border-border text-muted-foreground hover:bg-muted hover:text-foreground focus:outline-none focus:ring-2 focus:ring-ring"
                         onClick={() => removeRow(row.id)}
                         type="button"
@@ -491,7 +539,13 @@ export function GuidedBillWorkspace({
         <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
           <Card>
             <CardHeader>
-              <CardTitle>คำแนะนำเบื้องต้น</CardTitle>
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <CardTitle>คำแนะนำตามเป้าหมาย</CardTitle>
+                <Badge variant="outline">{analysisGoalCopy[goal].label}</Badge>
+              </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                {goalGuidance.focus}
+              </p>
             </CardHeader>
             <CardContent className="grid gap-3">
               {recommendations.map((item, index) => (
@@ -521,10 +575,10 @@ export function GuidedBillWorkspace({
               completedBills.length > 0 ? (
                 <button
                   className="inline-flex min-h-12 items-center justify-center gap-2 rounded-md bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition hover:bg-primary/90 focus:outline-none focus:ring-2 focus:ring-ring"
-                  onClick={proceedToLoadComparison}
+                  onClick={proceedToGoalAnalysis}
                   type="button"
                 >
-                  บันทึกบิลแล้วไปเทียบ Load Profile
+                  บันทึกบิลแล้ว: {goalGuidance.primaryAction}
                   <ArrowRight aria-hidden="true" className="h-4 w-4" />
                 </button>
               ) : (
@@ -653,6 +707,55 @@ function buildBillRecommendations(
       tone: "outline",
     },
   ] as const;
+}
+
+function buildGoalBillRecommendation(
+  goal: AnalysisGoal,
+  summary: ReturnType<typeof summarizeBills>,
+) {
+  const averageKwh =
+    summary.monthCount > 0 ? summary.totalKwh / summary.monthCount : 0;
+  const averageCost =
+    summary.monthCount > 0 ? summary.totalCostThb / summary.monthCount : 0;
+  const highest = summary.highestMonth;
+
+  if (goal === "tou") {
+    return {
+      title: "ตรวจว่ามีโหลดช่วง Peak มากแค่ไหน",
+      description:
+        "บิลบอกปริมาณรวม แต่การตัดสินใจ TOU ต้องใช้ Load Profile เพื่อแยกช่วง Peak และ Off-Peak ระบบจะนำข้อมูลที่บันทึกไว้ไปเปรียบเทียบทั้งสองอัตรา",
+      badge: "โฟกัส TOU",
+      tone: "success" as const,
+    };
+  }
+
+  if (goal === "solar") {
+    return {
+      title: "ใช้ปริมาณไฟรวมเป็นกรอบขนาด Solar",
+      description: `ใช้ไฟเฉลี่ยประมาณ ${formatNumber(averageKwh)} kWh/เดือน ขั้นถัดไปจะตรวจโหลดกลางวันเพื่อหลีกเลี่ยงการแนะนำระบบใหญ่เกินการใช้จริง`,
+      badge: "โฟกัส Solar",
+      tone: "success" as const,
+    };
+  }
+
+  if (goal === "understand") {
+    return {
+      title: highest
+        ? `เริ่มอธิบายจากเดือนที่ใช้ไฟสูงสุด ${highest.month}`
+        : "เริ่มจากดูรูปแบบรายเดือน",
+      description:
+        "ระบบจะเชื่อมยอดจากบิลกับ Load Profile เพื่ออธิบายว่าช่วงเวลาและอุปกรณ์ใดทำให้การใช้ไฟเพิ่มขึ้น",
+      badge: "เข้าใจรูปแบบ",
+      tone: "outline" as const,
+    };
+  }
+
+  return {
+    title: "ตั้งเป้าลดจากค่าใช้จ่ายเฉลี่ยปัจจุบัน",
+    description: `ค่าไฟเฉลี่ยประมาณ ${formatNumber(averageCost)} บาท/เดือน ระบบจะจัดลำดับวิธีลดค่าใช้จ่ายที่ทำได้ก่อน แล้วค่อยเสนอทางเลือกที่ต้องลงทุน`,
+    badge: "โฟกัสลดค่าไฟ",
+    tone: "success" as const,
+  };
 }
 
 function formatNumber(value: number) {

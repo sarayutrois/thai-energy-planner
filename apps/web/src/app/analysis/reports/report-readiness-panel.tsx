@@ -19,6 +19,11 @@ import {
   type ReportReadinessInput,
 } from "./report-readiness-state";
 import { SampleBillNotice } from "@/components/sample-bill-notice";
+import {
+  analysisGoalCopy,
+  getAnalysisGoalGuidance,
+} from "@/lib/analysis-preferences";
+import { useAnalysisGoal } from "@/lib/use-analysis-goal";
 
 const emptyReadiness: ReportReadinessInput = {
   hasBills: false,
@@ -38,6 +43,8 @@ const labels = {
 } as const;
 
 export function ReportReadinessPanel() {
+  const goal = useAnalysisGoal();
+  const goalGuidance = getAnalysisGoalGuidance(goal);
   const [readiness, setReadiness] =
     useState<ReportReadinessInput>(emptyReadiness);
   const [staleModules, setStaleModules] = useState<string[]>([]);
@@ -75,8 +82,15 @@ export function ReportReadinessPanel() {
       setStaleModules([
         ...new Set(staleReports.map((report) => report.moduleLabel)),
       ]);
-      setExportReports(currentReports);
-      setSelectedReportId(currentReports[0]?.id ?? "");
+      const prioritizedReports = [...currentReports].sort((left, right) => {
+        const preferred = goalGuidance.preferredReportModule;
+        if (!preferred) return 0;
+        return (
+          Number(right.module === preferred) - Number(left.module === preferred)
+        );
+      });
+      setExportReports(prioritizedReports);
+      setSelectedReportId(prioritizedReports[0]?.id ?? "");
       setReadiness({
         hasBills: validBills.length > 0,
         billMonthCount: validBills.length,
@@ -92,13 +106,13 @@ export function ReportReadinessPanel() {
       setExportReports([]);
       setSelectedReportId("");
     }
-  }, []);
+  }, [goalGuidance.preferredReportModule]);
 
   const status = useMemo(
     () => getReportReadinessStatus(readiness),
     [readiness],
   );
-  const checks = [
+  const dataChecks = [
     {
       label: "ข้อมูลค่าไฟ",
       done: readiness.hasBills,
@@ -109,16 +123,31 @@ export function ReportReadinessPanel() {
       done: readiness.hasLoadProfile,
       missing: "สร้างหรือนำเข้า Load Profile",
     },
+  ];
+  const analysisChecks = [
     {
       label: "Normal / TOU Scenario",
+      module: "scenario" as const,
       done: readiness.hasScenario,
       missing: "รันการเปรียบเทียบ Normal และ TOU แล้วบันทึกรายงาน",
     },
     {
       label: "Solar Analysis",
+      module: "solar" as const,
       done: readiness.hasSolar,
       missing: "รันการประเมิน Solar แล้วบันทึกรายงาน",
     },
+  ];
+  const orderedAnalysisChecks = [...analysisChecks].sort((left, right) => {
+    const preferred = goalGuidance.preferredReportModule;
+    if (!preferred) return 0;
+    return (
+      Number(right.module === preferred) - Number(left.module === preferred)
+    );
+  });
+  const checks = [
+    ...dataChecks,
+    ...orderedAnalysisChecks,
     {
       label: "Tariff version และผลที่ตรวจสอบได้",
       done: readiness.hasTariffTrace && readiness.hasVerifiedResult,
@@ -155,6 +184,9 @@ export function ReportReadinessPanel() {
               }
             >
               {labels[status]}
+            </Badge>
+            <Badge variant="outline">
+              เป้าหมาย: {analysisGoalCopy[goal].label}
             </Badge>
             {status === "low_confidence" ? (
               <span className="text-sm text-muted-foreground">

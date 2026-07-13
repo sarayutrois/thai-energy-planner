@@ -41,9 +41,12 @@ export function LocalAnalysisReportCards() {
   if (reports.length === 0) return null;
 
   return (
-    <>
+    <div className="grid gap-4 xl:grid-cols-2">
       {reports.map((report) => (
-        <Card key={report.id}>
+        <Card
+          key={report.id}
+          className={`flex h-full flex-col ${currentReportIds.has(report.id) ? "border-success/35" : "border-warning/40"}`}
+        >
           <CardHeader>
             <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
               <div>
@@ -72,7 +75,7 @@ export function LocalAnalysisReportCards() {
               </div>
             </div>
           </CardHeader>
-          <CardContent className="grid gap-4">
+          <CardContent className="grid flex-1 gap-4">
             <div className="grid gap-3 md:grid-cols-3">
               <Metric
                 label="สร้างเมื่อ"
@@ -109,14 +112,14 @@ export function LocalAnalysisReportCards() {
             ) : null}
             <div className="flex flex-wrap gap-2">
               <a
-                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
                 href={`/analysis/reports/${report.id}`}
               >
                 เปิดรายงานนี้
                 <ArrowRight aria-hidden="true" className="h-4 w-4" />
               </a>
               <button
-                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 onClick={() => {
                   deleteLocalAnalysisReport(report.id);
                   setReports((current) =>
@@ -132,7 +135,7 @@ export function LocalAnalysisReportCards() {
           </CardContent>
         </Card>
       ))}
-    </>
+    </div>
   );
 }
 

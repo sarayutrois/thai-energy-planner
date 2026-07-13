@@ -103,7 +103,7 @@ function buildSolarReportDraft(
           : "ไม่มีขนาดที่ผ่านเกณฑ์",
       },
       {
-        label: "Best after solar",
+        label: "รูปแบบค่าไฟที่เหมาะหลังติด Solar",
         value: analysis.billComparison.bestWithSolar.label,
       },
       {
@@ -126,7 +126,7 @@ function buildSolarReportDraft(
       },
       {
         label: "NPV",
-        value: `${formatNumber(analysis.financial.npvThb)} baht`,
+        value: `${formatNumber(analysis.financial.npvThb)} บาท`,
       },
       {
         label: "IRR",
@@ -136,46 +136,46 @@ function buildSolarReportDraft(
             : `${formatNumber(analysis.financial.irrPercent)}%`,
       },
       {
-        label: "Model confidence",
+        label: "ความมั่นใจของแบบจำลอง",
         value: `${analysis.modelQuality.label} (${analysis.modelQuality.score}/100)`,
       },
       {
         label: "Downside NPV",
-        value: `${formatNumber(analysis.sensitivity.downsideCase.npvThb)} baht`,
+        value: `${formatNumber(analysis.sensitivity.downsideCase.npvThb)} บาท`,
       },
       {
         label: "Upside NPV",
-        value: `${formatNumber(analysis.sensitivity.upsideCase.npvThb)} baht`,
+        value: `${formatNumber(analysis.sensitivity.upsideCase.npvThb)} บาท`,
       },
     ],
     assumptions: [
-      { label: "Profile", value: settings.profile },
-      { label: "Baseline", value: settings.baseline },
+      { label: "รูปแบบการใช้ไฟ", value: settings.profile },
+      { label: "มิเตอร์ฐาน", value: settings.baseline },
       { label: "Model mode", value: settings.modelMode },
-      { label: "System size", value: `${settings.systemSizeKwp} kWp` },
-      { label: "Roof area", value: `${settings.roofAreaSqm} sqm` },
-      { label: "Roof azimuth", value: `${settings.roofAzimuth} degree` },
-      { label: "Roof tilt", value: `${settings.roofTilt} degree` },
+      { label: "ขนาดระบบ", value: `${settings.systemSizeKwp} kWp` },
+      { label: "พื้นที่หลังคา", value: `${settings.roofAreaSqm} ตร.ม.` },
+      { label: "ทิศหลังคา", value: `${settings.roofAzimuth} องศา` },
+      { label: "ความเอียงหลังคา", value: `${settings.roofTilt} องศา` },
       { label: "System loss", value: `${settings.systemLossPercent}%` },
       { label: "Shading loss", value: `${settings.shadingLossPercent}%` },
       {
         label: "Degradation",
-        value: `${settings.degradationPercentPerYear}%/year`,
+        value: `${settings.degradationPercentPerYear}%/ปี`,
       },
-      { label: "CAPEX", value: `${formatNumber(settings.capexThb)} baht` },
+      { label: "เงินลงทุน", value: `${formatNumber(settings.capexThb)} บาท` },
       {
         label: "O&M",
-        value: `${formatNumber(settings.oAndMCostPerYear)} baht/year`,
+        value: `${formatNumber(settings.oAndMCostPerYear)} บาท/ปี`,
       },
-      { label: "Project life", value: `${settings.projectLifeYears} years` },
-      { label: "Discount rate", value: `${settings.discountRatePercent}%` },
+      { label: "อายุโครงการ", value: `${settings.projectLifeYears} ปี` },
+      { label: "อัตราคิดลด", value: `${settings.discountRatePercent}%` },
       {
         label: "Electricity escalation",
-        value: `${settings.electricityEscalationRatePercent}%/year`,
+        value: `${settings.electricityEscalationRatePercent}%/ปี`,
       },
       {
         label: "Inverter replacement",
-        value: `${formatNumber(settings.inverterReplacementCostThb)} baht in year ${settings.inverterReplacementYear || "-"}`,
+        value: `${formatNumber(settings.inverterReplacementCostThb)} บาท ในปีที่ ${settings.inverterReplacementYear || "-"}`,
       },
       {
         label: "อัตรารับซื้อไฟฟ้า",
@@ -212,7 +212,7 @@ function buildSolarReportDraft(
           },
           {
             label: "ประมาณการผลิตไฟฟ้าต่อปี",
-            value: `${formatNumber(analysis.solarProfile.annualGenerationKwh)} kWh/year`,
+            value: `${formatNumber(analysis.solarProfile.annualGenerationKwh)} kWh/ปี`,
           },
           {
             label: "ประมาณการลดค่าใช้จ่ายรายปี",
@@ -220,7 +220,7 @@ function buildSolarReportDraft(
           },
           {
             label: "Downside / Upside NPV",
-            value: `${formatNumber(analysis.sensitivity.downsideCase.npvThb)} / ${formatNumber(analysis.sensitivity.upsideCase.npvThb)} baht`,
+            value: `${formatNumber(analysis.sensitivity.downsideCase.npvThb)} / ${formatNumber(analysis.sensitivity.upsideCase.npvThb)} บาท`,
           },
         ],
         paragraphs: [
@@ -232,11 +232,11 @@ function buildSolarReportDraft(
         items: [
           {
             label: "O&M",
-            value: `${formatNumber(settings.oAndMCostPerYear)} baht/year`,
+            value: `${formatNumber(settings.oAndMCostPerYear)} บาท/ปี`,
           },
           {
             label: "Inverter replacement",
-            value: `${formatNumber(settings.inverterReplacementCostThb)} baht in year ${settings.inverterReplacementYear || "-"}`,
+            value: `${formatNumber(settings.inverterReplacementCostThb)} บาท ในปีที่ ${settings.inverterReplacementYear || "-"}`,
           },
         ],
         paragraphs: [solarReadinessCopy.hiddenCostLimitation],

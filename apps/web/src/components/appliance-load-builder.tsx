@@ -742,16 +742,13 @@ export function ApplianceLoadBuilder({
               ใช้ชุดนี้เป็นจุดเริ่มต้น
             </Button>
             <Button variant="outline" onClick={clearAll}>
-              ล้างทั้งหมด
-            </Button>
-            <Button variant="outline" onClick={clearAll}>
-              เปลี่ยนชุดตัวอย่าง
+              ล้างและเลือกชุดใหม่
             </Button>
           </div>
         </div>
       ) : null}
 
-      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-panel md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold">1. เพิ่มเครื่องใช้ไฟฟ้า</h2>
@@ -1020,7 +1017,7 @@ export function ApplianceLoadBuilder({
         )}
       </section>
 
-      <section className="rounded-xl border border-border bg-card p-4 md:p-5">
+      <section className="rounded-2xl border border-border bg-card p-4 shadow-panel md:p-6">
         <h2 className="text-lg font-semibold">2. ตรวจสอบผลการคำนวณ</h2>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           {applianceSourceLabel(mode)}
@@ -1112,7 +1109,7 @@ export function ApplianceLoadBuilder({
         </div>
       ) : null}
 
-      <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-xl border border-border bg-background/95 p-4 shadow-lg backdrop-blur sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-border bg-background/90 p-4 shadow-float backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
         <a
           className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
           href="/analysis/load-data"
@@ -1121,7 +1118,7 @@ export function ApplianceLoadBuilder({
           ย้อนกลับ
         </a>
         <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-          <span className="text-xs text-muted-foreground">
+          <span className="text-xs text-muted-foreground" aria-live="polite">
             {saveStatus === "saving"
               ? "กำลังบันทึก..."
               : saveStatus === "saved"
@@ -1131,6 +1128,7 @@ export function ApplianceLoadBuilder({
                   : "พร้อมบันทึกเมื่อข้อมูลครบ"}
           </span>
           <Button
+            variant="outline"
             disabled={
               !simulation ||
               validationIssues.length > 0 ||
@@ -1195,6 +1193,7 @@ function TextField({
     <label className="grid gap-1 text-xs font-medium">
       {label}
       <input
+        aria-label={label}
         className="h-10 rounded-md border border-input bg-background px-3 text-sm"
         value={value}
         onChange={(event) => onChange(event.target.value)}
@@ -1219,6 +1218,7 @@ function TimeField({
     >
       {label}
       <input
+        aria-label={label}
         className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         type="time"
         value={value}
@@ -1245,7 +1245,9 @@ function NumberField({
     <label className="grid gap-1 text-xs font-medium">
       {label}
       <input
+        aria-label={label}
         className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        inputMode="decimal"
         type="number"
         value={value}
         min={min}

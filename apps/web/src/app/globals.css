@@ -5,8 +5,8 @@
 @layer base {
   :root {
     --font-sans: var(--font-prompt), var(--font-inter), Arial, sans-serif;
-    --background: 40 33% 98%;
-    --foreground: 222 32% 13%;
+    --background: 36 24% 97%;
+    --foreground: 222 38% 11%;
     --surface: 0 0% 100%;
     --surface-elevated: 0 0% 100%;
     --card: 0 0% 100%;
@@ -17,8 +17,8 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 36 30% 93%;
     --secondary-foreground: 222 32% 13%;
-    --muted: 36 23% 93%;
-    --muted-foreground: 218 15% 40%;
+    --muted: 34 21% 93%;
+    --muted-foreground: 218 14% 37%;
     --accent: 191 31% 93%;
     --accent-foreground: 207 63% 25%;
     --destructive: 0 66% 46%;
@@ -29,8 +29,8 @@
     --warning-foreground: 32 54% 14%;
     --information: 205 75% 38%;
     --information-foreground: 0 0% 100%;
-    --border: 35 18% 84%;
-    --input: 35 18% 78%;
+    --border: 34 16% 86%;
+    --input: 34 14% 76%;
     --ring: 24 92% 47%;
     --chart-grid: 35 18% 84%;
     --chart-primary: 207 75% 38%;
@@ -42,7 +42,7 @@
     --grid: 207 75% 38%;
     --battery: 264 52% 48%;
     --ev: 191 69% 34%;
-    --radius: 0.75rem;
+    --radius: 1rem;
   }
 
   .dark {
@@ -85,13 +85,21 @@
   }
   html {
     font-size: 16px;
+    text-rendering: optimizeLegibility;
   }
   body {
     @apply bg-background text-foreground font-sans;
     min-height: 100vh;
     margin: 0;
-    background: hsl(var(--background));
+    background:
+      radial-gradient(
+        circle at 12% -10%,
+        hsl(var(--primary) / 0.07),
+        transparent 30rem
+      ),
+      hsl(var(--background));
     scroll-behavior: smooth;
+    -webkit-font-smoothing: antialiased;
   }
   a {
     color: inherit;
@@ -103,6 +111,18 @@
   textarea {
     font: inherit;
   }
+  :focus-visible {
+    outline: 2px solid hsl(var(--ring));
+    outline-offset: 3px;
+  }
+  h1,
+  h2,
+  h3 {
+    text-wrap: balance;
+  }
+  p {
+    text-wrap: pretty;
+  }
   ::selection {
     background: hsl(var(--primary));
     color: hsl(var(--primary-foreground));
@@ -113,8 +133,26 @@
   .surface-elevated {
     background: hsl(var(--surface-elevated));
   }
+  .glass-surface {
+    background: hsl(var(--background) / 0.78);
+    backdrop-filter: blur(20px) saturate(150%);
+  }
   .chart-grid {
     stroke: hsl(var(--chart-grid));
+  }
+  .content-enter {
+    animation: content-enter 320ms ease-out both;
+  }
+}
+
+@keyframes content-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
 

@@ -3,6 +3,7 @@ import * as XLSX from "xlsx";
 
 const billWorkspaceKey = "thai-energy-planner.bill-workspace.v1";
 const applianceWorkspaceKey = "thai-energy-planner.appliance-workspace.v3";
+const analysisGoalKey = "thai-energy-planner.analysis-goal.v1";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -13,6 +14,10 @@ test.beforeEach(async ({ page }) => {
   await page.evaluate(
     (key) => window.localStorage.removeItem(key),
     applianceWorkspaceKey,
+  );
+  await page.evaluate(
+    (key) => window.localStorage.removeItem(key),
+    analysisGoalKey,
   );
 });
 
@@ -202,6 +207,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
       name: "เปรียบเทียบจาก Load Profile ที่บันทึกไว้",
     }),
   ).toBeVisible();
+  await expect(page.getByText("คำตอบจากข้อมูลชุดนี้")).toBeVisible();
+  await expect(page.getByText("หลักฐานสำคัญ")).toBeVisible();
+  await expect(page.getByText("สิ่งที่ควรทำต่อ")).toBeVisible();
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
   await page.goto("/analysis/solar");
@@ -214,7 +222,10 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
   await page.goto("/analysis/reports");
-  await expect(page.getByText("Normal / TOU")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "สถานะรายงานปัจจุบัน" }),
+  ).toBeVisible();
+  await expect(page.getByText("Normal / TOU", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("main").getByText("Solar", { exact: true }),
   ).toBeVisible();
@@ -275,6 +286,32 @@ test("the guided start and data hub share one production navigation", async ({
   }
 });
 
+test("start flow supports keyboard focus and a narrow mobile viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/analysis/new");
+
+  await page.keyboard.press("Tab");
+  const skipLink = page.getByRole("link", { name: "ข้ามไปเนื้อหาหลัก" });
+  await expect(skipLink).toBeFocused();
+  await expect(skipLink).toBeVisible();
+
+  const selectedChoices = page.locator('button[aria-pressed="true"]');
+  await expect(selectedChoices).toHaveCount(2);
+  const hasHorizontalOverflow = await page.evaluate(
+    () => document.documentElement.scrollWidth > window.innerWidth + 1,
+  );
+  expect(hasHorizontalOverflow).toBe(false);
+
+  await page.goto("/analysis/solar");
+  await expect(
+    page.locator(
+      'nav[aria-label="ส่วนการวิเคราะห์ Solar"] a[aria-current="page"]',
+    ),
+  ).toHaveCount(1);
+});
+
 test("the guided journey creates a load profile before collecting bills", async ({
   page,
 }) => {
@@ -287,6 +324,20 @@ test("the guided journey creates a load profile before collecting bills", async 
   await expect(primaryStart).toHaveAttribute(
     "href",
     /\/analysis\/load-data\/appliances/,
+  );
+  await expect(
+    page.getByRole("heading", { name: "สร้างรูปแบบการใช้ไฟ" }),
+  ).toBeVisible();
+  const billAfterProfile = page.getByRole("link", {
+    name: /เพิ่มบิลหลังมี Load Profile/,
+  });
+  await expect(billAfterProfile).toHaveAttribute(
+    "href",
+    /\/analysis\/load-data\/bills/,
+  );
+  const sectionOrder = await page.locator("h2").allTextContents();
+  expect(sectionOrder.indexOf("สร้างรูปแบบการใช้ไฟ")).toBeLessThan(
+    sectionOrder.indexOf("เพิ่มบิลเพื่อปรับความแม่นยำ"),
   );
 
   await page.goto("/analysis/load-data/appliances");
@@ -305,6 +356,80 @@ test("the guided journey creates a load profile before collecting bills", async 
     "aria-current",
     "step",
   );
+});
+
+test("each analysis goal prioritizes a distinct recommendation and destination", async ({
+  page,
+}) => {
+  const cases = [
+    {
+      goal: "save",
+      action: "ดูโอกาสลดค่าไฟ",
+      recommendation: "ตั้งเป้าลดจากค่าใช้จ่ายเฉลี่ยปัจจุบัน",
+      destination: "**/analysis/load-data/dashboard",
+    },
+    {
+      goal: "tou",
+      action: "เปรียบเทียบ Normal / TOU",
+      recommendation: "ตรวจว่ามีโหลดช่วง Peak มากแค่ไหน",
+      destination: "**/analysis/scenarios",
+    },
+    {
+      goal: "solar",
+      action: "ประเมินความคุ้มค่า Solar",
+      recommendation: "ใช้ปริมาณไฟรวมเป็นกรอบขนาด Solar",
+      destination: "**/analysis/solar?*",
+    },
+    {
+      goal: "understand",
+      action: "ดูภาพรวมการใช้ไฟ",
+      recommendation: "เริ่มอธิบายจากเดือนที่ใช้ไฟสูงสุด 2026-06",
+      destination: "**/analysis/load-data/dashboard",
+    },
+  ] as const;
+
+  for (const item of cases) {
+    await page.goto("/");
+    await page.evaluate(
+      ({ goalKey, billKey, goal }) => {
+        window.localStorage.setItem(goalKey, goal);
+        window.localStorage.setItem(
+          billKey,
+          JSON.stringify({
+            audience: "home",
+            mode: "user",
+            rows: [
+              {
+                id: `goal-${goal}`,
+                month: "2026-06",
+                energyKwh: "420",
+                totalCostThb: "1810",
+                authority: "PEA",
+                meterMode: "normal",
+              },
+            ],
+            updatedAt: new Date().toISOString(),
+          }),
+        );
+      },
+      {
+        goalKey: analysisGoalKey,
+        billKey: billWorkspaceKey,
+        goal: item.goal,
+      },
+    );
+
+    await page.goto("/analysis/load-data/bills");
+    await expect(
+      page.getByText(item.recommendation, { exact: true }),
+    ).toBeVisible();
+    await page
+      .getByRole("button", {
+        name: `บันทึกบิลแล้ว: ${item.action}`,
+      })
+      .click();
+    await page.waitForURL(item.destination);
+  }
 });
 
 test("experimental modules stay behind the unavailable boundary", async ({
@@ -459,6 +584,9 @@ test("bill workspace exports and imports JSON and CSV", async ({ page }) => {
   await page
     .getByRole("button", { name: "ทดลองด้วยข้อมูลตัวอย่าง" })
     .first()
+    .click();
+  await page
+    .getByText("นำเข้า ส่งออก และเครื่องมือ", { exact: true })
     .click();
 
   for (const name of ["ส่งออก JSON", "ส่งออก CSV"]) {

@@ -30,6 +30,7 @@ import {
 } from "@/lib/local-analysis-snapshot";
 import {
   analysisGoalCopy,
+  getAnalysisGoalGuidance,
   readAnalysisGoal,
   saveAnalysisGoal,
   type AnalysisGoal,
@@ -80,38 +81,23 @@ const dataOptions: Array<{
   badge: string;
 }> = [
   {
-    value: "bills",
-    title: "มีบิลค่าไฟ",
-    description:
-      "เริ่มง่ายที่สุด กรอกบิลย้อนหลังเพื่อดูค่าไฟเฉลี่ยและแนวโน้มเบื้องต้น",
-    href: "/analysis/load-data/bills",
-    icon: ReceiptText,
-    badge: "ข้อมูลจากบิล",
-  },
-  {
     value: "interval",
     title: "มีไฟล์โหลด CSV/XLSX",
     description:
       "ใช้ข้อมูลละเอียดระดับเวลา เพื่อเทียบ TOU และ Solar ได้แม่นขึ้น",
     href: "/analysis/load-data/import",
     icon: FileUp,
-    badge: "ละเอียด",
+    badge: "ถ้ามีไฟล์",
   },
   {
     value: "appliances",
-    title: "สร้างโหลดจากเครื่องใช้ไฟฟ้า",
+    title: "สร้างจากเครื่องใช้ไฟฟ้า",
     description:
       "กรอกจำนวนเครื่อง กำลังไฟ และเวลาเปิดใช้งาน เพื่อให้ระบบคำนวณโหลดก่อนวิเคราะห์",
     href: "/analysis/load-data/appliances",
     icon: PlugZap,
     badge: "แนะนำ",
   },
-];
-
-const orderedDataOptions = [
-  ...dataOptions.filter((item) => item.value === "appliances"),
-  ...dataOptions.filter((item) => item.value === "bills"),
-  ...dataOptions.filter((item) => item.value === "interval"),
 ];
 
 const nextJourneys: Array<{
@@ -167,6 +153,11 @@ export function StartAnalysisWizard() {
     [audience],
   );
   const goalPrimaryHref = appliancesHref;
+  const billHref = useMemo(
+    () =>
+      buildAnalysisStartHref("/analysis/load-data/bills", audience, "bills"),
+    [audience],
+  );
 
   function chooseGoal(value: AnalysisGoal) {
     setGoal(value);
@@ -190,7 +181,8 @@ export function StartAnalysisWizard() {
 
   return (
     <>
-      <section className="border-b border-border bg-card/72">
+      <section className="relative overflow-hidden border-b border-border/70 bg-card/55">
+        <div className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-1/2 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--primary)/0.12),transparent_55%)]" />
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:py-10">
           <div className="flex flex-col justify-center gap-6">
             <div className="flex flex-wrap gap-2">
@@ -198,7 +190,7 @@ export function StartAnalysisWizard() {
               <Badge variant="outline">ใช้เวลาประมาณ 5–10 นาที</Badge>
             </div>
             <div className="space-y-4">
-              <h1 className="max-w-3xl text-3xl font-semibold leading-tight tracking-normal text-foreground md:text-4xl">
+              <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.035em] text-foreground md:text-5xl">
                 เริ่มวิเคราะห์ค่าไฟแบบไม่ต้องรู้เทคนิคก่อน
               </h1>
               <p className="max-w-2xl text-base leading-7 text-muted-foreground">
@@ -209,21 +201,21 @@ export function StartAnalysisWizard() {
             </div>
             <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
               <a
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md bg-primary px-5 text-base font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full bg-primary px-6 text-base font-semibold text-primary-foreground shadow-md shadow-primary/15 transition hover:-translate-y-0.5 hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
                 href={goalPrimaryHref}
               >
                 {analysisGoalCopy[goal].nextStep}
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </a>
               <a
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card px-5 text-base font-medium text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-6 text-base font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 href={importHref}
               >
                 อัปโหลดไฟล์โหลด
                 <FileSpreadsheet aria-hidden="true" className="h-5 w-5" />
               </a>
               <button
-                className="inline-flex h-11 items-center justify-center gap-2 rounded-md border border-border bg-card px-5 text-base font-medium text-foreground transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-6 text-base font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
                 onClick={startDemoWorkspace}
                 type="button"
               >
@@ -251,7 +243,7 @@ export function StartAnalysisWizard() {
               />
               <StatusRow
                 label="คำแนะนำแรก"
-                value={analysisGoalCopy[goal].description}
+                value={getAnalysisGoalGuidance(goal).focus}
               />
               <StatusRow
                 label="ข้อมูลจะถูกส่งต่อ"
@@ -280,6 +272,7 @@ export function StartAnalysisWizard() {
               return (
                 <button
                   key={item.value}
+                  aria-pressed={selected}
                   className={`rounded-lg text-left transition focus:outline-none focus:ring-2 focus:ring-ring ${selected ? "ring-2 ring-primary" : ""}`}
                   onClick={() => chooseGoal(item.value)}
                   type="button"
@@ -296,6 +289,10 @@ export function StartAnalysisWizard() {
                         <h3 className="font-semibold">{copy.label}</h3>
                         <p className="mt-2 text-sm leading-6 text-muted-foreground">
                           {copy.description}
+                        </p>
+                        <p className="mt-3 border-t border-border/70 pt-3 text-xs leading-5 text-foreground">
+                          ระบบจะเน้น:{" "}
+                          {getAnalysisGoalGuidance(item.value).focus}
                         </p>
                       </div>
                       {selected ? (
@@ -325,6 +322,7 @@ export function StartAnalysisWizard() {
             return (
               <button
                 key={item.value}
+                aria-pressed={selected}
                 className={`rounded-lg text-left transition focus:outline-none focus:ring-2 focus:ring-ring ${
                   selected ? "ring-2 ring-primary" : ""
                 }`}
@@ -357,16 +355,20 @@ export function StartAnalysisWizard() {
         </div>
       </section>
 
-      <section className="border-y border-border bg-card/78">
+      <section className="border-y border-border bg-card/65">
         <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
           <div className="mb-5">
             <p className="text-sm font-medium text-primary">ขั้นที่ 3</p>
             <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-              เลือกข้อมูลที่มีตอนนี้
+              สร้างรูปแบบการใช้ไฟ
             </h2>
+            <p className="mt-2 text-sm leading-6 text-muted-foreground">
+              เลือกสร้างจากเครื่องใช้ไฟฟ้า หรือใช้ไฟล์โหลดที่มีอยู่
+              ทั้งสองทางจะได้ Load Profile ก่อนเพิ่มบิล
+            </p>
           </div>
-          <div className="grid gap-4 md:grid-cols-3">
-            {orderedDataOptions.map((item) => (
+          <div className="grid gap-4 md:grid-cols-2">
+            {dataOptions.map((item) => (
               <a
                 key={item.value}
                 href={buildAnalysisStartHref(item.href, audience, item.value)}
@@ -406,41 +408,80 @@ export function StartAnalysisWizard() {
 
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="mb-5">
-          <p className="text-sm font-medium text-primary">
-            หลังเตรียมข้อมูลแล้ว
-          </p>
+          <p className="text-sm font-medium text-primary">ขั้นที่ 4 · แนะนำ</p>
           <h2 className="mt-1 text-2xl font-semibold tracking-normal">
-            ต่อยอดหลังมีข้อมูลแล้ว
+            เพิ่มบิลเพื่อปรับความแม่นยำ
           </h2>
+          <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+            บิลไม่ได้ใช้สร้างช่วงเวลาโหลด
+            แต่ช่วยปรับปริมาณพลังงานและค่าใช้จ่ายรายเดือนให้ใกล้ข้อมูลจริง
+            คุณข้ามแล้วกลับมาเพิ่มภายหลังได้
+          </p>
         </div>
-        <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          {nextJourneys
-            .filter((item) => !item.experimental)
-            .map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
-              >
-                <Card className="h-full transition hover:border-primary">
-                  <CardContent className="flex h-full flex-col gap-3 p-5">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
-                      <item.icon aria-hidden="true" className="h-5 w-5" />
-                    </div>
-                    <div className="flex flex-1 flex-col">
-                      <h3 className="font-semibold">{item.title}</h3>
-                      <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
-                        {item.description}
-                      </p>
-                      <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
-                        เปิดดู
-                        <ArrowRight aria-hidden="true" className="h-4 w-4" />
-                      </span>
-                    </div>
-                  </CardContent>
-                </Card>
-              </a>
-            ))}
+        <a
+          href={billHref}
+          className="block rounded-2xl focus:outline-none focus:ring-2 focus:ring-ring"
+        >
+          <Card className="transition hover:-translate-y-0.5 hover:border-primary/60">
+            <CardContent className="flex flex-col gap-5 p-6 md:flex-row md:items-center md:justify-between md:p-7">
+              <div className="flex items-start gap-4">
+                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <ReceiptText aria-hidden="true" className="h-6 w-6" />
+                </span>
+                <div>
+                  <h3 className="font-semibold">เพิ่มข้อมูลบิลค่าไฟ</h3>
+                  <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                    ใช้บิลย้อนหลังอย่างน้อย 1 เดือน และแนะนำ 6–12
+                    เดือนเพื่อเห็นฤดูกาล
+                  </p>
+                </div>
+              </div>
+              <span className="inline-flex items-center gap-2 text-sm font-semibold text-primary">
+                เพิ่มบิลหลังมี Load Profile
+                <ArrowRight aria-hidden="true" className="h-4 w-4" />
+              </span>
+            </CardContent>
+          </Card>
+        </a>
+      </section>
+
+      <section className="border-t border-border/70 bg-muted/20">
+        <div className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+          <div className="mb-5">
+            <p className="text-sm font-medium text-primary">ขั้นที่ 5</p>
+            <h2 className="mt-1 text-2xl font-semibold tracking-normal">
+              วิเคราะห์ตามเป้าหมายที่เลือก
+            </h2>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+            {nextJourneys
+              .filter((item) => !item.experimental)
+              .map((item) => (
+                <a
+                  key={item.href}
+                  href={item.href}
+                  className="block rounded-lg focus:outline-none focus:ring-2 focus:ring-ring"
+                >
+                  <Card className="h-full transition hover:border-primary">
+                    <CardContent className="flex h-full flex-col gap-3 p-5">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-md bg-secondary text-secondary-foreground">
+                        <item.icon aria-hidden="true" className="h-5 w-5" />
+                      </div>
+                      <div className="flex flex-1 flex-col">
+                        <h3 className="font-semibold">{item.title}</h3>
+                        <p className="mt-2 flex-1 text-sm leading-6 text-muted-foreground">
+                          {item.description}
+                        </p>
+                        <span className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-primary">
+                          เปิดดู
+                          <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                        </span>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </a>
+              ))}
+          </div>
         </div>
       </section>
     </>

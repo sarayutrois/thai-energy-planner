@@ -26,7 +26,7 @@ export function LocalReportCard() {
   if (!snapshot) return null;
 
   return (
-    <Card>
+    <Card className="border-primary/30 bg-primary/5">
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
@@ -42,7 +42,7 @@ export function LocalReportCard() {
               {new Date(snapshot.createdAt).toLocaleString("th-TH")}
             </p>
           </div>
-          <Badge variant="success">Local</Badge>
+          <Badge variant="success">ข้อมูลล่าสุดในเครื่องนี้</Badge>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
@@ -58,7 +58,7 @@ export function LocalReportCard() {
           />
         </div>
         <a
-          className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
+          className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
           href={`/analysis/reports/${localBillReportId}`}
         >
           เปิดรายงานนี้

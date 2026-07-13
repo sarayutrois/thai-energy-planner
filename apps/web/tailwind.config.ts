@@ -65,16 +65,18 @@ const config: Config = {
         },
       },
       borderRadius: {
-        lg: "8px",
-        md: "6px",
-        sm: "4px",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 4px)",
+        sm: "calc(var(--radius) - 8px)",
       },
       fontFamily: {
         sans: ["var(--font-sans)", "Arial", "sans-serif"],
       },
       boxShadow: {
         panel:
-          "0 1px 2px rgb(15 23 42 / 0.08), 0 10px 30px rgb(15 23 42 / 0.06)",
+          "0 1px 2px rgb(15 23 42 / 0.05), 0 16px 45px rgb(15 23 42 / 0.07)",
+        float:
+          "0 8px 20px rgb(15 23 42 / 0.08), 0 24px 70px rgb(15 23 42 / 0.08)",
       },
     },
   },

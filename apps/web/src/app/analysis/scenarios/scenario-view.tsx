@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScenarioComparisonCharts } from "@/components/scenario-comparison-charts";
+import { DecisionStory } from "@/components/decision-story";
 
 export function ScenarioView({
   comparison,
@@ -23,9 +24,40 @@ export function ScenarioView({
     (scenario) => scenario.kind === "LOAD_SHIFT_TO_OFF_PEAK",
   );
   const loadShift = shifted?.calculationTrace.loadShift;
+  const primaryRecommendation = comparison.recommendations[0];
+  const bestScenario = comparison.bestScenario;
 
   return (
     <div className="grid gap-5">
+      <DecisionStory
+        title={formatScenarioName(bestScenario.name)}
+        reason={
+          primaryRecommendation?.explanation ??
+          formatBreakEvenSummary(comparison)
+        }
+        evidence={[
+          {
+            label: "ผลต่างจากแผนฐาน",
+            value: `${formatSigned(bestScenario.savingsAnnual)} บาท/ปี`,
+          },
+          {
+            label: "สัดส่วน Off-Peak ปัจจุบัน",
+            value: `${formatNumber(comparison.breakEven.currentOffPeakRatio)}%`,
+          },
+          {
+            label: "ข้อมูลที่ใช้เปรียบเทียบ",
+            value: `${comparison.dataQuality.metrics.intervalDays} วัน`,
+          },
+        ]}
+        limitations={comparison.dataQuality.limitations.slice(0, 2)}
+        nextAction={
+          primaryRecommendation?.nextAction ??
+          "ตรวจรายการเครื่องใช้ไฟฟ้าที่สามารถย้ายเวลาใช้งานได้ก่อนตัดสินใจเปลี่ยนมิเตอร์"
+        }
+        confidence={`ความน่าเชื่อถือ ${formatDataQuality(comparison.dataQuality.level)} · ${comparison.dataQuality.score}/100`}
+        tone={comparison.dataQuality.level === "LOW" ? "caution" : "positive"}
+      />
+
       <div className="grid gap-3 md:grid-cols-4">
         <Metric
           label="ทางเลือกที่เหมาะกับคุณ"
@@ -45,15 +77,21 @@ export function ScenarioView({
         />
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
+      <details className="group rounded-2xl border border-border/90 bg-card/80 shadow-panel">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 font-semibold md:p-6">
+          <span className="flex items-center gap-2">
             <TrendingDown aria-hidden="true" className="h-5 w-5 text-primary" />
-            เปรียบเทียบทางเลือกค่าไฟ
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto rounded-md border border-border">
+            ดูตารางและกราฟเปรียบเทียบ
+          </span>
+          <span className="text-sm font-medium text-muted-foreground group-open:hidden">
+            เปิดรายละเอียด
+          </span>
+          <span className="hidden text-sm font-medium text-muted-foreground group-open:inline">
+            ซ่อนรายละเอียด
+          </span>
+        </summary>
+        <div className="grid gap-5 border-t border-border/80 p-5 md:p-6">
+          <div className="overflow-x-auto rounded-xl border border-border">
             <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
               <thead className="bg-muted text-muted-foreground">
                 <tr>
@@ -111,46 +149,45 @@ export function ScenarioView({
               </tbody>
             </table>
           </div>
-        </CardContent>
-      </Card>
-
-      <ScenarioComparisonCharts
-        scenarios={allScenarios.map((scenario) => ({
-          name: formatScenarioName(scenario.name),
-          monthlyBill: scenario.monthlyEstimatedBill,
-          annualBill: scenario.annualEstimatedBill,
-          peakKwh: scenario.peakKwh,
-          offPeakKwh: scenario.offPeakKwh,
-          annualSavings: scenario.savingsAnnual,
-        }))}
-        loadShift={
-          loadShift
-            ? [
-                {
-                  label: "ก่อน Shift",
-                  peakKwh: loadShift.sourcePeakKwhBefore,
-                  offPeakKwh: loadShift.targetOffPeakKwhBefore,
-                },
-                {
-                  label: "หลัง Shift",
-                  peakKwh: loadShift.sourcePeakKwhAfter,
-                  offPeakKwh: loadShift.targetOffPeakKwhAfter,
-                },
-              ]
-            : [
-                {
-                  label: "แบบปกติ",
-                  peakKwh: comparison.baseline.peakKwh,
-                  offPeakKwh: comparison.baseline.offPeakKwh,
-                },
-                {
-                  label: "ทางเลือกที่เหมาะ",
-                  peakKwh: comparison.bestScenario.peakKwh,
-                  offPeakKwh: comparison.bestScenario.offPeakKwh,
-                },
-              ]
-        }
-      />
+          <ScenarioComparisonCharts
+            scenarios={allScenarios.map((scenario) => ({
+              name: formatScenarioName(scenario.name),
+              monthlyBill: scenario.monthlyEstimatedBill,
+              annualBill: scenario.annualEstimatedBill,
+              peakKwh: scenario.peakKwh,
+              offPeakKwh: scenario.offPeakKwh,
+              annualSavings: scenario.savingsAnnual,
+            }))}
+            loadShift={
+              loadShift
+                ? [
+                    {
+                      label: "ก่อน Shift",
+                      peakKwh: loadShift.sourcePeakKwhBefore,
+                      offPeakKwh: loadShift.targetOffPeakKwhBefore,
+                    },
+                    {
+                      label: "หลัง Shift",
+                      peakKwh: loadShift.sourcePeakKwhAfter,
+                      offPeakKwh: loadShift.targetOffPeakKwhAfter,
+                    },
+                  ]
+                : [
+                    {
+                      label: "แบบปกติ",
+                      peakKwh: comparison.baseline.peakKwh,
+                      offPeakKwh: comparison.baseline.offPeakKwh,
+                    },
+                    {
+                      label: "ทางเลือกที่เหมาะ",
+                      peakKwh: comparison.bestScenario.peakKwh,
+                      offPeakKwh: comparison.bestScenario.offPeakKwh,
+                    },
+                  ]
+            }
+          />
+        </div>
+      </details>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
         <Card>
@@ -273,10 +310,10 @@ function BreakdownTable({ scenario }: { scenario: ScenarioResult }) {
       <table className="w-full min-w-[720px] border-collapse text-left text-sm">
         <thead className="bg-muted text-muted-foreground">
           <tr>
-            <th className="px-3 py-2">Component</th>
-            <th className="px-3 py-2">Quantity</th>
-            <th className="px-3 py-2">Rate</th>
-            <th className="px-3 py-2">Amount</th>
+            <th className="px-3 py-2">องค์ประกอบค่าไฟ</th>
+            <th className="px-3 py-2">ปริมาณ</th>
+            <th className="px-3 py-2">อัตรา</th>
+            <th className="px-3 py-2">จำนวนเงิน</th>
           </tr>
         </thead>
         <tbody>
@@ -299,7 +336,7 @@ function BreakdownTable({ scenario }: { scenario: ScenarioResult }) {
             <td className="px-3 py-2">{formatNumber(scenario.vat)}</td>
           </tr>
           <tr className="border-t border-border font-semibold">
-            <td className="px-3 py-2">Grand total</td>
+            <td className="px-3 py-2">รวมสุทธิ</td>
             <td className="px-3 py-2">-</td>
             <td className="px-3 py-2">-</td>
             <td className="px-3 py-2">{formatNumber(scenario.grandTotal)}</td>
@@ -339,7 +376,12 @@ function formatScenarioName(value: string) {
 }
 
 function formatDataQuality(level: string) {
-  return level === "high" ? "สูง" : level === "medium" ? "ปานกลาง" : "ต่ำ";
+  const normalized = level.toLowerCase();
+  return normalized === "high"
+    ? "สูง"
+    : normalized === "medium"
+      ? "ปานกลาง"
+      : "ต่ำ";
 }
 
 function formatConfidence(value: string) {

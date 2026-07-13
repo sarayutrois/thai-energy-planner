@@ -17,17 +17,17 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-4 border-b border-border pb-6 md:flex-row md:items-end md:justify-between",
+        "flex flex-col gap-5 border-b border-border/80 pb-7 md:flex-row md:items-end md:justify-between md:pb-8",
         className,
       )}
     >
       <div className="max-w-3xl">
         <div className="mb-2 text-sm font-semibold text-primary">{eyebrow}</div>
-        <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+        <h1 className="text-3xl font-semibold leading-tight tracking-[-0.03em] md:text-[2.75rem]">
           {title}
         </h1>
         {description ? (
-          <p className="mt-3 text-base leading-7 text-muted-foreground">
+          <p className="mt-4 max-w-2xl text-base leading-7 text-muted-foreground md:text-lg md:leading-8">
             {description}
           </p>
         ) : null}

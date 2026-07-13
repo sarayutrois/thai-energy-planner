@@ -246,7 +246,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
               <CardTitle>Canonical load profile source</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
-              <InfoRow label="Profile" value={report.sourceProfile.name} />
+              <InfoRow label="Load Profile" value={report.sourceProfile.name} />
               <InfoRow
                 label="Source / quality"
                 value={`${report.sourceProfile.sourceKind} / ${report.sourceProfile.qualityLevel}`}
@@ -323,7 +323,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
 
         <Card>
           <CardHeader>
-            <CardTitle>Recommendations</CardTitle>
+            <CardTitle>คำแนะนำ</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-3">
             {report.recommendations.map((recommendation) => (
@@ -331,7 +331,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
                 key={`${recommendation.title}-${recommendation.nextAction ?? ""}`}
                 className="rounded-md border border-border p-4"
               >
-                <Badge variant="outline">Recommendation</Badge>
+                <Badge variant="outline">คำแนะนำ</Badge>
                 <p className="mt-3 font-semibold">{recommendation.title}</p>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   {recommendation.description}
