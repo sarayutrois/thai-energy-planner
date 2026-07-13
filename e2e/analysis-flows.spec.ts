@@ -16,7 +16,7 @@ test("legacy analysis entry redirects to the start flow", async ({ page }) => {
 test("Flow A: user without data sees no fabricated KPI or export", async ({ page }) => {
   await page.goto("/analysis/load-data/bills");
   await expect(page.getByRole("heading", { name: "ยังไม่มีข้อมูลค่าไฟ" })).toBeVisible();
-  await expect(page.getByText("จำนวนเดือน").locator("..")).toContainText("N/A");
+  await expect(page.getByText("จำนวนเดือน").locator("..")).toContainText("0");
 
   await page.goto("/analysis/scenarios");
   await expect(page.getByRole("heading", { name: "ยังไม่มี Load Profile สำหรับเปรียบเทียบ" })).toBeVisible();
@@ -46,7 +46,7 @@ test("invalid saved bills fall back to an empty workspace", async ({ page }) => 
   await page.reload();
 
   await expect(page.getByRole("heading", { name: "ยังไม่มีข้อมูลค่าไฟ" })).toBeVisible();
-  await expect(page.getByText("จำนวนเดือน").locator("..")).toContainText("N/A");
+  await expect(page.getByText("จำนวนเดือน").locator("..")).toContainText("0");
 });
 
 test("Flow C: user bills and a saved Load Profile produce current reports", async ({ page }) => {

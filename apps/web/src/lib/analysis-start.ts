@@ -41,7 +41,7 @@ const sourceCopy: Record<
   },
   interval: {
     label: "ไฟล์โหลด CSV/XLSX",
-    nextAction: "อัปโหลดไฟล์โหลด ตรวจ column mapping แล้วดู preview ก่อนวิเคราะห์"
+    nextAction: "เลือกไฟล์ข้อมูล ตรวจการจับคู่คอลัมน์ แล้วดูตัวอย่างข้อมูลก่อนวิเคราะห์"
   },
   appliances: {
     label: "รายการเครื่องใช้ไฟฟ้า",

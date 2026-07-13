@@ -179,7 +179,7 @@ export function StartAnalysisWizard() {
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:py-10">
           <div className="flex flex-col justify-center gap-6">
             <div className="flex flex-wrap gap-2">
-              <Badge>Start Analysis</Badge>
+              <Badge>เริ่มวิเคราะห์</Badge>
               <Badge variant="outline">ใช้งานแบบทีละขั้น</Badge>
             </div>
             <div className="space-y-4">
@@ -239,11 +239,11 @@ export function StartAnalysisWizard() {
               />
               <StatusRow
                 label="คำแนะนำแรก"
-                value="เริ่มจากข้อมูลที่มีอยู่จริงก่อน แล้วค่อยทดลอง scenario"
+                value="เริ่มจากข้อมูลที่มีอยู่จริงก่อน แล้วค่อยทดลองเปรียบเทียบทางเลือก"
               />
               <StatusRow
                 label="ข้อมูลจะถูกส่งต่อ"
-                value="ลิงก์ถัดไปจะติด audience/source เพื่อให้หน้าปลายทางแนะนำต่อได้"
+                value="ระบบจะจดจำตัวเลือกนี้ เพื่อแนะนำขั้นตอนถัดไปให้เหมาะกับข้อมูลของคุณ"
               />
             </CardContent>
           </Card>

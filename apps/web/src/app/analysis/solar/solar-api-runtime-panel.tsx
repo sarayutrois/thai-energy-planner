@@ -74,8 +74,8 @@ export function SolarApiRuntimePanel({ settings }: { settings: SolarDemoSettings
 
   if (!snapshot) return (
     <Card className="border-dashed">
-      <CardHeader><CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5 text-primary" />ยังไม่มี Load Profile สำหรับคำนวณ</CardTitle></CardHeader>
-      <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground md:flex-row md:items-center md:justify-between"><p>กรุณาสร้างหรือนำเข้า Load Profile ก่อน ระบบจึงจะคำนวณจากข้อมูลการใช้ไฟของคุณได้</p><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium text-foreground hover:bg-muted" href="/analysis/load-data">ไปเตรียมข้อมูลการใช้ไฟ</a></CardContent>
+      <CardHeader><CardTitle className="flex items-center gap-2"><FileUp className="h-5 w-5 text-primary" />ข้อมูลยังไม่เพียงพอสำหรับประเมิน Solar</CardTitle></CardHeader>
+      <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground"><p>สร้างหรือนำเข้า Load Profile ก่อน เพื่อคำนวณขนาดระบบ ระยะเวลาคืนทุน และผลประหยัดได้อย่างน่าเชื่อถือ</p><div className="flex flex-wrap gap-2"><a className="inline-flex h-10 items-center rounded-md bg-primary px-4 font-medium text-primary-foreground hover:bg-primary/90" href="/analysis/load-data/appliances">สร้าง Load Profile</a><a className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium text-foreground hover:bg-muted" href="/analysis/load-data/import">นำเข้าข้อมูลการใช้ไฟ</a></div></CardContent>
     </Card>
   );
 

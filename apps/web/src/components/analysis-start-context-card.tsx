@@ -21,7 +21,7 @@ export function AnalysisStartContextCard({
     <Card className="mt-6 border-primary/40 bg-primary/5">
       <CardHeader>
         <div className="flex flex-wrap items-center gap-2">
-          <Badge>มาจาก Start Analysis</Badge>
+          <Badge>เส้นทางที่เลือก</Badge>
           <Badge variant="outline">{audienceLabel}</Badge>
           <Badge variant="outline">{sourceLabel}</Badge>
         </div>

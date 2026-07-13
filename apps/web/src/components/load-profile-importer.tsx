@@ -21,7 +21,7 @@ export function LoadProfileImporter() {
   const [error, setError] = useState<string | null>(null);
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [sourceName, setSourceName] = useState("Uploaded load profile");
+  const [sourceName, setSourceName] = useState("ข้อมูล Load Profile ที่นำเข้า");
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(60);
   const [mapping, setMapping] = useState({
     timestamp: "timestamp",
@@ -118,7 +118,7 @@ export function LoadProfileImporter() {
     }
   }
 
-  function saveForAnalysis(sourceName = "Uploaded load profile") {
+  function saveForAnalysis(sourceName = "ข้อมูล Load Profile ที่นำเข้า") {
     if (!preview?.canImport || preview.rowCount === 0) return;
     const resolvedIntervalMinutes =
       preview.detectedIntervalMinutes ?? intervalMinutes;
@@ -149,7 +149,7 @@ export function LoadProfileImporter() {
     <div className="grid gap-5">
       <div className="grid gap-4 rounded-lg border border-border bg-card p-5 md:grid-cols-4">
         <label className="grid gap-2 text-sm font-medium">
-          File
+          ไฟล์ข้อมูล
           <input
             accept=".csv,.xlsx"
             className="rounded-md border border-input bg-white px-3 py-2 text-sm"
@@ -160,7 +160,7 @@ export function LoadProfileImporter() {
           />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Timestamp column
+          คอลัมน์วันและเวลา
           <input
             className="h-10 rounded-md border border-input px-3 text-sm"
             onChange={(event) =>
@@ -173,7 +173,7 @@ export function LoadProfileImporter() {
           />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          energy_kwh column
+          คอลัมน์พลังงาน (kWh)
           <input
             className="h-10 rounded-md border border-input px-3 text-sm"
             onChange={(event) =>
@@ -186,7 +186,7 @@ export function LoadProfileImporter() {
           />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          power_kw column
+          คอลัมน์กำลังไฟ (kW)
           <input
             className="h-10 rounded-md border border-input px-3 text-sm"
             onChange={(event) =>
@@ -199,7 +199,7 @@ export function LoadProfileImporter() {
           />
         </label>
         <label className="grid gap-2 text-sm font-medium">
-          Interval
+          ช่วงเวลา
           <select
             className="h-10 rounded-md border border-input px-3 text-sm"
             onChange={(event) =>
@@ -223,7 +223,7 @@ export function LoadProfileImporter() {
             โหลดชุดข้อมูลสำหรับทดสอบ (ไม่ใช่ข้อมูลจริง)
           </Button>
           <Button onClick={() => void loadTestCsv()} variant="outline">
-            ใช้ test CSV
+            ทดลองด้วยไฟล์ตัวอย่าง
           </Button>
         </div>
       </div>
@@ -231,25 +231,25 @@ export function LoadProfileImporter() {
       {isLoading ? <StateBox text="กำลังอ่านไฟล์..." /> : null}
       {error ? <StateBox tone="error" text={error} /> : null}
       {!preview && !isLoading && !error ? (
-        <StateBox text="เลือกไฟล์ CSV/XLSX เพื่อดู Data Preview ก่อน import จริง" />
+        <StateBox text="เลือกไฟล์ CSV/XLSX เพื่อดูตัวอย่างข้อมูลก่อนนำเข้าจริง" />
       ) : null}
 
       {preview ? (
         <div className="grid gap-5">
           <div className="grid gap-3 md:grid-cols-5">
-            <Metric label="Rows" value={preview.rowCount.toString()} />
+            <Metric label="จำนวนแถว" value={preview.rowCount.toString()} />
             <Metric
-              label="Interval"
+              label="ช่วงเวลา"
               value={
                 preview.detectedIntervalMinutes
                   ? `${preview.detectedIntervalMinutes} นาที`
                   : "-"
               }
             />
-            <Metric label="Total kWh" value={formatNumber(preview.totalKwh)} />
-            <Metric label="Peak kW" value={formatNumber(preview.peakKw)} />
+            <Metric label="พลังงานรวม (kWh)" value={formatNumber(preview.totalKwh)} />
+            <Metric label="กำลังไฟสูงสุด (kW)" value={formatNumber(preview.peakKw)} />
             <Metric
-              label="Warnings/Errors"
+              label="คำเตือน/ข้อผิดพลาด"
               value={`${preview.warningCount}/${preview.errorCount}`}
             />
           </div>
@@ -257,13 +257,13 @@ export function LoadProfileImporter() {
           {preview.canImport && preview.rowCount > 0 ? (
             <div className="flex flex-wrap items-center gap-3 rounded-md border border-success bg-success/10 p-4 text-sm">
               <Button onClick={() => saveForAnalysis(sourceName)} type="button">
-                บันทึก profile นี้เพื่อใช้วิเคราะห์ Solar
+                บันทึกข้อมูลนี้เพื่อใช้วิเคราะห์ Solar
               </Button>
               <a
                 className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium hover:bg-muted"
                 href="/analysis/solar?source=interval"
               >
-                ไปหน้า Solar Analysis
+                ไปหน้าประเมิน Solar
               </a>
               <span className="text-muted-foreground">
                 {savedMessage ??
@@ -274,7 +274,7 @@ export function LoadProfileImporter() {
 
           {preview.issues.length > 0 ? (
             <div className="rounded-md border border-border bg-card p-4">
-              <h3 className="font-semibold">Validation issues</h3>
+              <h3 className="font-semibold">รายการที่ควรตรวจสอบ</h3>
               <ul className="mt-3 grid gap-2 text-sm">
                 {preview.issues.map((issue, index) => (
                   <li
