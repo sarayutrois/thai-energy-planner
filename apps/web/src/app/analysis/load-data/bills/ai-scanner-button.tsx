@@ -24,7 +24,7 @@ export function AiScannerButton({ onScanSuccess }: { onScanSuccess: (bill: Month
 
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.error || "Failed to scan bill");
+        throw new Error(errorData.error || "สแกนบิลไม่สำเร็จ");
       }
 
       const data = await response.json();
@@ -38,12 +38,12 @@ export function AiScannerButton({ onScanSuccess }: { onScanSuccess: (bill: Month
           authority: data.authority === "PEA" || data.authority === "MEA" ? data.authority : undefined,
         });
       } else {
-        alert("AI could not extract all required fields from the image.");
+        alert("AI อ่านข้อมูลที่จำเป็นจากไฟล์ได้ไม่ครบ กรุณาตรวจสอบไฟล์หรือลองกรอกข้อมูลด้วยตนเอง");
       }
     } catch (error: unknown) {
       const msg = error instanceof Error ? error.message : String(error);
       console.error(error);
-      alert("Error scanning bill: " + msg);
+      alert("สแกนบิลไม่สำเร็จ: " + msg);
     } finally {
       setIsScanning(false);
       if (fileInputRef.current) {

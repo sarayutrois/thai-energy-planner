@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
   if (blocked) return blocked;
   if (!isGeminiConfigured() || !genAI) {
     return NextResponse.json(
-      { error: "Gemini API key not configured" },
+      { error: "ระบบสแกนบิลด้วย AI ยังไม่พร้อมใช้งาน" },
       { status: 500 },
     );
   }
@@ -21,7 +21,7 @@ export async function POST(req: NextRequest) {
     const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
+      return NextResponse.json({ error: "กรุณาเลือกไฟล์บิล" }, { status: 400 });
     }
 
     // Validate file type
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json(
         {
           error:
-            "Unsupported file type. Please upload a PDF or image (PNG/JPG/WebP).",
+            "รองรับเฉพาะไฟล์ PDF หรือรูปภาพ PNG, JPG และ WebP",
         },
         { status: 400 },
       );
@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     const maxSize = 10 * 1024 * 1024;
     if (file.size > maxSize) {
       return NextResponse.json(
-        { error: "File too large. Maximum size is 10 MB." },
+        { error: "ไฟล์มีขนาดใหญ่เกิน 10 MB" },
         { status: 400 },
       );
     }
@@ -138,6 +138,6 @@ Ensure the output is ONLY a valid JSON object with these 4 keys. No markdown blo
     );
   } catch (error: unknown) {
     console.error("Error scanning bill:", error);
-    return NextResponse.json({ error: "Failed to scan bill" }, { status: 500 });
+    return NextResponse.json({ error: "สแกนบิลไม่สำเร็จ กรุณาลองใหม่อีกครั้ง" }, { status: 500 });
   }
 }

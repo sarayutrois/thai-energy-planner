@@ -13,8 +13,8 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
         <MainNav />
         <section className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 lg:py-10">
           <div className="mb-5 flex flex-wrap gap-2 print:hidden">
-            <Badge>Report Preview</Badge>
-            <Badge variant="outline">Local bill snapshot</Badge>
+            <Badge>ตัวอย่างรายงาน</Badge>
+            <Badge variant="outline">ข้อมูลบิลที่บันทึกในอุปกรณ์นี้</Badge>
           </div>
           <LocalBillReport />
         </section>
@@ -28,8 +28,8 @@ export default async function AnalysisReportDetailPage({ params }: { params: Pro
         <MainNav />
         <section className="mx-auto w-full max-w-6xl px-4 py-8 md:px-6 lg:py-10">
           <div className="mb-5 flex flex-wrap gap-2 print:hidden">
-            <Badge>Report Preview</Badge>
-            <Badge variant="outline">Saved analysis report</Badge>
+            <Badge>ตัวอย่างรายงาน</Badge>
+            <Badge variant="outline">รายงานผลวิเคราะห์ที่บันทึกไว้</Badge>
           </div>
           <LocalAnalysisReport id={id} />
         </section>

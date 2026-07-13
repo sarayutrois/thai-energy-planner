@@ -68,7 +68,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ ok: true, preview });
     }
 
-    if (fileName.endsWith(".xlsx") && process.env.NODE_ENV !== "production") {
+    if (fileName.endsWith(".xlsx")) {
       const preview = parseXlsxLoadProfile(await file.arrayBuffer(), {
         mapping,
         intervalMinutes: intervalMinutes as 15 | 30 | 60,
@@ -80,10 +80,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         ok: false,
-        error:
-          process.env.NODE_ENV === "production"
-            ? "Only CSV files are supported in production."
-            : "Only CSV and XLSX files are supported.",
+        error: "Only CSV and XLSX files are supported.",
       },
       { status: 400 },
     );

@@ -6,7 +6,7 @@
 
 Phase 1 Foundation ถูกวางเป็น monorepo แล้ว โดยแยก UI ออกจาก calculation/tariff/report engine ตั้งแต่ต้น เพื่อไม่ให้สูตรค่าไฟไปปนอยู่ใน React component
 
-Phase 2 Tariff Engine เพิ่ม calculation engine สำหรับมิเตอร์ปกติและ TOU แบบ configuration-driven พร้อม calculation breakdown, tariff snapshot, synthetic draft seed data และหน้า developer demo ที่ `/tariff-demo`
+Phase 2 Tariff Engine เพิ่ม calculation engine สำหรับมิเตอร์ปกติและ TOU แบบ configuration-driven พร้อม calculation breakdown, tariff snapshot, synthetic draft seed data และหน้าตรวจสอบอัตราค่าไฟที่ `/analysis/tariff`
 
 Phase 3 Load Data เพิ่ม validation/preview สำหรับบิลย้อนหลัง, CSV/XLSX load profile import, appliance load builder และ dashboard เบื้องต้นที่ใช้ TOU logic จาก Tariff Engine
 
@@ -87,7 +87,7 @@ npm run dev
 
 เว็บจะอยู่ที่ `http://localhost:3000`
 
-หน้า Tariff Engine demo อยู่ที่ `http://localhost:3000/tariff-demo`
+หน้าตรวจสอบอัตราค่าไฟอยู่ที่ `http://localhost:3000/analysis/tariff`
 
 หน้า Load Data เริ่มที่ `http://localhost:3000/analysis/load-data`
 

@@ -25,7 +25,7 @@ type NavigationItem = {
 const navigationItems: NavigationItem[] = [
   { label: "เริ่มวิเคราะห์", href: "/analysis/new", icon: Gauge },
   { label: "ข้อมูลการใช้ไฟ", href: "/analysis/load-data", icon: UploadCloud },
-  { label: "ค่าไฟ", href: "/tariff-demo", icon: Calculator },
+  { label: "ค่าไฟ", href: "/analysis/tariff", icon: Calculator },
   { label: "เปรียบเทียบแผน", href: "/analysis/scenarios", icon: BarChart3 },
   { label: "Solar", href: "/analysis/solar", icon: SunMedium },
   { label: "รายงาน", href: "/analysis/reports", icon: FileText }
@@ -44,7 +44,7 @@ const breadcrumbLabels: Array<{ href: string; label: string }> = [
   { href: "/analysis/ev", label: "EV" },
   { href: "/analysis/reports", label: "รายงาน" },
   { href: "/analysis/new", label: "เริ่มวิเคราะห์" },
-  { href: "/tariff-demo", label: "ค่าไฟ" }
+  { href: "/analysis/tariff", label: "ค่าไฟ" }
 ];
 
 function isActive(pathname: string, href: string) {

@@ -8,6 +8,15 @@ const nextConfig = {
     "@thai-energy-planner/calculation-engine",
     "@thai-energy-planner/report-engine"
   ],
+  async redirects() {
+    return [
+      {
+        source: "/tariff-demo",
+        destination: "/analysis/tariff",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

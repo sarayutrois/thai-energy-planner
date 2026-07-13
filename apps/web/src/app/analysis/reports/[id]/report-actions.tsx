@@ -14,7 +14,7 @@ export function ReportActions({
   csvRows,
   fileBaseName = "thai-energy-planner-report",
   jsonData,
-  pdfLabel = "Export PDF",
+  pdfLabel = "ดาวน์โหลด PDF",
 }: {
   csvRows?: CsvRow[] | undefined;
   fileBaseName?: string | undefined;
@@ -29,7 +29,7 @@ export function ReportActions({
     <div className="flex flex-wrap gap-2 print:hidden">
       <Button onClick={() => window.print()} type="button">
         <Printer aria-hidden="true" className="h-4 w-4" />
-        Print
+        พิมพ์
       </Button>
       <Button
         disabled={!canExportPdf}
@@ -61,7 +61,7 @@ export function ReportActions({
         variant="outline"
       >
         <FileJson aria-hidden="true" className="h-4 w-4" />
-        Export JSON
+        ดาวน์โหลด JSON
       </Button>
       <Button
         disabled={!canExportCsv}
@@ -77,7 +77,7 @@ export function ReportActions({
         variant="outline"
       >
         <FileSpreadsheet aria-hidden="true" className="h-4 w-4" />
-        Export CSV
+        ดาวน์โหลด CSV
       </Button>
     </div>
   );
