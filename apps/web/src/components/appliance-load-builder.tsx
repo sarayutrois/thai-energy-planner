@@ -403,7 +403,7 @@ export function ApplianceLoadBuilder({
     <div className="grid gap-6">
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/35 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <p className="text-sm font-semibold">ขั้นตอนที่ 1 จาก 4 · สร้าง Load Profile</p>
+          <p className="text-sm font-semibold">สร้าง Load Profile จากข้อมูลเครื่องใช้ไฟฟ้า</p>
           <p className="mt-1 text-xs text-muted-foreground">ข้อมูลหน้านี้จะใช้ต่อในการเปรียบเทียบค่าไฟ ประเมิน Solar และจัดทำรายงาน</p>
         </div>
         <div className="flex items-center gap-2 text-xs text-muted-foreground"><Save className="h-4 w-4" />{autoSaveLabel}</div>

@@ -1,7 +1,6 @@
 import { ShieldCheck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MainNav } from "@/components/main-nav";
 import { LocalAnalysisReportCards } from "./local-analysis-report-cards";
 import { LocalReportCard } from "./local-report-card";
 import { ReportReadinessPanel } from "./report-readiness-panel";
@@ -10,7 +9,6 @@ import { PageHeader } from "@/components/ui/page-layout";
 export default function AnalysisReportsPage() {
   return (
     <main className="min-h-screen">
-      <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <PageHeader eyebrow="ผลลัพธ์ · รายงาน" title="รายงานผลวิเคราะห์" description="รวมรายงานที่สร้างจากบิลและผลวิเคราะห์ที่บันทึกไว้ หากยังไม่มีรายงาน ให้เริ่มจากเพิ่มบิลหรือวิเคราะห์ค่าไฟและ Solar ก่อน" />
         <div className="mt-6 grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">

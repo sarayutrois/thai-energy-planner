@@ -1,7 +1,6 @@
 import { ClipboardList, FileUp, Gauge, PlugZap } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { MainNav } from "@/components/main-nav";
 import { PageHeader } from "@/components/ui/page-layout";
 
 const methods = [
@@ -14,7 +13,6 @@ const methods = [
 export default function LoadDataPage() {
   return (
     <main className="min-h-screen bg-muted/20">
-      <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <PageHeader eyebrow="ข้อมูลของฉัน" title="เริ่มจากข้อมูลการใช้ไฟที่คุณมี" description="เลือกวิธีที่ตรงกับข้อมูลของคุณที่สุด ระบบจะแจ้งระดับความน่าเชื่อถือของผล และช่วยพาไปยังขั้นต่อไป" />
         <div className="mt-8 grid gap-4 md:grid-cols-2 lg:grid-cols-4">

@@ -146,6 +146,23 @@ test("production navigation uses Thai theme label and tariff route", async ({ pa
   await expect(page.getByRole("heading", { name: "ตรวจสอบอัตราค่าไฟที่ใช้คำนวณ" })).toBeVisible();
 });
 
+test("the guided start and data hub share one production navigation", async ({ page }) => {
+  for (const path of ["/analysis/new", "/analysis/load-data", "/analysis/load-data/appliances"]) {
+    await page.goto(path);
+
+    const header = page.locator("header");
+    await expect(header.locator('nav[aria-label="เมนูหลัก"] > div')).toHaveCount(5);
+    await expect(header.locator('a[href="/analysis/battery"]')).toHaveCount(0);
+    await expect(header.locator('a[href="/analysis/ev"]')).toHaveCount(0);
+    await expect(header.locator('a[href="/analysis/ecosystem"]')).toHaveCount(0);
+
+    const content = await page.locator("main").innerText();
+    expect(content).not.toContain("Phase 3");
+    expect(content).not.toContain("เปิดหน้าทดสอบ");
+    expect(content).not.toContain("ขั้นตอนที่ 1 จาก 4");
+  }
+});
+
 test("sample CSV downloads with the expected response headers", async ({ page }) => {
   await page.goto("/analysis/load-data/import");
   const downloadPromise = page.waitForEvent("download");

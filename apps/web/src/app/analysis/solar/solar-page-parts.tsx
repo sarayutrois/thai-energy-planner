@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
 import { AlertTriangle, BadgeCheck, BarChart3, Calculator, CircleDollarSign, Info, Settings, ShieldCheck, SunMedium } from "lucide-react";
-import { MainNav } from "@/components/main-nav";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -29,7 +28,6 @@ const tabs = [
 export function SolarPageShell({ active, queryString, children }: { active: string; queryString: string; children: ReactNode }) {
   return (
     <main className="min-h-screen">
-      <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <PageHeader eyebrow={<><Badge>ประเมินโซลาร์เซลล์</Badge><Badge className="ml-2" variant="warning">ข้อมูลเพื่อประกอบการตัดสินใจ</Badge></>} title="จำลองการติดตั้งโซลาร์เซลล์บนหลังคา" description="ประเมินสัดส่วนไฟ Solar ที่ใช้เอง ระยะเวลาคืนทุน ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์ โดยไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด" />
         <div className="mt-5 flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">

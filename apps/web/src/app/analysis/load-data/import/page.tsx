@@ -3,7 +3,6 @@ import { AnalysisStartContextCard } from "@/components/analysis-start-context-ca
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadProfileImporter } from "@/components/load-profile-importer";
-import { MainNav } from "@/components/main-nav";
 import { getAnalysisStartContext, type AnalysisStartSearchParams } from "@/lib/analysis-start";
 
 export default async function ImportLoadPage({ searchParams }: { searchParams?: Promise<AnalysisStartSearchParams> }) {
@@ -11,7 +10,6 @@ export default async function ImportLoadPage({ searchParams }: { searchParams?: 
 
   return (
     <main className="min-h-screen">
-      <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="mb-5 flex flex-wrap gap-2">
           <Badge>นำเข้าข้อมูลจาก CSV หรือ XLSX</Badge>

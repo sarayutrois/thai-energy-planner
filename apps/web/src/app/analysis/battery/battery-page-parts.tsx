@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { BatteryAnalysisResult } from "@thai-energy-planner/calculation-engine";
 import { BatteryCharging, Calculator, Database, Gauge, Settings } from "lucide-react";
-import { MainNav } from "@/components/main-nav";
 import { BatteryAnalysisCharts } from "@/components/battery-ev-charts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,7 +35,6 @@ export function BatteryPageShell({
 }) {
   return (
     <main className="min-h-screen">
-      <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
           <Badge>การประเมินแบตเตอรี่</Badge>

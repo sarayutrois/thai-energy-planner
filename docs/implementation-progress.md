@@ -1,5 +1,36 @@
 # ความคืบหน้าการปรับปรุง Thai Energy Planner
 
+## Recovery Phase 1 — Production UI audit
+
+- สถานะ: เสร็จแล้ว
+- ตรวจหน้า production `/analysis/new` และ `/analysis/load-data` จาก DOM จริง: ทั้งคู่ใช้ AppShell เดียวกัน มีเมนู ภาพรวม / ข้อมูลของฉัน / การวิเคราะห์ / ผลลัพธ์ / ข้อมูลอ้างอิง และไม่มี Battery, EV หรือ Ecosystem ในเมนูหลัก
+- ตรวจ Acceptance Criteria: ไม่พบข้อความ `Phase 3 Load Data` หรือ `เปิดหน้าทดสอบ` บนสองหน้าดังกล่าว; `/analysis/load-data` เป็นศูนย์กลางข้อมูลของฉัน จึงไม่ redirect เพื่อไม่ทำลาย flow เดิม
+- การทดสอบ: browser production snapshot และ HTTP route checks ผ่าน
+
+## Recovery Phase 2 — Single navigation cleanup
+
+- สถานะ: เสร็จแล้ว
+- ลบ `MainNav` ที่เป็น component ว่างและเอา import/markup ออกจากหน้าที่เคยอ้างถึง เพื่อให้มี navigation source เดียวคือ AppShell
+- เพิ่ม regression test ครอบคลุม `/analysis/new` และ `/analysis/load-data`: มี navigation group 5 กลุ่ม, ไม่มีลิงก์ Battery/EV/Ecosystem และไม่มีข้อความ Prototype ที่ห้ามแสดง
+- ตรวจ Acceptance Criteria: navigation เป็นระบบเดียวกันทุกหน้า; deep link ของโมดูลที่ยังไม่พร้อมยังถูก middleware พาไปหน้า unavailable
+- การทดสอบ: `npm run typecheck` และ `npm run lint` ผ่าน
+
+## Recovery Phase 3 — Solar and end-to-end workflow verification
+
+- สถานะ: เสร็จแล้ว
+- ลบข้อความ wizard `ขั้นตอนที่ 1 จาก 4` ออกจากหน้าสร้าง Load Profile และคงคำอธิบายที่บอกผลลัพธ์ของงานแทน
+- ตรวจ Solar production ใน session ใหม่: หน้า render ครบและไม่มี console error แม้ browser automation จะ timeout ระหว่างคำสั่งนำทาง/คลิก; ตรวจ DOM หลัง timeout ยืนยันหน้า Solar พร้อมใช้งาน
+- ตรวจ flow ใน E2E isolated browser context: บิลผู้ใช้ + Load Profile → TOU → Solar → บันทึกรายงาน; ตรวจ export JSON/CSV/PDF และ print ของรายงาน
+- ตรวจ Acceptance Criteria: ไม่มีคำว่า Phase/หน้าทดสอบหรือ wizard header เดิมใน route หลัก, Solar ไม่มี runtime failure และ workflow ข้อมูลถึงรายงานถูกครอบคลุมด้วย regression test
+- การทดสอบ: `npm run test:e2e` ผ่าน 15 tests
+
+## Recovery Phase 4 — Release verification
+
+- สถานะ: เสร็จแล้ว
+- ตรวจ Acceptance Criteria: `MainNav` ถูกลบและไม่มีหน้าใดอ้างอิง; AppShell เป็น navigation เดียว; module Battery/EV/Ecosystem ยังไม่ถูกเสนอในเมนูและ deep link ถูกกั้นไว้
+- การทดสอบ: `npm test` ผ่าน 241 tests, `npm run typecheck` ผ่าน, `npm run lint` ผ่าน, `npm run build` ผ่าน (54 routes), `npm run test:e2e` ผ่าน 15 tests และ `git diff --check` ผ่าน
+- หมายเหตุ: build เตือนเรื่อง Next.js ESLint plugin configuration ที่มีอยู่เดิม แต่ไม่ทำให้ lint หรือ build ล้มเหลว
+
 ## Phase 0 — Audit Current State
 
 - สถานะ: เสร็จแล้ว

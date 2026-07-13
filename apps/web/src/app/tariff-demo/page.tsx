@@ -3,7 +3,6 @@ import type { CalculationLineItem, TariffCalculationResult } from "@thai-energy-
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { MainNav } from "@/components/main-nav";
 import { getOfficialTariffDemo, type TariffDemoSearchParams } from "@/lib/tariff-demo";
 
 export default async function TariffDemoPage({
@@ -17,7 +16,6 @@ export default async function TariffDemoPage({
 
   return (
     <main className="min-h-screen">
-      <MainNav />
       <section className="border-b border-border bg-white/78">
         <div className="mx-auto flex w-full max-w-7xl flex-col gap-5 px-4 py-8 md:px-6 lg:py-10">
           <div className="flex flex-wrap gap-2">

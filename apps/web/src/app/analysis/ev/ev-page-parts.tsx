@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import type { EvScenarioComparisonResult, EvScenarioResult, Phase6DemoInput } from "@thai-energy-planner/calculation-engine";
 import { BatteryCharging, CarFront, Clock, Database, PlugZap } from "lucide-react";
-import { MainNav } from "@/components/main-nav";
 import { EvAnalysisCharts } from "@/components/battery-ev-charts";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -31,7 +30,6 @@ export function EvPageShell({
 }) {
   return (
     <main className="min-h-screen">
-      <MainNav />
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
         <div className="flex flex-wrap gap-2">
           <Badge>การประเมินรถยนต์ไฟฟ้า</Badge>
