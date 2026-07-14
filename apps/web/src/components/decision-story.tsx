@@ -73,7 +73,9 @@ export function DecisionStory({
               className="mt-0.5 h-5 w-5 shrink-0 text-success"
             />
             <div>
-              <p className="text-sm font-semibold">เหตุผลที่ระบบเลือกคำตอบนี้</p>
+              <p className="text-sm font-semibold">
+                เหตุผลที่ระบบเลือกคำตอบนี้
+              </p>
               <p className="mt-1 text-base leading-7 text-foreground/80">
                 {reason}
               </p>
@@ -82,7 +84,9 @@ export function DecisionStory({
         </div>
 
         <div>
-          <p className="text-sm font-semibold text-foreground">ตัวเลขที่ยืนยันคำตอบ</p>
+          <p className="text-sm font-semibold text-foreground">
+            ตัวเลขที่ยืนยันคำตอบ
+          </p>
           <dl className="mt-3 grid gap-2">
             {evidence.map((item, index) => (
               <div
@@ -129,10 +133,7 @@ export function DecisionStory({
       ) : null}
 
       <div className="flex gap-3 bg-primary px-6 py-5 text-primary-foreground lg:px-8">
-        <ArrowRight
-          aria-hidden="true"
-          className="mt-0.5 h-5 w-5 shrink-0"
-        />
+        <ArrowRight aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
         <div>
           <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground/75">
             ขั้นตอนถัดไป
