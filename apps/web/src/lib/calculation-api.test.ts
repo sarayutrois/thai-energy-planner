@@ -64,8 +64,8 @@ describe("calculation API helpers", () => {
     expect(payload.warnings.join(" ")).toContain("Factory");
   });
 
-  it("runs solar analysis through official tariffs", () => {
-    const request = solarAnalyzeRequestSchema.parse({
+  it("rejects solar analysis without a user load profile", () => {
+    const parsed = solarAnalyzeRequestSchema.safeParse({
       province: "bangkok",
       profile: "daytime_home",
       modelMode: "xhigh",
@@ -73,19 +73,8 @@ describe("calculation API helpers", () => {
       systemSizeKwp: 3,
       capexThb: 126000,
     });
-    const payload = runSolarAnalyzeApiCalculation(request);
 
-    expect(payload.trace.authority).toBe("MEA");
-    expect(payload.trace.customerSegment).toBe("residential");
-    expect(
-      payload.trace.tariffVersionIds.every((id) => id.includes("mea-")),
-    ).toBe(true);
-    expect(
-      payload.analysis.billComparison.bestWithoutSolar.bill.tariffStatus,
-    ).toBe("published");
-    expect(payload.warnings).toContain(
-      "No uploaded load intervals were provided; the API used a sample screening profile.",
-    );
+    expect(parsed.success).toBe(false);
   });
 
   it("uses uploaded load intervals when provided to solar analysis", () => {
@@ -117,6 +106,13 @@ describe("calculation API helpers", () => {
     const payload = runSolarAnalyzeApiCalculation(request);
 
     expect(payload.trace.inputIntervalCount).toBe(4);
+    expect(payload.trace.authority).toBe("MEA");
+    expect(
+      payload.trace.tariffVersionIds.every((id) => id.includes("mea-")),
+    ).toBe(true);
+    expect(
+      payload.analysis.billComparison.bestWithoutSolar.bill.tariffStatus,
+    ).toBe("published");
     expect(payload.warnings).toContain(
       "Solar yield is using the screening profile. Add latitude and longitude to use PVGIS site data.",
     );

@@ -2,26 +2,10 @@
 
 import { Download, Upload } from "lucide-react";
 import { useRef, useState } from "react";
-import {
-  billReportStorageKey,
-  billWorkspaceStorageKey,
-  localAnalysisReportsStorageKey,
-} from "@/lib/local-analysis-snapshot";
-import {
-  activeLocalLoadProfileIdStorageKey,
-  localLoadProfileStorageKey,
-  localLoadProfilesStorageKey,
-} from "@/lib/local-load-profile";
 import { downloadJsonFile } from "@/lib/file-download";
+import { analysisStorageKeys } from "@/lib/analysis-storage";
 
-const backupKeys = [
-  billWorkspaceStorageKey,
-  billReportStorageKey,
-  localAnalysisReportsStorageKey,
-  localLoadProfileStorageKey,
-  localLoadProfilesStorageKey,
-  activeLocalLoadProfileIdStorageKey,
-] as const;
+const backupKeys = analysisStorageKeys;
 
 type LocalBackup = {
   format: "thai-energy-planner-local-backup";

@@ -5,21 +5,103 @@ import * as XLSX from "xlsx";
 const billWorkspaceKey = "thai-energy-planner.bill-workspace.v1";
 const applianceWorkspaceKey = "thai-energy-planner.appliance-workspace.v3";
 const analysisGoalKey = "thai-energy-planner.analysis-goal.v1";
+const analysisResumeKey = "thai-energy-planner.analysis-resume-choice.v1";
+const analysisStorageKeys = [
+  analysisGoalKey,
+  billWorkspaceKey,
+  "thai-energy-planner.bill-report.v1",
+  applianceWorkspaceKey,
+  "thai-energy-planner.load-profile.v1",
+  "thai-energy-planner.load-profiles.v1",
+  "thai-energy-planner.active-load-profile.v1",
+  "thai-energy-planner.analysis-reports.v1",
+];
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate(
-    (key) => window.localStorage.removeItem(key),
-    billWorkspaceKey,
+    ({ keys, resumeKey }) => {
+      keys.forEach((key) => window.localStorage.removeItem(key));
+      window.sessionStorage.removeItem(resumeKey);
+    },
+    { keys: analysisStorageKeys, resumeKey: analysisResumeKey },
   );
+  await page.reload();
+});
+
+test("hydration asks whether to continue an existing analysis once per session", async ({
+  page,
+}) => {
   await page.evaluate(
-    (key) => window.localStorage.removeItem(key),
-    applianceWorkspaceKey,
+    ({ key, resumeKey }) => {
+      window.localStorage.setItem(key, "solar");
+      window.sessionStorage.removeItem(resumeKey);
+    },
+    { key: analysisGoalKey, resumeKey: analysisResumeKey },
   );
+  await page.reload();
+
+  await expect(
+    page.getByRole("heading", {
+      name: "ต้องการทำต่อจากข้อมูลเดิมหรือเริ่มใหม่?",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "ทำต่อจากข้อมูลเดิม" }).click();
+  await expect(
+    page.getByRole("heading", {
+      name: "ต้องการทำต่อจากข้อมูลเดิมหรือเริ่มใหม่?",
+    }),
+  ).toHaveCount(0);
+  await expect
+    .poll(() =>
+      page.evaluate((key) => window.localStorage.getItem(key), analysisGoalKey),
+    )
+    .toBe("solar");
+
+  await page.reload();
+  await expect(
+    page.getByRole("heading", {
+      name: "ต้องการทำต่อจากข้อมูลเดิมหรือเริ่มใหม่?",
+    }),
+  ).toHaveCount(0);
+});
+
+test("start new clears only analysis data and preserves theme and auth", async ({
+  page,
+}) => {
   await page.evaluate(
-    (key) => window.localStorage.removeItem(key),
-    analysisGoalKey,
+    ({ keys, resumeKey }) => {
+      keys.forEach((key) => window.localStorage.setItem(key, "persisted"));
+      window.localStorage.setItem("theme", "dark");
+      window.localStorage.setItem("sb-project-auth-token", "signed-in");
+      window.localStorage.setItem(
+        "thai-energy-planner.ui-density.v1",
+        "compact",
+      );
+      window.sessionStorage.removeItem(resumeKey);
+    },
+    { keys: analysisStorageKeys, resumeKey: analysisResumeKey },
   );
+  await page.reload();
+  await page.getByRole("button", { name: "เริ่มการวิเคราะห์ใหม่" }).click();
+  await expect(
+    page.getByRole("heading", { name: "ยืนยันเริ่มการวิเคราะห์ใหม่" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "ลบข้อมูลและเริ่มใหม่" }).click();
+  await page.waitForURL("**/analysis/new?fresh=1");
+
+  const stored = await page.evaluate((keys) => {
+    return {
+      analysis: keys.map((key) => window.localStorage.getItem(key)),
+      theme: window.localStorage.getItem("theme"),
+      auth: window.localStorage.getItem("sb-project-auth-token"),
+      density: window.localStorage.getItem("thai-energy-planner.ui-density.v1"),
+    };
+  }, analysisStorageKeys);
+  expect(stored.analysis.every((value) => value === null)).toBe(true);
+  expect(stored.theme).toBe("dark");
+  expect(stored.auth).toBe("signed-in");
+  expect(stored.density).toBe("compact");
 });
 
 test("query context keeps Bills and Appliances on the same empty-state flow", async ({
@@ -114,8 +196,11 @@ test("solar starts with data review and no automatic result", async ({
   ).toHaveCount(0);
   await page.getByRole("link", { name: "2. สมมติฐาน" }).click();
   await expect(
-    page.getByRole("button", { name: "ยืนยันสมมติฐานและดูผล" }),
+    page.getByRole("button", {
+      name: "บันทึกสมมติฐานและกลับไปตรวจข้อมูล",
+    }),
   ).toBeVisible();
+  await expect(page.getByText("ค่าเริ่มต้นของระบบ")).toBeVisible();
   await expect(page.getByText("3. ผลการประเมิน", { exact: true })).toHaveCount(
     0,
   );
@@ -123,6 +208,32 @@ test("solar starts with data review and no automatic result", async ({
     0,
   );
   await expect(page.getByText("ขั้นตอนที่ 3 จาก 4")).toHaveCount(0);
+
+  await page.goto("/analysis/solar/results?confirmed=1");
+  await page.waitForURL("**/analysis/solar");
+  await expect(
+    page.getByRole("heading", {
+      name: "ผลการประเมิน Solar จากข้อมูลที่เลือก",
+    }),
+  ).toHaveCount(0);
+});
+
+test("Solar API rejects production calculation without a load profile", async ({
+  request,
+}) => {
+  const response = await request.post("/api/solar/analyze", {
+    data: {
+      province: "Bangkok",
+      profile: "daytime_home",
+      modelMode: "easy",
+      billDate: "2026-07-01",
+      systemSizeKwp: 5,
+    },
+  });
+  expect(response.status()).toBe(400);
+  const payload = await response.json();
+  expect(payload.ok).toBe(false);
+  expect(payload).not.toHaveProperty("analysis");
 });
 
 test("home hero uses the Solar footage with an accessible playback control", async ({

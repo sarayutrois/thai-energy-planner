@@ -14,7 +14,10 @@ import {
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
 import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
-import type { SolarDemoSettings } from "@/lib/solar-demo";
+import {
+  buildSolarAssumptionQuery,
+  type SolarAssumptionSettings,
+} from "@/lib/solar-assumptions";
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 
@@ -43,12 +46,12 @@ const solarApiTimeoutMs = 12_000;
 export function SolarApiRuntimePanel({
   settings,
 }: {
-  settings: SolarDemoSettings;
+  settings: SolarAssumptionSettings;
 }) {
   const [snapshot, setSnapshot] = useState<LocalLoadProfileSnapshot | null>(
     null,
   );
-  const [payload, setPayload] = useState<Extract<
+  const [calculatedResult, setCalculatedResult] = useState<Extract<
     SolarAnalyzeResponse,
     { ok: true }
   > | null>(null);
@@ -122,9 +125,9 @@ export function SolarApiRuntimePanel({
         const result = (await response.json()) as SolarAnalyzeResponse;
         if (!response.ok || !result.ok)
           throw new Error(result.ok ? "" : result.error);
-        setPayload(result);
+        setCalculatedResult(result);
       } catch (caught) {
-        setPayload(null);
+        setCalculatedResult(null);
         setError(
           caught instanceof DOMException && caught.name === "AbortError"
             ? "การคำนวณใช้เวลานานเกินไป กรุณาลองอีกครั้ง"
@@ -188,8 +191,12 @@ export function SolarApiRuntimePanel({
     );
 
   const dataStatus = getSolarDataStatus(snapshot, readSavedBills().length > 0);
-  const reportDraft = payload
-    ? buildSolarRuntimeReportDraft(payload.analysis, payload.trace, snapshot)
+  const reportDraft = calculatedResult
+    ? buildSolarRuntimeReportDraft(
+        calculatedResult.analysis,
+        calculatedResult.trace,
+        snapshot,
+      )
     : undefined;
 
   return (
@@ -199,12 +206,12 @@ export function SolarApiRuntimePanel({
           <div>
             <CardTitle className="flex items-center gap-2">
               <ServerCog className="h-5 w-5 text-primary" />
-              {payload
+              {calculatedResult
                 ? "ผลการประเมิน Solar จากข้อมูลที่เลือก"
                 : "ตรวจข้อมูลก่อนเริ่มประเมิน Solar"}
             </CardTitle>
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
-              {payload
+              {calculatedResult
                 ? "ผลลัพธ์นี้ใช้"
                 : "ระบบพบข้อมูลที่เคยบันทึกไว้ แต่ยังไม่ได้เริ่มคำนวณ ใช้"}{" "}
               “{snapshot.sourceName}” จำนวน{" "}
@@ -217,16 +224,16 @@ export function SolarApiRuntimePanel({
             <Badge variant="outline">
               {formatNumber(snapshot.totalKwh)} kWh
             </Badge>
-            {payload ? (
+            {calculatedResult ? (
               <Badge variant="success">
-                อัตราค่าไฟ {payload.trace.authority}
+                อัตราค่าไฟ {calculatedResult.trace.authority}
               </Badge>
             ) : null}
           </div>
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
-        {!payload ? (
+        {!calculatedResult ? (
           <div className="rounded-xl border border-primary/25 bg-background p-4">
             <p className="font-semibold">ข้อมูลที่จะใช้ในการประเมินครั้งนี้</p>
             <div className="mt-3 grid grid-cols-2 gap-3 lg:grid-cols-4">
@@ -266,17 +273,17 @@ export function SolarApiRuntimePanel({
             {error}
           </div>
         ) : null}
-        {payload ? (
+        {calculatedResult ? (
           <RuntimeMetrics
-            analysis={payload.analysis}
-            trace={payload.trace}
+            analysis={calculatedResult.analysis}
+            trace={calculatedResult.trace}
             snapshot={snapshot}
             hasBills={readSavedBills().length > 0}
           />
         ) : null}
-        {payload?.warnings.length ? (
+        {calculatedResult?.warnings.length ? (
           <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
-            {payload.warnings.map((warning) => (
+            {calculatedResult.warnings.map((warning) => (
               <p key={warning}>{solarWarningCopy(warning)}</p>
             ))}
           </div>
@@ -285,12 +292,12 @@ export function SolarApiRuntimePanel({
           <Button
             disabled={isLoading}
             onClick={() => void runAnalysis(snapshot)}
-            variant={payload ? "outline" : "default"}
+            variant={calculatedResult ? "outline" : "default"}
           >
             <RefreshCw className="h-4 w-4" />
             {isLoading
               ? "กำลังประเมิน..."
-              : payload
+              : calculatedResult
                 ? "คำนวณใหม่"
                 : "เริ่มประเมิน Solar"}
           </Button>
@@ -302,7 +309,7 @@ export function SolarApiRuntimePanel({
           </a>
           <a
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
-            href="/analysis/solar/config"
+            href={`/analysis/solar/config?${buildSolarAssumptionQuery(settings)}`}
           >
             ตรวจและแก้สมมติฐาน Solar
           </a>
@@ -543,8 +550,6 @@ function solarSourceLabel(authority: string) {
 }
 
 function solarWarningCopy(warning: string) {
-  if (warning.includes("No uploaded load intervals"))
-    return "ยังไม่มีข้อมูลการใช้ไฟรายช่วงเวลา ระบบจึงใช้รูปแบบการใช้ไฟมาตรฐานสำหรับการประเมินเบื้องต้น";
   if (warning.includes("PVGIS site data was unavailable"))
     return "ไม่สามารถใช้ข้อมูลแสงอาทิตย์ตามตำแหน่งที่ระบุได้ จึงใช้ค่าประมาณแสงอาทิตย์มาตรฐานแทน";
   if (warning.includes("Solar yield is using"))

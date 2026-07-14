@@ -1,4 +1,7 @@
-import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
+import {
+  getSolarAssumptionDraft,
+  type SolarSearchParams,
+} from "@/lib/solar-assumptions";
 import { SolarControls, SolarPageShell } from "../solar-page-parts";
 import { GoalDrivenCopilot } from "../goal-driven-copilot";
 
@@ -7,7 +10,7 @@ export default async function SolarConfigPage({
 }: {
   searchParams?: Promise<SolarSearchParams>;
 }) {
-  const { settings, queryString, savedBillContext } = getSolarDemo(
+  const { settings, queryString, savedBillContext } = getSolarAssumptionDraft(
     (await searchParams) ?? {},
   );
 
@@ -16,9 +19,9 @@ export default async function SolarConfigPage({
       <GoalDrivenCopilot currentSettings={settings} />
       <SolarControls
         settings={settings}
-        action="/analysis/solar/results"
+        action="/analysis/solar"
         savedBillContext={savedBillContext}
-        submitLabel="ยืนยันสมมติฐานและดูผล"
+        submitLabel="บันทึกสมมติฐานและกลับไปตรวจข้อมูล"
         showSizingLink={false}
       />
     </SolarPageShell>

@@ -6,12 +6,12 @@ import { Send, Sparkles, Loader2, Bot } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import type { SolarDemoSettings } from "@/lib/solar-demo";
+import type { SolarAssumptionSettings } from "@/lib/solar-assumptions";
 
 export function GoalDrivenCopilot({
   currentSettings,
 }: {
-  currentSettings: SolarDemoSettings;
+  currentSettings: SolarAssumptionSettings;
 }) {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -19,7 +19,7 @@ export function GoalDrivenCopilot({
   const [isLoading, setIsLoading] = useState(false);
   const [response, setResponse] = useState<{
     thoughtProcess: string;
-    suggestedParameters?: Partial<SolarDemoSettings>;
+    suggestedParameters?: Partial<SolarAssumptionSettings>;
   } | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {

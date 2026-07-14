@@ -1,33 +1,5 @@
-import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
-import {
-  RecommendationCards,
-  SizingTable,
-  SolarChartsSection,
-  SolarControls,
-  SolarPageShell,
-  SolarSummary,
-} from "../solar-page-parts";
+import { redirect } from "next/navigation";
 
-export default async function SolarSizingPage({
-  searchParams,
-}: {
-  searchParams?: Promise<SolarSearchParams>;
-}) {
-  const { analysis, settings, queryString, savedBillContext } = getSolarDemo(
-    (await searchParams) ?? {},
-  );
-
-  return (
-    <SolarPageShell active="sizing" queryString={queryString}>
-      <SolarControls
-        settings={settings}
-        action="/analysis/solar/sizing"
-        savedBillContext={savedBillContext}
-      />
-      <SolarSummary analysis={analysis} />
-      <SizingTable analysis={analysis} />
-      <SolarChartsSection analysis={analysis} />
-      <RecommendationCards analysis={analysis} />
-    </SolarPageShell>
-  );
+export default function SolarSizingPage() {
+  redirect("/analysis/solar");
 }

@@ -15,6 +15,10 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { AnalysisProgress } from "@/components/analysis-progress";
+import {
+  AnalysisSessionDialog,
+  StartNewAnalysisButton,
+} from "@/components/analysis-session-dialog";
 
 type NavigationItem = {
   label: string;
@@ -211,6 +215,9 @@ export function AppHeader() {
             ))}
           </nav>
           <div className="flex items-center gap-2">
+            {pathname.startsWith("/analysis") ? (
+              <StartNewAnalysisButton />
+            ) : null}
             <ThemeToggle />
             <Link
               className="hidden h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md sm:inline-flex"
@@ -259,6 +266,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </PageContainer>
       </div>
       <AnalysisProgress />
+      <AnalysisSessionDialog />
       <div className="content-enter" id="main-content" tabIndex={-1}>
         {children}
       </div>

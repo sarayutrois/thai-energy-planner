@@ -16,8 +16,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SolarAnalysisChartPanel } from "@/components/solar-analysis-chart-panel";
 import { SolarLocationFields } from "@/components/solar-location-fields";
-import type { SolarDemoSettings } from "@/lib/solar-demo";
-import { buildSolarQuery, solarProfileOptions } from "@/lib/solar-demo";
+import {
+  buildSolarAssumptionQuery,
+  solarProfileOptions,
+  type SolarAssumptionSettings,
+} from "@/lib/solar-assumptions";
 import {
   formatApproximateMoneyRange,
   solarReadinessCopy,
@@ -37,18 +40,6 @@ const tabs = [
     href: "/analysis/solar/config",
     label: "2. สมมติฐาน",
   },
-  {
-    key: "results",
-    href: "/analysis/solar/results",
-    label: "3. ผลการประเมิน",
-  },
-  { key: "sizing", href: "/analysis/solar/sizing", label: "ขนาดระบบ" },
-  { key: "finance", href: "/analysis/solar/finance", label: "การเงิน" },
-  {
-    key: "sensitivity",
-    href: "/analysis/solar/sensitivity",
-    label: "ความไวของผลลัพธ์",
-  },
 ];
 
 export function SolarPageShell({
@@ -60,14 +51,6 @@ export function SolarPageShell({
   queryString: string;
   children: ReactNode;
 }) {
-  const isPreparationStep = active === "overview" || active === "config";
-  const visibleTabs = isPreparationStep
-    ? tabs.filter((tab) => tab.key === "overview" || tab.key === "config")
-    : tabs;
-  const navigationQueryString = isPreparationStep
-    ? queryString
-    : `${queryString}&confirmed=1`;
-
   return (
     <main className="min-h-screen">
       <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
@@ -90,19 +73,18 @@ export function SolarPageShell({
                 ขั้นตอนการประเมิน Solar
               </p>
               <p className="mt-1 text-sm text-muted-foreground">
-                {isPreparationStep
-                  ? "ตรวจข้อมูลและสมมติฐานก่อนเริ่มประเมิน ระบบจะยังไม่แสดงผลลัพธ์จนกว่าคุณจะสั่งคำนวณ"
-                  : "เลือกดูเฉพาะรายละเอียดที่ต้องใช้เพื่อประกอบการตัดสินใจ"}
+                ตรวจข้อมูลและสมมติฐานก่อนเริ่มประเมิน
+                ระบบจะยังไม่แสดงผลลัพธ์จนกว่าคุณจะสั่งคำนวณ
               </p>
             </div>
             <nav
               aria-label="ขั้นตอนการประเมิน Solar"
               className="flex flex-wrap gap-2"
             >
-              {visibleTabs.map((tab) => (
+              {tabs.map((tab) => (
                 <a
                   key={tab.href}
-                  href={`${tab.href}?${navigationQueryString}`}
+                  href={`${tab.href}?${queryString}`}
                   aria-current={active === tab.key ? "step" : undefined}
                   className={`inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition ${
                     active === tab.key
@@ -129,7 +111,7 @@ export function SolarControls({
   submitLabel = "คำนวณผลใหม่",
   showSizingLink = true,
 }: {
-  settings: SolarDemoSettings;
+  settings: SolarAssumptionSettings;
   action: string;
   savedBillContext?: SavedBillContext | undefined;
   submitLabel?: string;
@@ -147,6 +129,18 @@ export function SolarControls({
         <div className="mb-4 rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
           {solarReadinessCopy.globalDisclaimer}
         </div>
+        <div className="mb-4 rounded-md border border-information/40 bg-information/10 p-3 text-sm leading-6">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="information">ค่าเริ่มต้นของระบบ</Badge>
+            <span className="font-medium">
+              สมมติฐาน Solar แยกจากข้อมูลการใช้ไฟของคุณ
+            </span>
+          </div>
+          <p className="mt-1 text-muted-foreground">
+            ค่าเหล่านี้แยกจาก Load Profile ของคุณและยังไม่ใช่ผลการประเมิน
+            กรุณาตรวจสอบก่อนกลับไปกดเริ่มคำนวณ
+          </p>
+        </div>
         {settings.validationMessages.length > 0 ? (
           <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm leading-6 text-destructive">
             {settings.validationMessages.map((message) => (
@@ -159,10 +153,7 @@ export function SolarControls({
           className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
         >
           <SavedBillHiddenInputs context={savedBillContext} />
-          {action === "/analysis/solar/results" ? (
-            <input name="confirmed" type="hidden" value="1" />
-          ) : null}
-          <Field label="Load profile">
+          <Field label="ลักษณะสถานที่ (ใช้กำหนดค่าเริ่มต้น)">
             <select
               name="profile"
               defaultValue={settings.profile}
@@ -384,10 +375,10 @@ export function SolarControls({
           {showSizingLink ? (
             <div className="flex items-end">
               <a
-                href={`/analysis/solar/sizing?${withSavedBillContext(buildSolarQuery(settings), savedBillContext)}`}
+                href={`/analysis/solar?${withSavedBillContext(buildSolarAssumptionQuery(settings), savedBillContext)}`}
                 className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
               >
-                หาขนาดระบบที่เหมาะสม
+                กลับไปตรวจข้อมูลและคำนวณ
               </a>
             </div>
           ) : null}

@@ -1,5 +1,8 @@
 import { SampleBillNotice } from "@/components/sample-bill-notice";
-import { getSolarDemo, type SolarSearchParams } from "@/lib/solar-demo";
+import {
+  getSolarAssumptionDraft,
+  type SolarSearchParams,
+} from "@/lib/solar-assumptions";
 import { SolarApiRuntimePanel } from "./solar-api-runtime-panel";
 import { SolarPageShell } from "./solar-page-parts";
 import { AnalysisGoalBanner } from "@/components/analysis-goal-banner";
@@ -9,7 +12,9 @@ export default async function SolarOverviewPage({
 }: {
   searchParams?: Promise<SolarSearchParams>;
 }) {
-  const { settings, queryString } = getSolarDemo((await searchParams) ?? {});
+  const { settings, queryString } = getSolarAssumptionDraft(
+    (await searchParams) ?? {},
+  );
 
   return (
     <SolarPageShell active="overview" queryString={queryString}>

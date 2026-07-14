@@ -307,3 +307,38 @@
 - เพิ่ม E2E ตรวจ signature `%PDF-` และกำหนดให้ไฟล์ PDF ที่ดาวน์โหลดมีขนาดมากกว่า 10 KB ไม่ใช่ placeholder ขนาดเล็ก
 - Visual QA: สร้างรายงานบิล 3 เดือนจากหน้าเว็บจริง ได้ PDF 275,792 bytes; render ภาพกลับมาตรวจแล้วพบว่าหัวเรื่อง KPI คำแนะนำ ตาราง และข้อความกำกับภาษาไทยอ่านได้ครบ
 - การทดสอบ: formatting ของไฟล์ที่แก้, `git diff --check`, `npm run lint`, `npm run typecheck`, unit/integration 242 tests, full E2E 22 tests และ production build 51 routes ผ่านทั้งหมด
+
+## Persistence hardening Phase 1 — Analysis lifecycle and selective reset
+
+- สถานะ: เสร็จแล้ว
+- รวม localStorage keys ของงานวิเคราะห์ทั้ง 8 รายการไว้ใน registry เดียว ครอบคลุมเป้าหมาย บิล เครื่องใช้ไฟฟ้า Load Profile ประวัติ Profile active Profile และรายงาน
+- เพิ่ม resume gate เมื่อ browser session ใหม่พบข้อมูลเดิม ให้เลือก “ทำต่อจากข้อมูลเดิม” หรือ “เริ่มการวิเคราะห์ใหม่” โดยใช้ sessionStorage เฉพาะจำคำตอบระหว่าง session ปัจจุบัน
+- เพิ่มปุ่ม “เริ่มการวิเคราะห์ใหม่” ใน AppShell พร้อม confirmation dialog ก่อนลบ และส่ง event ให้ progress UI อัปเดต
+- การ reset ลบด้วย allowlist เท่านั้น ไม่ใช้ `localStorage.clear()` จึงไม่แตะ theme, Supabase auth token หรือ UI preferences
+- ปรับ backup/restore ให้ใช้ registry เดียวกัน จึงรวม analysis goal และ appliance workspace ที่เคยตกหล่น
+- ตรวจ Acceptance Criteria: ตรวจพบข้อมูลเดิมได้, มีทางเลือก continue/new, มี confirmation, ลบเฉพาะ analysis keys และเก็บ UI/auth data ไว้
+- การทดสอบ: unit test สำหรับ detection/selective reset 2 tests, `npm run lint` และ `npm run typecheck` ผ่าน
+
+## Persistence hardening Phase 2 — Solar input/result separation
+
+- สถานะ: เสร็จแล้ว
+- แยก Solar เป็น assumption draft, Load Profile ของผู้ใช้ และ calculated result ที่เริ่มเป็น `null` ใน client state จนกว่าผู้ใช้กด “เริ่มประเมิน Solar”
+- เปลี่ยน API schema ให้ `loadIntervals` เป็น required และลบ `createDemoSolarInput` ออกจาก production calculation path จึงไม่สร้าง sample load เมื่อ request ไม่มีข้อมูล
+- สร้าง Solar input จาก Load Profile จริง อัตราค่าไฟทางการ assumptions ที่ผู้ใช้ยืนยัน และ solar resource metadata โดยตรง
+- ค่า system size, roof, losses, CAPEX, O&M และ export policy ที่ระบบเติมให้มีป้าย “ค่าเริ่มต้นของระบบ” และอธิบายว่าแยกจากข้อมูลใช้ไฟและยังไม่ใช่ผลประเมิน
+- หน้า assumptions บันทึกค่ากลับไปหน้าตรวจข้อมูลก่อน ผู้ใช้ยังต้องกดคำนวณอีกครั้ง; deep routes results/sizing/finance/sensitivity redirect กลับหน้า Solar และไม่สามารถสร้างผลจาก query string
+- ลบ `solar-demo.ts`, `local-solar-start.tsx` และ demo helpers ฝั่งเว็บที่ไม่มีผู้เรียกใช้ เพื่อลดโอกาสนำ sample fallback กลับเข้าสู่ production
+- ตรวจ Acceptance Criteria: ไม่มี savings/payback/result เมื่อไม่มี Load Profile, API ปฏิเสธ missing/empty intervals, assumptions มีป้ายชัด และผลเกิดหลัง explicit click เท่านั้น
+- การทดสอบ: Solar assumptions/API/Load Profile 9 tests, `npm run lint`, `npm run typecheck` และ production build 51 routes ผ่าน
+
+## Persistence hardening Phase 3 — Automated regression and final verification
+
+- สถานะ: เสร็จแล้ว
+- เพิ่ม unit tests สำหรับ analysis storage detection, selective reset ที่รักษา theme/auth/UI preferences และ Solar assumption draft ที่ไม่สร้าง calculated result
+- เปลี่ยน Solar API regression จากการยอมรับ sample screening profile เป็นต้องปฏิเสธ request ที่ไม่มี Load Profile
+- เพิ่ม E2E hydration ตรวจ resume dialog และยืนยันว่าการเลือกทำต่อไม่ลบข้อมูล รวมทั้งไม่ถามซ้ำหลัง refresh ใน session เดียวกัน
+- เพิ่ม E2E reset ผ่าน confirmation dialog ตรวจ analysis keys ทั้ง 8 รายการถูกลบ ขณะที่ `theme`, Supabase auth token และ UI preference ยังอยู่
+- เพิ่ม E2E empty/deep-link guard และยิง `/api/solar/analyze` โดยไม่มี intervals เพื่อยืนยันว่า production ไม่คืนผลประหยัด ระยะคืนทุน หรือ Solar result
+- ตรวจ workflow จริงว่ายังสร้าง Load Profile → TOU → กดคำนวณ Solar → บันทึกรายงานและ export ได้ครบ
+- ผลการทดสอบสุดท้าย: unit/integration 246 tests ผ่าน, full E2E 25 tests ผ่าน, lint/typecheck ผ่าน, `git diff --check` ผ่าน และ production build 51 routes ผ่าน
+- ไม่มีการ deploy ระหว่างงานชุดนี้

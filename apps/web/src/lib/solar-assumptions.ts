@@ -1,24 +1,16 @@
-import {
-  createDemoSolarInput,
-  type DemoSolarProfileKey,
-  type SolarAnalysisInput,
-  type SolarAnalysisResult,
-  type SolarModelDetailLevel,
-} from "@thai-energy-planner/calculation-engine";
-import {
-  runSolarAnalyzeApiCalculation,
-  solarAnalyzeRequestSchema,
-} from "@/lib/calculation-api";
+import type { SolarModelDetailLevel } from "@thai-energy-planner/calculation-engine";
 
 export type SolarSearchParams = Record<string, string | string[] | undefined>;
+export type SolarUsageProfile =
+  "evening_home" | "daytime_home" | "daytime_shop";
 
 export type SavedBillSearchContext = {
   audience?: string | undefined;
   source?: "bills" | undefined;
 };
 
-export type SolarDemoSettings = {
-  profile: DemoSolarProfileKey;
+export type SolarAssumptionSettings = {
+  profile: SolarUsageProfile;
   baseline: "normal" | "tou";
   modelMode: SolarModelDetailLevel;
   systemSizeKwp: number;
@@ -42,57 +34,59 @@ export type SolarDemoSettings = {
   exportRateThbPerKwh: number;
   exportLimitKw: number;
   validationMessages: string[];
+  defaultedFields: string[];
 };
 
 export const solarProfileOptions: Array<{
-  value: DemoSolarProfileKey;
+  value: SolarUsageProfile;
   label: string;
   description: string;
 }> = [
   {
     value: "evening_home",
-    label: "Evening-heavy home",
-    description: "Lower daytime load, so self-consumption is usually weaker.",
+    label: "บ้านที่ใช้ไฟช่วงเย็นมาก",
+    description: "ใช้กำหนดค่าเริ่มต้นสำหรับบ้านที่โหลดกลางวันไม่สูง",
   },
   {
     value: "daytime_home",
-    label: "Daytime home",
-    description: "More daytime load that can absorb rooftop solar generation.",
+    label: "บ้านที่ใช้ไฟกลางวัน",
+    description: "ใช้กำหนดค่าเริ่มต้นสำหรับบ้านที่มีคนอยู่ช่วงกลางวัน",
   },
   {
     value: "daytime_shop",
-    label: "Daytime shop",
-    description:
-      "High daytime load, useful for testing strong self-consumption cases.",
+    label: "ร้านค้าหรือธุรกิจกลางวัน",
+    description: "ใช้กำหนดค่าเริ่มต้นสำหรับกิจการที่เปิดช่วงกลางวัน",
   },
 ];
 
-export function getSolarDemo(params: SolarSearchParams): {
-  input: SolarAnalysisInput;
-  analysis: SolarAnalysisResult;
-  settings: SolarDemoSettings;
+export function getSolarAssumptionDraft(params: SolarSearchParams): {
+  settings: SolarAssumptionSettings;
   queryString: string;
   savedBillContext: SavedBillSearchContext;
 } {
   const validationMessages: string[] = [];
+  const defaultedFields: string[] = [];
   const profile = normalizeSolarProfile(getSingleParam(params.profile));
-  const demoInput = createDemoSolarInput(profile);
+  if (!getSingleParam(params.profile)) defaultedFields.push("profile");
   const systemSizeKwp = getNumberParam(
     params.systemSizeKwp,
     profile === "daytime_shop" ? 8 : 5,
     0.1,
-    "System size",
+    "ขนาดระบบ",
     validationMessages,
+    defaultedFields,
+    "systemSizeKwp",
   );
   const capexThb = getNumberParam(
     params.capexThb,
-    systemSizeKwp * 42000,
+    systemSizeKwp * 42_000,
     0,
-    "CAPEX",
+    "เงินลงทุน",
     validationMessages,
+    defaultedFields,
+    "capexThb",
   );
-  const exportEnabled = getBooleanParam(params.exportEnabled, true);
-  const settings: SolarDemoSettings = {
+  const settings: SolarAssumptionSettings = {
     profile,
     baseline: normalizeBaseline(getSingleParam(params.baseline)),
     modelMode: normalizeModelMode(getSingleParam(params.modelMode)),
@@ -101,22 +95,28 @@ export function getSolarDemo(params: SolarSearchParams): {
       params.roofAreaSqm,
       systemSizeKwp * 6,
       0,
-      "Roof area",
+      "พื้นที่หลังคา",
       validationMessages,
+      defaultedFields,
+      "roofAreaSqm",
     ),
     roofAzimuth: getNumberParam(
       params.roofAzimuth,
-      demoInput.solarAssumptions.roofAzimuth ?? 180,
+      180,
       0,
-      "Roof azimuth",
+      "ทิศหลังคา",
       validationMessages,
+      defaultedFields,
+      "roofAzimuth",
     ),
     roofTilt: getNumberParam(
       params.roofTilt,
-      demoInput.solarAssumptions.roofTilt ?? 12,
+      12,
       0,
-      "Roof tilt",
+      "ความเอียงหลังคา",
       validationMessages,
+      defaultedFields,
+      "roofTilt",
     ),
     province: getSingleParam(params.province) ?? "Bangkok",
     latitude: getOptionalNumberParam(
@@ -135,24 +135,30 @@ export function getSolarDemo(params: SolarSearchParams): {
     ),
     systemLossPercent: getNumberParam(
       params.systemLossPercent,
-      demoInput.solarAssumptions.systemLossPercent,
+      12,
       0,
       "System loss",
       validationMessages,
+      defaultedFields,
+      "systemLossPercent",
     ),
     shadingLossPercent: getNumberParam(
       params.shadingLossPercent,
-      demoInput.solarAssumptions.shadingLossPercent,
+      profile === "evening_home" ? 8 : 4,
       0,
       "Shading loss",
       validationMessages,
+      defaultedFields,
+      "shadingLossPercent",
     ),
     degradationPercentPerYear: getNumberParam(
       params.degradationPercentPerYear,
-      demoInput.solarAssumptions.degradationPercentPerYear,
+      0.5,
       0,
       "Degradation",
       validationMessages,
+      defaultedFields,
+      "degradationPercentPerYear",
     ),
     capexThb,
     oAndMCostPerYear: getNumberParam(
@@ -161,13 +167,17 @@ export function getSolarDemo(params: SolarSearchParams): {
       0,
       "O&M",
       validationMessages,
+      defaultedFields,
+      "oAndMCostPerYear",
     ),
     projectLifeYears: getNumberParam(
       params.projectLifeYears,
       20,
       1,
-      "Project life",
+      "อายุโครงการ",
       validationMessages,
+      defaultedFields,
+      "projectLifeYears",
     ),
     discountRatePercent: getNumberParam(
       params.discountRatePercent,
@@ -175,6 +185,8 @@ export function getSolarDemo(params: SolarSearchParams): {
       0,
       "Discount rate",
       validationMessages,
+      defaultedFields,
+      "discountRatePercent",
     ),
     electricityEscalationRatePercent: getNumberParam(
       params.electricityEscalationRatePercent,
@@ -182,116 +194,66 @@ export function getSolarDemo(params: SolarSearchParams): {
       0,
       "Electricity escalation",
       validationMessages,
+      defaultedFields,
+      "electricityEscalationRatePercent",
     ),
     inverterReplacementCostThb: getNumberParam(
       params.inverterReplacementCostThb,
-      systemSizeKwp * 5500,
+      systemSizeKwp * 5_500,
       0,
-      "Inverter replacement",
+      "ค่าเปลี่ยนอินเวอร์เตอร์",
       validationMessages,
+      defaultedFields,
+      "inverterReplacementCostThb",
     ),
     inverterReplacementYear: getNumberParam(
       params.inverterReplacementYear,
       10,
       0,
-      "Inverter replacement year",
+      "ปีที่เปลี่ยนอินเวอร์เตอร์",
       validationMessages,
+      defaultedFields,
+      "inverterReplacementYear",
     ),
-    exportEnabled,
+    exportEnabled: getBooleanParam(params.exportEnabled, true),
     exportRateThbPerKwh: getNumberParam(
       params.exportRateThbPerKwh,
-      demoInput.exportPolicy.exportRateThbPerKwh,
+      0.8,
       0,
-      "Export rate",
+      "อัตรารับซื้อไฟฟ้า",
       validationMessages,
+      defaultedFields,
+      "exportRateThbPerKwh",
     ),
     exportLimitKw: getNumberParam(
       params.exportLimitKw,
-      demoInput.exportPolicy.exportLimitKw ?? 10,
+      10,
       0,
-      "Export limit",
+      "กำลังส่งกลับสูงสุด",
       validationMessages,
+      defaultedFields,
+      "exportLimitKw",
     ),
     validationMessages,
+    defaultedFields,
   };
-  const input = createDemoSolarInput(profile, {
-    systemSizeKwp: settings.systemSizeKwp,
-    capexThb: settings.capexThb,
-    exportEnabled: settings.exportEnabled,
-    exportRateThbPerKwh: settings.exportRateThbPerKwh,
-    exportLimitKw: settings.exportLimitKw,
-    discountRatePercent: settings.discountRatePercent,
-    projectLifeYears: settings.projectLifeYears,
-    roofAreaSqm: settings.roofAreaSqm,
-    roofAzimuth: settings.roofAzimuth,
-    roofTilt: settings.roofTilt,
-    systemLossPercent: settings.systemLossPercent,
-    shadingLossPercent: settings.shadingLossPercent,
-    degradationPercentPerYear: settings.degradationPercentPerYear,
-    electricityEscalationRatePercent: settings.electricityEscalationRatePercent,
-    oAndMCostPerYear: settings.oAndMCostPerYear,
-    inverterReplacementCostThb: settings.inverterReplacementCostThb,
-    inverterReplacementYear:
-      settings.inverterReplacementYear === 0
-        ? null
-        : settings.inverterReplacementYear,
-    modelDetailLevel: settings.modelMode,
-  });
-  input.solarAssumptions = {
-    ...input.solarAssumptions,
-    province: settings.province,
-    ...(settings.latitude === undefined ? {} : { latitude: settings.latitude }),
-    ...(settings.longitude === undefined
-      ? {}
-      : { longitude: settings.longitude }),
-    roofAreaSqm: settings.roofAreaSqm,
-    roofAzimuth: settings.roofAzimuth,
-    roofTilt: settings.roofTilt,
-  };
-  const apiRequest = solarAnalyzeRequestSchema.parse({
-    profile: settings.profile,
-    modelMode: settings.modelMode,
-    province: settings.province,
-    ...(settings.latitude === undefined
-      ? {}
-      : { latitude: String(settings.latitude) }),
-    ...(settings.longitude === undefined
-      ? {}
-      : { longitude: String(settings.longitude) }),
-    billDate: "2026-07-01",
-    voltageLevel: "low_voltage",
-    customerSegment:
-      settings.profile === "daytime_shop" ? "small_business" : "residential",
-    systemSizeKwp: settings.systemSizeKwp,
-    roofAreaSqm: settings.roofAreaSqm,
-    roofAzimuth: settings.roofAzimuth,
-    roofTilt: settings.roofTilt,
-    systemLossPercent: settings.systemLossPercent,
-    shadingLossPercent: settings.shadingLossPercent,
-    degradationPercentPerYear: settings.degradationPercentPerYear,
-    capexThb: settings.capexThb,
-    oAndMCostPerYear: settings.oAndMCostPerYear,
-    projectLifeYears: settings.projectLifeYears,
-    discountRatePercent: settings.discountRatePercent,
-    electricityEscalationRatePercent: settings.electricityEscalationRatePercent,
-    inverterReplacementCostThb: settings.inverterReplacementCostThb,
-    inverterReplacementYear: settings.inverterReplacementYear,
-    exportEnabled: settings.exportEnabled,
-    exportRateThbPerKwh: settings.exportRateThbPerKwh,
-    exportLimitKw: settings.exportLimitKw,
-  });
-  const apiPayload = runSolarAnalyzeApiCalculation(apiRequest);
+  if (!getSingleParam(params.baseline)) defaultedFields.push("baseline");
+  if (!getSingleParam(params.modelMode)) defaultedFields.push("modelMode");
+  if (!getSingleParam(params.province)) defaultedFields.push("province");
+  if (getSingleParam(params.exportEnabled) === undefined)
+    defaultedFields.push("exportEnabled");
 
   return {
-    input,
-    analysis: apiPayload.analysis,
     settings,
-    queryString: appendSavedBillContext(buildSolarQuery(settings), params),
+    queryString: appendSavedBillContext(
+      buildSolarAssumptionQuery(settings),
+      params,
+    ),
     savedBillContext: getSavedBillContext(params),
   };
 }
 
-export function buildSolarQuery(settings: SolarDemoSettings) {
+export function buildSolarAssumptionQuery(settings: SolarAssumptionSettings) {
   const params = new URLSearchParams({
     profile: settings.profile,
     baseline: settings.baseline,
@@ -317,14 +279,16 @@ export function buildSolarQuery(settings: SolarDemoSettings) {
     exportRateThbPerKwh: String(settings.exportRateThbPerKwh),
     exportLimitKw: String(settings.exportLimitKw),
   });
+  if (settings.latitude !== undefined)
+    params.set("latitude", String(settings.latitude));
+  if (settings.longitude !== undefined)
+    params.set("longitude", String(settings.longitude));
   return params.toString();
 }
 
-export function normalizeSolarProfile(
-  value: string | undefined,
-): DemoSolarProfileKey {
+function normalizeSolarProfile(value: string | undefined): SolarUsageProfile {
   return solarProfileOptions.some((option) => option.value === value)
-    ? (value as DemoSolarProfileKey)
+    ? (value as SolarUsageProfile)
     : "evening_home";
 }
 
@@ -346,7 +310,6 @@ function appendSavedBillContext(
   params: SolarSearchParams,
 ) {
   if (getSingleParam(params.source) !== "bills") return queryString;
-
   const nextParams = new URLSearchParams(queryString);
   nextParams.set("source", "bills");
   const audience = getSingleParam(params.audience);
@@ -370,14 +333,20 @@ function getNumberParam(
   min: number,
   label: string,
   validationMessages: string[],
+  defaultedFields: string[],
+  field: string,
 ) {
   const raw = getSingleParam(value);
-  if (raw === undefined || raw === "") return fallback;
+  if (raw === undefined || raw === "") {
+    defaultedFields.push(field);
+    return fallback;
+  }
   const parsed = Number(raw);
   if (Number.isFinite(parsed) && parsed >= min) return parsed;
   validationMessages.push(
-    `${label} must be greater than or equal to ${min}; the default value was used.`,
+    `${label} ต้องมากกว่าหรือเท่ากับ ${min} ระบบจึงกลับไปใช้ค่าเริ่มต้น`,
   );
+  defaultedFields.push(field);
   return fallback;
 }
 
@@ -393,7 +362,7 @@ function getOptionalNumberParam(
   const parsed = Number(raw);
   if (Number.isFinite(parsed) && parsed >= min && parsed <= max) return parsed;
   validationMessages.push(
-    `${label} must be between ${min} and ${max}; site data was not requested.`,
+    `${label} ต้องอยู่ระหว่าง ${min} ถึง ${max} ระบบจะยังไม่ใช้ข้อมูลตามตำแหน่ง`,
   );
   return undefined;
 }

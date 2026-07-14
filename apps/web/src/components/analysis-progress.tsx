@@ -7,6 +7,7 @@ import { useCallback, useEffect, useState } from "react";
 import { readLocalAnalysisReports } from "@/lib/local-analysis-report";
 import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import { analysisStorageChangedEvent } from "@/lib/analysis-storage";
 
 type Step = {
   label: string;
@@ -93,9 +94,11 @@ export function AnalysisProgress() {
     refresh();
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
+    window.addEventListener(analysisStorageChangedEvent, refresh);
     return () => {
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
+      window.removeEventListener(analysisStorageChangedEvent, refresh);
     };
   }, [pathname, refresh]);
 

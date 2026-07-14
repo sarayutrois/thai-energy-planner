@@ -1,10 +1,9 @@
 import { z } from "zod";
 import {
-  createDemoSolarInput,
   estimateSolarFromMonthlyBill,
   inferThaiAuthorityFromProvince,
   runSolarAnalysis,
-  type DemoSolarProfileKey,
+  type SolarAnalysisInput,
   type SolarAnalysisResult,
   type SolarGenerationIntervalInput,
   type SolarModelDetailLevel,
@@ -157,8 +156,7 @@ export const solarAnalyzeRequestSchema = z
         }),
       )
       .min(1)
-      .max(50_000)
-      .optional(),
+      .max(50_000),
     solarProfile: z
       .array(
         z.object({
@@ -349,42 +347,16 @@ export function runSolarAnalyzeApiCalculation(
   const customerSegment =
     request.customerSegment ??
     (request.profile === "daytime_shop" ? "small_business" : "residential");
-  const demoInput = createDemoSolarInput(
-    request.profile as DemoSolarProfileKey,
-    buildSolarOverrides(request),
-  );
+  const systemSizeKwp =
+    request.systemSizeKwp ?? (request.profile === "daytime_shop" ? 8 : 5);
+  const capexThb = request.capexThb ?? systemSizeKwp * 42_000;
   const tariffs = getOfficialThaiTariffPair({
     authority,
     customerSegment,
     billDate: request.billDate,
-    monthlyEnergyKwh: request.loadIntervals
-      ? sumEnergy(request.loadIntervals)
-      : undefined,
+    monthlyEnergyKwh: sumEnergy(request.loadIntervals),
     voltageLevel: request.voltageLevel,
   });
-  demoInput.normalTariff = tariffs.normalTariff;
-  demoInput.touTariff = tariffs.touTariff;
-  demoInput.billDate = request.billDate;
-  demoInput.modelDetailLevel = request.modelMode as SolarModelDetailLevel;
-  demoInput.solarAssumptions = {
-    ...demoInput.solarAssumptions,
-    province: request.province,
-    ...(request.roofAreaSqm === undefined
-      ? {}
-      : { roofAreaSqm: request.roofAreaSqm }),
-    ...(request.roofAzimuth === undefined
-      ? {}
-      : { roofAzimuth: request.roofAzimuth }),
-    ...(request.roofTilt === undefined ? {} : { roofTilt: request.roofTilt }),
-  };
-  if (solarResource) {
-    demoInput.solarAssumptions = {
-      ...demoInput.solarAssumptions,
-      monthlySpecificYieldKwhPerKwp:
-        solarResource.monthlySpecificYieldKwhPerKwp,
-      yieldSource: solarResource.source,
-    };
-  }
 
   const scaleFactors: number[] | undefined = (() => {
     if (request.monthlyBills && request.monthlyBills.length > 0) {
@@ -401,33 +373,80 @@ export function runSolarAnalyzeApiCalculation(
     return undefined;
   })();
 
-  if (scaleFactors) {
-    demoInput.monthlyScaleFactors = scaleFactors;
-  }
-
-  if (request.loadIntervals) {
-    demoInput.loadIntervals = request.loadIntervals.map((interval) => ({
+  const input: SolarAnalysisInput = {
+    loadIntervals: request.loadIntervals.map((interval) => ({
       ...interval,
-    })) as LoadIntervalInput[];
-  } else {
-    demoInput.loadIntervals = shiftIntervalsToBillDate(
-      demoInput.loadIntervals,
-      request.billDate,
-    );
-  }
-  if (request.solarProfile) {
-    demoInput.solarProfile = request.solarProfile.map((interval) => ({
-      ...interval,
-    })) as SolarGenerationIntervalInput[];
-  }
-  if (request.exportEnabled !== undefined)
-    demoInput.exportPolicy.enabled = request.exportEnabled;
-  if (request.exportRateThbPerKwh !== undefined)
-    demoInput.exportPolicy.exportRateThbPerKwh = request.exportRateThbPerKwh;
-  if (request.exportLimitKw !== undefined)
-    demoInput.exportPolicy.exportLimitKw = request.exportLimitKw;
+    })) as LoadIntervalInput[],
+    normalTariff: tariffs.normalTariff,
+    touTariff: tariffs.touTariff,
+    billDate: request.billDate,
+    modelDetailLevel: request.modelMode as SolarModelDetailLevel,
+    ...(scaleFactors ? { monthlyScaleFactors: scaleFactors } : {}),
+    ...(request.solarProfile
+      ? {
+          solarProfile: request.solarProfile.map((interval) => ({
+            ...interval,
+          })) as SolarGenerationIntervalInput[],
+        }
+      : {}),
+    solarAssumptions: {
+      province: request.province,
+      systemSizeKwp,
+      panelWatt: 550,
+      inverterSizeKw: systemSizeKwp,
+      roofAreaSqm: request.roofAreaSqm ?? systemSizeKwp * 6,
+      roofAzimuth: request.roofAzimuth ?? 180,
+      roofTilt: request.roofTilt ?? 12,
+      monthlySpecificYieldKwhPerKwp:
+        solarResource?.monthlySpecificYieldKwhPerKwp ??
+        defaultMonthlySpecificYieldKwhPerKwp,
+      systemLossPercent: request.systemLossPercent ?? 12,
+      shadingLossPercent:
+        request.shadingLossPercent ??
+        (request.profile === "evening_home" ? 8 : 4),
+      degradationPercentPerYear: request.degradationPercentPerYear ?? 0.5,
+      intervalMinutes: 60,
+      yieldSource: solarResource?.source ?? {
+        status: "draft",
+        sourceUrl: null,
+        authority: "Thai Energy Planner system assumptions",
+        notes:
+          "ค่าเริ่มต้นผลผลิต Solar สำหรับคัดกรองเบื้องต้น ผู้ใช้ควรระบุตำแหน่งเพื่อใช้ข้อมูล PVGIS ก่อนตัดสินใจลงทุน",
+      },
+    },
+    exportPolicy: {
+      enabled: request.exportEnabled ?? true,
+      exportRateThbPerKwh: request.exportRateThbPerKwh ?? 0.8,
+      exportLimitKw: request.exportLimitKw ?? 10,
+      status: "draft",
+      sourceUrl: null,
+      authority: "User input or Thai Energy Planner system assumption",
+      notes:
+        "อัตรารับซื้อเป็นค่าเริ่มต้นของระบบจนกว่าผู้ใช้จะยืนยันสิทธิและอัตราของโครงการ",
+    },
+    financialAssumptions: {
+      projectLifeYears: request.projectLifeYears ?? 20,
+      discountRatePercent: request.discountRatePercent ?? 6,
+      electricityEscalationRatePercent:
+        request.electricityEscalationRatePercent ?? 2,
+      inflationRatePercent: 2,
+      oAndMEscalationRatePercent: 2,
+      degradationRatePercent: request.degradationPercentPerYear ?? 0.5,
+      capexThb,
+      oAndMCostPerYear: request.oAndMCostPerYear ?? capexThb * 0.01,
+      inverterReplacementCostThb:
+        request.inverterReplacementCostThb ?? systemSizeKwp * 5_500,
+      inverterReplacementYear:
+        request.inverterReplacementYear === 0
+          ? null
+          : (request.inverterReplacementYear ?? 10),
+      subsidyAmountThb: 0,
+      meterChangeCostThb: 0,
+      otherInitialCostThb: 0,
+    },
+  };
 
-  const analysis = runSolarAnalysis(demoInput);
+  const analysis = runSolarAnalysis(input);
 
   return {
     analysis,
@@ -435,17 +454,12 @@ export function runSolarAnalyzeApiCalculation(
       authority,
       customerSegment,
       billDate: request.billDate,
-      inputIntervalCount: demoInput.loadIntervals.length,
+      inputIntervalCount: input.loadIntervals.length,
       uploadedSolarIntervalCount: request.solarProfile?.length ?? 0,
       tariffVersionIds:
         analysis.billComparison.calculationTrace.tariffVersionIds,
     },
     warnings: [
-      ...(request.loadIntervals
-        ? []
-        : [
-            "No uploaded load intervals were provided; the API used a sample screening profile.",
-          ]),
       ...(solarResource
         ? []
         : request.latitude !== undefined && request.longitude !== undefined
@@ -488,52 +502,6 @@ function resolveTariffScope(
   };
 }
 
-function buildSolarOverrides(
-  request: SolarAnalyzeApiRequest,
-): NonNullable<Parameters<typeof createDemoSolarInput>[1]> {
-  const overrides: NonNullable<Parameters<typeof createDemoSolarInput>[1]> = {};
-  if (request.systemSizeKwp !== undefined)
-    overrides.systemSizeKwp = request.systemSizeKwp;
-  if (request.capexThb !== undefined) overrides.capexThb = request.capexThb;
-  if (request.roofAreaSqm !== undefined)
-    overrides.roofAreaSqm = request.roofAreaSqm;
-  if (request.roofAzimuth !== undefined)
-    overrides.roofAzimuth = request.roofAzimuth;
-  if (request.roofTilt !== undefined) overrides.roofTilt = request.roofTilt;
-  if (request.systemLossPercent !== undefined)
-    overrides.systemLossPercent = request.systemLossPercent;
-  if (request.shadingLossPercent !== undefined)
-    overrides.shadingLossPercent = request.shadingLossPercent;
-  if (request.degradationPercentPerYear !== undefined)
-    overrides.degradationPercentPerYear = request.degradationPercentPerYear;
-  if (request.oAndMCostPerYear !== undefined)
-    overrides.oAndMCostPerYear = request.oAndMCostPerYear;
-  if (request.projectLifeYears !== undefined)
-    overrides.projectLifeYears = request.projectLifeYears;
-  if (request.discountRatePercent !== undefined)
-    overrides.discountRatePercent = request.discountRatePercent;
-  if (request.electricityEscalationRatePercent !== undefined) {
-    overrides.electricityEscalationRatePercent =
-      request.electricityEscalationRatePercent;
-  }
-  if (request.inverterReplacementCostThb !== undefined)
-    overrides.inverterReplacementCostThb = request.inverterReplacementCostThb;
-  if (request.inverterReplacementYear !== undefined) {
-    overrides.inverterReplacementYear =
-      request.inverterReplacementYear === 0
-        ? null
-        : request.inverterReplacementYear;
-  }
-  if (request.exportEnabled !== undefined)
-    overrides.exportEnabled = request.exportEnabled;
-  if (request.exportRateThbPerKwh !== undefined)
-    overrides.exportRateThbPerKwh = request.exportRateThbPerKwh;
-  if (request.exportLimitKw !== undefined)
-    overrides.exportLimitKw = request.exportLimitKw;
-  overrides.modelDetailLevel = request.modelMode;
-  return overrides;
-}
-
 function compactComparison(
   comparison: ReturnType<typeof estimateSolarFromMonthlyBill>["beforeSolar"],
 ): EstimateApiResult["beforeSolar"] {
@@ -549,28 +517,9 @@ function sumEnergy(intervals: Array<{ energyKwh: number }>) {
   return intervals.reduce((sum, interval) => sum + interval.energyKwh, 0);
 }
 
-function shiftIntervalsToBillDate(
-  intervals: LoadIntervalInput[],
-  billDate: string,
-): LoadIntervalInput[] {
-  if (intervals.length === 0) return intervals;
-
-  const [year = "2026", month = "07"] = billDate.split("-");
-  const sorted = [...intervals].sort((a, b) =>
-    a.timestamp.localeCompare(b.timestamp),
-  );
-  const stepMs =
-    sorted.length > 1
-      ? new Date(sorted[1]!.timestamp).getTime() -
-        new Date(sorted[0]!.timestamp).getTime()
-      : 60 * 60 * 1000;
-  const startMs = Date.UTC(Number(year), Number(month) - 1, 1, -7, 0, 0);
-
-  return sorted.map((interval, index) => ({
-    ...interval,
-    timestamp: new Date(startMs + index * stepMs).toISOString(),
-  }));
-}
+const defaultMonthlySpecificYieldKwhPerKwp = [
+  112, 118, 126, 124, 118, 108, 104, 106, 110, 112, 108, 106,
+];
 
 function round(value: number, places: number) {
   const factor = 10 ** places;
