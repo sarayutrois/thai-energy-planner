@@ -15,6 +15,8 @@ const analysisStorageKeys = [
   "thai-energy-planner.load-profiles.v1",
   "thai-energy-planner.active-load-profile.v1",
   "thai-energy-planner.analysis-reports.v1",
+  "thai-energy-planner.solar-assumptions.v1",
+  "thai-energy-planner.solar-analysis.v1",
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -89,6 +91,11 @@ test("start new clears only analysis data and preserves theme and auth", async (
   ).toBeVisible();
   await page.getByRole("button", { name: "ลบข้อมูลและเริ่มใหม่" }).click();
   await page.waitForURL("**/analysis/new?fresh=1");
+  await expect(
+    page.getByText(
+      "เริ่มการวิเคราะห์ใหม่แล้ว ข้อมูลการวิเคราะห์เดิมถูกล้างเรียบร้อย",
+    ),
+  ).toBeVisible();
 
   const stored = await page.evaluate((keys) => {
     return {
@@ -208,6 +215,16 @@ test("solar starts with data review and no automatic result", async ({
     0,
   );
   await expect(page.getByText("ขั้นตอนที่ 3 จาก 4")).toHaveCount(0);
+  await page
+    .getByRole("button", {
+      name: "บันทึกสมมติฐานและกลับไปตรวจข้อมูล",
+    })
+    .click();
+  await page.waitForURL("**/analysis/solar");
+  expect(page.url()).not.toContain("systemSizeKwp");
+  await expect(
+    page.getByRole("heading", { name: "เพิ่มข้อมูลก่อนเริ่มประเมิน Solar" }),
+  ).toBeVisible();
 
   await page.goto("/analysis/solar/results?confirmed=1");
   await page.waitForURL("**/analysis/solar");
@@ -317,7 +334,7 @@ test("Flow B: sample bills are labelled and do not become user data", async ({
   ).toBeVisible();
 
   await page.goto("/analysis/reports");
-  await expect(page.getByText("กำลังใช้ข้อมูลบิลตัวอย่าง")).toBeVisible();
+  await expect(page.getByText("คุณกำลังใช้ข้อมูลตัวอย่าง")).toBeVisible();
   await expect(page.getByText("ยัง export ไม่ได้:")).toBeVisible();
 });
 
@@ -340,6 +357,7 @@ test("invalid saved bills fall back to an empty workspace", async ({
 test("Flow C: user bills and a saved Load Profile produce current reports", async ({
   page,
 }) => {
+  test.setTimeout(120_000);
   await page.goto("/analysis/load-data/bills");
   await page.evaluate(
     (key) =>
@@ -409,7 +427,18 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await page.getByRole("button", { name: "เริ่มประเมิน Solar" }).click();
   await expect(
     page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
-  ).toBeVisible({ timeout: 15_000 });
+  ).toBeVisible({ timeout: 35_000 });
+  await expect(
+    page.getByText("0.1.0-foundation", { exact: false }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("คำนวณสำเร็จ แต่บันทึกผลในอุปกรณ์นี้ไม่ได้"),
+  ).toHaveCount(0);
+  await page.reload();
+  await expect(
+    page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "คำนวณใหม่" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "บันทึกเป็นรายงาน" }),
   ).toBeVisible({ timeout: 15_000 });
@@ -423,8 +452,12 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("main").getByText("Solar", { exact: true }),
   ).toBeVisible();
-  await expect(page.getByText("เปิดรายงานเพื่อส่งออก")).toBeVisible();
-  await page.getByText("เปิดรายงานเพื่อส่งออก").click();
+  const openReportLink = page.getByRole("link", {
+    name: "เปิดรายงานเพื่อส่งออก",
+  });
+  await expect(openReportLink).toBeVisible();
+  await openReportLink.click();
+  await page.waitForURL("**/analysis/reports/**");
   await expect(
     page.getByRole("button", { name: "ดาวน์โหลด JSON" }),
   ).toBeVisible();

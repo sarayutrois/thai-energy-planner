@@ -26,6 +26,7 @@ export type LocalLoadProfileSnapshot = {
   peakKw: number;
   detectedIntervalMinutes: number | null;
   rows: LoadIntervalInput[];
+  isSample?: boolean;
   canonicalProfile?: CanonicalLoadProfile;
   serverLoadProfileId?: string;
   calibration?: {
@@ -48,6 +49,7 @@ export function saveLocalLoadProfileSnapshot(input: {
   rows: LoadIntervalInput[];
   sourceKind?: LoadProfileSourceKind;
   warnings?: string[];
+  isSample?: boolean;
   calibration?: LocalLoadProfileSnapshot["calibration"];
   persist?: boolean;
 }): LocalLoadProfileSnapshot {
@@ -62,6 +64,7 @@ export function saveLocalLoadProfileSnapshot(input: {
     totalKwh: input.totalKwh,
     peakKw: input.peakKw,
     detectedIntervalMinutes: input.detectedIntervalMinutes,
+    ...(input.isSample === undefined ? {} : { isSample: input.isSample }),
     rows: input.rows.map((row) => ({
       timestamp: row.timestamp,
       energyKwh: row.energyKwh,
@@ -130,6 +133,7 @@ export function createCanonicalProfileForSnapshot(input: {
   rows: LoadIntervalInput[];
   sourceKind?: LoadProfileSourceKind;
   warnings?: string[];
+  isSample?: boolean;
   generatedAt?: string;
 }): CanonicalLoadProfile {
   const intervalMinutes = isSupportedIntervalMinutes(
@@ -141,7 +145,7 @@ export function createCanonicalProfileForSnapshot(input: {
   return createCanonicalLoadProfileFromLoadIntervals(input.rows, {
     id: "local-load-profile",
     name: input.sourceName,
-    sourceKind: input.sourceKind ?? "csv",
+    sourceKind: input.isSample ? "demo" : (input.sourceKind ?? "csv"),
     intervalMinutes,
     calculationVersion: calculationEngineVersion,
     ...(input.generatedAt === undefined
@@ -150,6 +154,7 @@ export function createCanonicalProfileForSnapshot(input: {
     sourceReference: input.sourceName,
     assumptions: {
       storage: "browser_local_snapshot",
+      isSample: Boolean(input.isSample),
     },
     quality: {
       warnings: input.warnings ?? [],
@@ -200,6 +205,38 @@ export function deleteLocalLoadProfileSnapshot() {
     profiles[0]?.id ?? "",
   );
   window.localStorage.removeItem(localLoadProfileStorageKey);
+}
+
+export function isSampleLocalLoadProfile(
+  snapshot: LocalLoadProfileSnapshot | null,
+) {
+  return Boolean(
+    snapshot &&
+    (snapshot.isSample || snapshot.canonicalProfile?.source.kind === "demo"),
+  );
+}
+
+export function clearSampleLocalLoadProfiles() {
+  const profiles = listLocalLoadProfileSnapshots().filter(
+    (profile) => !isSampleLocalLoadProfile(profile),
+  );
+  window.localStorage.setItem(
+    localLoadProfilesStorageKey,
+    JSON.stringify(profiles),
+  );
+  const current = readLocalLoadProfileSnapshot();
+  if (!isSampleLocalLoadProfile(current)) return;
+  const next = profiles[0] ?? null;
+  if (next) {
+    window.localStorage.setItem(activeLocalLoadProfileIdStorageKey, next.id);
+    window.localStorage.setItem(
+      localLoadProfileStorageKey,
+      JSON.stringify(next),
+    );
+  } else {
+    window.localStorage.removeItem(activeLocalLoadProfileIdStorageKey);
+    window.localStorage.removeItem(localLoadProfileStorageKey);
+  }
 }
 
 export function listLocalLoadProfileSnapshots(): LocalLoadProfileSnapshot[] {
@@ -292,6 +329,7 @@ export function hydrateLocalLoadProfileSnapshot(
       powerKw: interval.averagePowerKw,
     })),
     canonicalProfile,
+    ...(canonicalProfile.source.kind === "demo" ? { isSample: true } : {}),
     serverLoadProfileId,
   };
   const profiles = listLocalLoadProfileSnapshots().filter(

@@ -72,6 +72,9 @@ export function LocalAnalysisReportCards() {
                     : "ผลลัพธ์ล้าสมัย"}
                 </Badge>
                 <Badge variant="outline">{report.moduleLabel}</Badge>
+                {report.sourceProfile?.isSample ? (
+                  <Badge variant="warning">Sample data</Badge>
+                ) : null}
               </div>
             </div>
           </CardHeader>

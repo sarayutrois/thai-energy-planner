@@ -58,6 +58,13 @@ const sourceCopy: Record<
   },
 };
 
+const sourceFocus: Record<Exclude<AnalysisSource, "bills">, string> = {
+  interval:
+    "นำเข้าไฟล์และตรวจช่วงเวลา หน่วย และคอลัมน์ให้ถูกต้องก่อน จากนั้นค่อยเพิ่มบิลเพื่อปรับค่าใช้จ่ายให้ใกล้เคียงจริง",
+  appliances:
+    "เพิ่มเครื่องใช้ไฟฟ้าและช่วงเวลาใช้งานให้ครบ จากนั้นใช้บิลช่วยปรับพลังงานรายเดือนให้ใกล้เคียงจริง",
+};
+
 export function normalizeAnalysisAudience(
   value: string | string[] | undefined,
 ): AnalysisAudience {
@@ -87,7 +94,8 @@ export function getAnalysisStartContext(
     audienceLabel: audienceCopy[audience].label,
     audienceDescription: audienceCopy[audience].description,
     sourceLabel: sourceCopy[source].label,
-    focus: audienceCopy[audience].focus,
+    focus:
+      source === "bills" ? audienceCopy[audience].focus : sourceFocus[source],
     nextAction: sourceCopy[source].nextAction,
   };
 }

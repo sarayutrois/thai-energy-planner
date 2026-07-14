@@ -701,8 +701,12 @@ export function ApplianceLoadBuilder({
     });
     const rows = simulation.intervals;
     const snapshot = saveLocalLoadProfileSnapshot({
-      sourceName: "Load Profile จากเครื่องใช้ไฟฟ้า",
-      sourceKind: "appliance",
+      sourceName:
+        mode === "sample"
+          ? "Load Profile จากเครื่องใช้ไฟฟ้า (ข้อมูลตัวอย่าง)"
+          : "Load Profile จากเครื่องใช้ไฟฟ้า",
+      sourceKind: mode === "sample" ? "demo" : "appliance",
+      isSample: mode === "sample",
       totalKwh: rows.reduce((sum, row) => sum + row.energyKwh, 0),
       peakKw,
       detectedIntervalMinutes: intervalMinutes,

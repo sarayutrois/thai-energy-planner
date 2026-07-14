@@ -127,7 +127,7 @@ const nextJourneys: Array<{
   },
 ];
 
-export function StartAnalysisWizard() {
+export function StartAnalysisWizard({ fresh = false }: { fresh?: boolean }) {
   const [audience, setAudience] = useState<AnalysisAudience>("home");
   const [goal, setGoal] = useState<AnalysisGoal>("save");
   useEffect(() => {
@@ -181,6 +181,15 @@ export function StartAnalysisWizard() {
 
   return (
     <>
+      {fresh ? (
+        <div
+          className="mx-auto mt-5 w-[calc(100%-2rem)] max-w-7xl rounded-md border border-success bg-success/10 p-4 text-sm font-medium text-success-foreground md:w-[calc(100%-3rem)]"
+          role="status"
+        >
+          เริ่มการวิเคราะห์ใหม่แล้ว ข้อมูลการวิเคราะห์เดิมถูกล้างเรียบร้อย
+          โดยธีมและการตั้งค่า UI ยังอยู่
+        </div>
+      ) : null}
       <section className="relative overflow-hidden border-b border-border/70 bg-card/55">
         <div className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-1/2 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--primary)/0.12),transparent_55%)]" />
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:py-10">

@@ -59,6 +59,36 @@ export const solarProfileOptions: Array<{
   },
 ];
 
+const solarAssumptionParamNames = new Set([
+  "profile",
+  "baseline",
+  "modelMode",
+  "systemSizeKwp",
+  "roofAreaSqm",
+  "roofAzimuth",
+  "roofTilt",
+  "province",
+  "latitude",
+  "longitude",
+  "systemLossPercent",
+  "shadingLossPercent",
+  "degradationPercentPerYear",
+  "capexThb",
+  "oAndMCostPerYear",
+  "projectLifeYears",
+  "discountRatePercent",
+  "electricityEscalationRatePercent",
+  "inverterReplacementCostThb",
+  "inverterReplacementYear",
+  "exportEnabled",
+  "exportRateThbPerKwh",
+  "exportLimitKw",
+]);
+
+export function hasExplicitSolarAssumptions(params: SolarSearchParams) {
+  return Object.keys(params).some((key) => solarAssumptionParamNames.has(key));
+}
+
 export function getSolarAssumptionDraft(params: SolarSearchParams): {
   settings: SolarAssumptionSettings;
   queryString: string;

@@ -1,4 +1,6 @@
-import type { ReactNode } from "react";
+"use client";
+
+import { useEffect, useState, type FormEvent, type ReactNode } from "react";
 import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
 import {
   AlertTriangle,
@@ -17,10 +19,16 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { SolarAnalysisChartPanel } from "@/components/solar-analysis-chart-panel";
 import { SolarLocationFields } from "@/components/solar-location-fields";
 import {
-  buildSolarAssumptionQuery,
+  getSolarAssumptionDraft,
   solarProfileOptions,
   type SolarAssumptionSettings,
 } from "@/lib/solar-assumptions";
+import {
+  clearStoredSolarAssumptions,
+  persistSolarAssumptions,
+  readStoredSolarAssumptions,
+  solarSettingsFingerprint,
+} from "@/lib/local-solar-analysis";
 import {
   formatApproximateMoneyRange,
   solarReadinessCopy,
@@ -44,11 +52,9 @@ const tabs = [
 
 export function SolarPageShell({
   active,
-  queryString,
   children,
 }: {
   active: string;
-  queryString: string;
   children: ReactNode;
 }) {
   return (
@@ -84,7 +90,7 @@ export function SolarPageShell({
               {tabs.map((tab) => (
                 <a
                   key={tab.href}
-                  href={`${tab.href}?${queryString}`}
+                  href={tab.href}
                   aria-current={active === tab.key ? "step" : undefined}
                   className={`inline-flex h-9 items-center rounded-full border px-3 text-sm font-medium transition ${
                     active === tab.key
@@ -107,16 +113,70 @@ export function SolarPageShell({
 export function SolarControls({
   settings,
   action,
+  preferInitialSettings = false,
   savedBillContext,
   submitLabel = "คำนวณผลใหม่",
   showSizingLink = true,
 }: {
   settings: SolarAssumptionSettings;
   action: string;
+  preferInitialSettings?: boolean;
   savedBillContext?: SavedBillContext | undefined;
   submitLabel?: string;
   showSizingLink?: boolean;
 }) {
+  const [formSettings, setFormSettings] = useState(settings);
+  const [settingsSource, setSettingsSource] = useState<
+    "system" | "stored" | "explicit"
+  >(preferInitialSettings ? "explicit" : "system");
+  const [storageError, setStorageError] = useState<string | null>(null);
+  const [isHydrated, setIsHydrated] = useState(false);
+
+  useEffect(() => {
+    if (preferInitialSettings) {
+      setFormSettings(settings);
+      setSettingsSource("explicit");
+      setIsHydrated(true);
+      return;
+    }
+    const stored = readStoredSolarAssumptions(window.localStorage);
+    setFormSettings(stored ?? settings);
+    setSettingsSource(stored ? "stored" : "system");
+    setIsHydrated(true);
+  }, [preferInitialSettings, settings]);
+
+  function submitAssumptions(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    const formData = new FormData(event.currentTarget);
+    const params = Object.fromEntries(
+      Array.from(formData.entries()).flatMap(([key, value]) =>
+        typeof value === "string" ? [[key, value]] : [],
+      ),
+    );
+    const nextSettings = getSolarAssumptionDraft(params).settings;
+    if (!persistSolarAssumptions(window.localStorage, nextSettings)) {
+      setStorageError(
+        "บันทึกสมมติฐานในอุปกรณ์นี้ไม่ได้ กรุณาตรวจพื้นที่จัดเก็บหรือการตั้งค่าความเป็นส่วนตัวแล้วลองใหม่",
+      );
+      return;
+    }
+    const destination = new URL(action, window.location.origin);
+    if (formData.get("source") === "bills") {
+      destination.searchParams.set("source", "bills");
+      const audience = formData.get("audience");
+      if (typeof audience === "string" && audience)
+        destination.searchParams.set("audience", audience);
+    }
+    window.location.assign(`${destination.pathname}${destination.search}`);
+  }
+
+  function restoreSystemDefaults() {
+    clearStoredSolarAssumptions(window.localStorage);
+    setFormSettings(getSolarAssumptionDraft({}).settings);
+    setSettingsSource("system");
+    setStorageError(null);
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -140,23 +200,47 @@ export function SolarControls({
             ค่าเหล่านี้แยกจาก Load Profile ของคุณและยังไม่ใช่ผลการประเมิน
             กรุณาตรวจสอบก่อนกลับไปกดเริ่มคำนวณ
           </p>
+          <div className="mt-3 flex flex-wrap items-center gap-2">
+            <Badge
+              variant={settingsSource === "system" ? "information" : "success"}
+            >
+              {settingsSource === "system"
+                ? "กำลังใช้ค่าแนะนำของระบบ"
+                : settingsSource === "stored"
+                  ? "ผู้ใช้แก้ไขและบันทึกในอุปกรณ์นี้แล้ว"
+                  : "ค่าจากลิงก์ที่เปิด — ยังไม่ได้บันทึก"}
+            </Badge>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={restoreSystemDefaults}
+            >
+              คืนค่าแนะนำของระบบ
+            </Button>
+          </div>
         </div>
-        {settings.validationMessages.length > 0 ? (
+        {storageError ? (
+          <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm text-destructive">
+            {storageError}
+          </div>
+        ) : null}
+        {formSettings.validationMessages.length > 0 ? (
           <div className="mb-4 rounded-md border border-destructive bg-destructive/10 p-3 text-sm leading-6 text-destructive">
-            {settings.validationMessages.map((message) => (
+            {formSettings.validationMessages.map((message) => (
               <p key={message}>{message}</p>
             ))}
           </div>
         ) : null}
         <form
-          action={action}
+          key={solarSettingsFingerprint(formSettings)}
+          onSubmit={submitAssumptions}
           className="grid gap-4 md:grid-cols-2 xl:grid-cols-4"
         >
           <SavedBillHiddenInputs context={savedBillContext} />
           <Field label="ลักษณะสถานที่ (ใช้กำหนดค่าเริ่มต้น)">
             <select
               name="profile"
-              defaultValue={settings.profile}
+              defaultValue={formSettings.profile}
               className={inputClassName}
             >
               {solarProfileOptions.map((option) => (
@@ -169,7 +253,7 @@ export function SolarControls({
           <Field label="รูปแบบมิเตอร์ฐาน">
             <select
               name="baseline"
-              defaultValue={settings.baseline}
+              defaultValue={formSettings.baseline}
               className={inputClassName}
             >
               <option value="normal">Normal</option>
@@ -179,7 +263,7 @@ export function SolarControls({
           <Field label="Model detail">
             <select
               name="modelMode"
-              defaultValue={settings.modelMode}
+              defaultValue={formSettings.modelMode}
               className={inputClassName}
             >
               <option value="easy">แบบประเมินเบื้องต้น</option>
@@ -188,9 +272,9 @@ export function SolarControls({
             </select>
           </Field>
           <SolarLocationFields
-            province={settings.province}
-            latitude={settings.latitude}
-            longitude={settings.longitude}
+            province={formSettings.province}
+            latitude={formSettings.latitude}
+            longitude={formSettings.longitude}
           />
           <Field label="Solar size (kWp)">
             <input
@@ -198,7 +282,7 @@ export function SolarControls({
               type="number"
               min="0.1"
               step="0.1"
-              defaultValue={settings.systemSizeKwp}
+              defaultValue={formSettings.systemSizeKwp}
               className={inputClassName}
             />
           </Field>
@@ -208,7 +292,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="1"
-              defaultValue={settings.roofAreaSqm}
+              defaultValue={formSettings.roofAreaSqm}
               className={inputClassName}
             />
           </Field>
@@ -219,7 +303,7 @@ export function SolarControls({
               min="0"
               max="360"
               step="1"
-              defaultValue={settings.roofAzimuth}
+              defaultValue={formSettings.roofAzimuth}
               className={inputClassName}
             />
           </Field>
@@ -230,7 +314,7 @@ export function SolarControls({
               min="0"
               max="60"
               step="1"
-              defaultValue={settings.roofTilt}
+              defaultValue={formSettings.roofTilt}
               className={inputClassName}
             />
           </Field>
@@ -241,7 +325,7 @@ export function SolarControls({
               min="0"
               max="100"
               step="0.1"
-              defaultValue={settings.systemLossPercent}
+              defaultValue={formSettings.systemLossPercent}
               className={inputClassName}
             />
           </Field>
@@ -252,7 +336,7 @@ export function SolarControls({
               min="0"
               max="100"
               step="0.1"
-              defaultValue={settings.shadingLossPercent}
+              defaultValue={formSettings.shadingLossPercent}
               className={inputClassName}
             />
           </Field>
@@ -263,7 +347,7 @@ export function SolarControls({
               min="0"
               max="100"
               step="0.1"
-              defaultValue={settings.degradationPercentPerYear}
+              defaultValue={formSettings.degradationPercentPerYear}
               className={inputClassName}
             />
           </Field>
@@ -273,7 +357,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="1000"
-              defaultValue={settings.capexThb}
+              defaultValue={formSettings.capexThb}
               className={inputClassName}
             />
           </Field>
@@ -283,7 +367,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="100"
-              defaultValue={settings.oAndMCostPerYear}
+              defaultValue={formSettings.oAndMCostPerYear}
               className={inputClassName}
             />
           </Field>
@@ -293,7 +377,7 @@ export function SolarControls({
               type="number"
               min="1"
               step="1"
-              defaultValue={settings.projectLifeYears}
+              defaultValue={formSettings.projectLifeYears}
               className={inputClassName}
             />
           </Field>
@@ -303,7 +387,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="0.1"
-              defaultValue={settings.discountRatePercent}
+              defaultValue={formSettings.discountRatePercent}
               className={inputClassName}
             />
           </Field>
@@ -313,7 +397,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="0.1"
-              defaultValue={settings.electricityEscalationRatePercent}
+              defaultValue={formSettings.electricityEscalationRatePercent}
               className={inputClassName}
             />
           </Field>
@@ -323,7 +407,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="100"
-              defaultValue={settings.inverterReplacementCostThb}
+              defaultValue={formSettings.inverterReplacementCostThb}
               className={inputClassName}
             />
           </Field>
@@ -333,14 +417,14 @@ export function SolarControls({
               type="number"
               min="0"
               step="1"
-              defaultValue={settings.inverterReplacementYear}
+              defaultValue={formSettings.inverterReplacementYear}
               className={inputClassName}
             />
           </Field>
           <Field label="เปิดรับไฟฟ้าที่ส่งกลับเข้าสู่ระบบ">
             <select
               name="exportEnabled"
-              defaultValue={String(settings.exportEnabled)}
+              defaultValue={String(formSettings.exportEnabled)}
               className={inputClassName}
             >
               <option value="true">เปิดใช้</option>
@@ -353,7 +437,7 @@ export function SolarControls({
               type="number"
               min="0"
               step="0.01"
-              defaultValue={settings.exportRateThbPerKwh}
+              defaultValue={formSettings.exportRateThbPerKwh}
               className={inputClassName}
             />
           </Field>
@@ -363,19 +447,19 @@ export function SolarControls({
               type="number"
               min="0"
               step="0.1"
-              defaultValue={settings.exportLimitKw}
+              defaultValue={formSettings.exportLimitKw}
               className={inputClassName}
             />
           </Field>
           <div className="flex items-end">
-            <Button type="submit" className="w-full">
+            <Button type="submit" className="w-full" disabled={!isHydrated}>
               {submitLabel}
             </Button>
           </div>
           {showSizingLink ? (
             <div className="flex items-end">
               <a
-                href={`/analysis/solar?${withSavedBillContext(buildSolarAssumptionQuery(settings), savedBillContext)}`}
+                href={withSavedBillContext("/analysis/solar", savedBillContext)}
                 className="inline-flex h-10 w-full items-center justify-center rounded-md border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
               >
                 กลับไปตรวจข้อมูลและคำนวณ
@@ -405,15 +489,15 @@ function SavedBillHiddenInputs({
 }
 
 function withSavedBillContext(
-  queryString: string,
+  path: string,
   context?: SavedBillContext | undefined,
 ) {
-  if (context?.source !== "bills") return queryString;
+  if (context?.source !== "bills") return path;
 
-  const params = new URLSearchParams(queryString);
+  const params = new URLSearchParams();
   params.set("source", "bills");
   if (context.audience) params.set("audience", context.audience);
-  return params.toString();
+  return `${path}?${params.toString()}`;
 }
 
 export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {

@@ -22,6 +22,7 @@ export function LoadProfileImporter() {
   const [savedMessage, setSavedMessage] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [sourceName, setSourceName] = useState("ข้อมูล Load Profile ที่นำเข้า");
+  const [isSampleSource, setIsSampleSource] = useState(false);
   const [intervalMinutes, setIntervalMinutes] = useState<15 | 30 | 60>(60);
   const [mapping, setMapping] = useState({
     timestamp: "timestamp",
@@ -35,7 +36,7 @@ export function LoadProfileImporter() {
     setSavedMessage(null);
     if (!file) return;
 
-    await requestPreview(file);
+    await requestPreview(file, intervalMinutes, false);
   }
 
   async function loadTestCsv() {
@@ -49,7 +50,7 @@ export function LoadProfileImporter() {
       const file = new File([await response.blob()], "test-upload-15min.csv", {
         type: "text/csv",
       });
-      await requestPreview(file, 15);
+      await requestPreview(file, 15, true);
     } catch (caught) {
       setError(
         caught instanceof Error
@@ -78,14 +79,16 @@ export function LoadProfileImporter() {
       "inline-demo.csv",
       { type: "text/csv" },
     );
-    await requestPreview(file, 60);
+    await requestPreview(file, 60, true);
   }
 
   async function requestPreview(
     file: File,
     overrideIntervalMinutes = intervalMinutes,
+    sampleSource = false,
   ) {
     setSourceName(file.name);
+    setIsSampleSource(sampleSource);
     setIsLoading(true);
     try {
       const formData = new FormData();
@@ -124,7 +127,9 @@ export function LoadProfileImporter() {
       preview.detectedIntervalMinutes ?? intervalMinutes;
 
     const snapshot = saveLocalLoadProfileSnapshot({
-      sourceName,
+      sourceName: isSampleSource
+        ? `${sourceName} (ข้อมูลตัวอย่าง)`
+        : sourceName,
       totalKwh: preview.totalKwh,
       peakKw: preview.peakKw,
       detectedIntervalMinutes: resolvedIntervalMinutes,
@@ -134,7 +139,8 @@ export function LoadProfileImporter() {
         ...(row.powerKw === undefined ? {} : { powerKw: row.powerKw }),
         ...(row.meterId === undefined ? {} : { meterId: row.meterId }),
       })),
-      sourceKind: sourceKindFromFileName(sourceName),
+      sourceKind: isSampleSource ? "demo" : sourceKindFromFileName(sourceName),
+      isSample: isSampleSource,
       warnings: preview.issues
         .filter((issue) => issue.severity === "warning")
         .map((issue) => `${issue.code}: ${issue.messageTh}`),

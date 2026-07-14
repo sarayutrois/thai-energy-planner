@@ -16,6 +16,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   hydrateLocalLoadProfileSnapshot,
+  isSampleLocalLoadProfile,
   formatLocalLoadProfileLabel,
   listDistinctLocalLoadProfileSnapshots,
   readLocalLoadProfileSnapshot,
@@ -187,10 +188,20 @@ export function CanonicalScenarioPanel() {
               <p className="mt-2 text-sm text-muted-foreground">
                 ใช้ “{profile.name}” จาก{" "}
                 {profileSourceLabel(profile.source.kind)}{" "}
-                โดยไม่มีข้อมูลตัวอย่างปะปน
+                {isSampleLocalLoadProfile(activeSnapshot)
+                  ? "ชุดนี้เป็นข้อมูลตัวอย่างสำหรับทดลองขั้นตอน"
+                  : "โดยไม่มีข้อมูลตัวอย่างปะปน"}
               </p>
             </div>
-            <Badge variant="success">ข้อมูลพร้อมคำนวณ</Badge>
+            <Badge
+              variant={
+                isSampleLocalLoadProfile(activeSnapshot) ? "warning" : "success"
+              }
+            >
+              {isSampleLocalLoadProfile(activeSnapshot)
+                ? "Sample data"
+                : "ข้อมูลพร้อมคำนวณ"}
+            </Badge>
           </div>
         </CardHeader>
         <CardContent className="grid gap-5">

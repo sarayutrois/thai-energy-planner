@@ -8,6 +8,7 @@ import {
 } from "@/lib/local-analysis-snapshot";
 import { calibrateLoadProfileAgainstBills } from "@thai-energy-planner/calculation-engine";
 import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import { isSampleLocalLoadProfile } from "@/lib/local-load-profile";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import {
   createAnalysisDatasetFingerprint,
@@ -115,7 +116,8 @@ export function saveLocalAnalysisReport({
   sourcePath: string;
 }) {
   const now = new Date().toISOString();
-  const profile = readLocalLoadProfileSnapshot()?.canonicalProfile;
+  const profileSnapshot = readLocalLoadProfileSnapshot();
+  const profile = profileSnapshot?.canonicalProfile;
   const calibration = profile
     ? calibrateLoadProfileAgainstBills({
         profile,
@@ -153,6 +155,7 @@ export function saveLocalAnalysisReport({
             id: profile.id,
             name: profile.name,
             sourceKind: profile.source.kind,
+            isSample: isSampleLocalLoadProfile(profileSnapshot),
             intervalCount: profile.intervals.length,
             qualityLevel: profile.quality.level,
           },

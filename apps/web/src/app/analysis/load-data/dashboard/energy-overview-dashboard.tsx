@@ -17,7 +17,6 @@ import {
   readLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
-import { SampleBillNotice } from "@/components/sample-bill-notice";
 import { DataConfidence, MetricCard } from "@/components/ui/states";
 
 export function EnergyOverviewDashboard() {
@@ -81,7 +80,6 @@ export function EnergyOverviewDashboard() {
 
   return (
     <div className="mt-6 grid gap-5">
-      <SampleBillNotice />
       <section className="rounded-xl border border-border bg-card p-5">
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>

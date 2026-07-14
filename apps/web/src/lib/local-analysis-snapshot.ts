@@ -121,6 +121,7 @@ export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
         id: string;
         name: string;
         sourceKind: string;
+        isSample?: boolean;
         intervalCount: number;
         qualityLevel: string;
       }

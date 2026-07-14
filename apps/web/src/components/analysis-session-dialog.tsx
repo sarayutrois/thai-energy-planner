@@ -9,6 +9,7 @@ import {
   announceAnalysisStorageChanged,
   clearPersistedAnalysisData,
   hasPersistedAnalysisData,
+  readLatestAnalysisTimestamp,
   readAnalysisResumeChoice,
 } from "@/lib/analysis-storage";
 
@@ -22,10 +23,12 @@ function resetCurrentAnalysis() {
 export function AnalysisSessionDialog() {
   const [showResumeChoice, setShowResumeChoice] = useState(false);
   const [showConfirmation, setShowConfirmation] = useState(false);
+  const [latestSavedAt, setLatestSavedAt] = useState<string | null>(null);
 
   useEffect(() => {
     if (readAnalysisResumeChoice(window.sessionStorage) !== null) return;
     if (hasPersistedAnalysisData(window.localStorage)) {
+      setLatestSavedAt(readLatestAnalysisTimestamp(window.localStorage));
       setShowResumeChoice(true);
       return;
     }
@@ -67,6 +70,11 @@ export function AnalysisSessionDialog() {
               คุณสามารถทำต่อได้
               หรือเริ่มการวิเคราะห์ใหม่โดยไม่กระทบธีมและการเข้าสู่ระบบ
             </p>
+            {latestSavedAt ? (
+              <p className="mt-2 text-sm font-medium text-foreground">
+                บันทึกล่าสุด: {formatSavedAt(latestSavedAt)}
+              </p>
+            ) : null}
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <Button autoFocus size="lg" onClick={continueAnalysis}>
                 ทำต่อจากข้อมูลเดิม
@@ -98,6 +106,13 @@ export function AnalysisSessionDialog() {
       />
     </>
   );
+}
+
+function formatSavedAt(value: string) {
+  return new Date(value).toLocaleString("th-TH-u-ca-gregory", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
 }
 
 export function StartNewAnalysisButton() {

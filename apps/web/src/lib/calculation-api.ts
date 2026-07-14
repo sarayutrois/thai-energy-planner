@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  calculationEngineVersion,
   estimateSolarFromMonthlyBill,
   inferThaiAuthorityFromProvince,
   runSolarAnalysis,
@@ -209,6 +210,10 @@ export type SolarAnalyzeApiPayload = {
     inputIntervalCount: number;
     uploadedSolarIntervalCount: number;
     tariffVersionIds: string[];
+    ftVersionIds: string[];
+    calculationEngineVersion: string;
+    calculatedAt: string;
+    timezone: "Asia/Bangkok";
   };
   warnings: string[];
 };
@@ -447,6 +452,25 @@ export function runSolarAnalyzeApiCalculation(
   };
 
   const analysis = runSolarAnalysis(input);
+  const calculatedAt = new Date().toISOString();
+  const ftVersionIds = Array.from(
+    new Set(
+      [tariffs.normalTariff, tariffs.touTariff].flatMap((tariff) =>
+        tariff.ftPeriods
+          .filter(
+            (period) =>
+              request.billDate >= period.effectiveFrom &&
+              (period.effectiveTo === null ||
+                request.billDate <= period.effectiveTo),
+          )
+          .map(
+            (period) =>
+              period.id ??
+              `${period.effectiveFrom}-to-${period.effectiveTo ?? "open"}`,
+          ),
+      ),
+    ),
+  );
 
   return {
     analysis,
@@ -458,6 +482,10 @@ export function runSolarAnalyzeApiCalculation(
       uploadedSolarIntervalCount: request.solarProfile?.length ?? 0,
       tariffVersionIds:
         analysis.billComparison.calculationTrace.tariffVersionIds,
+      ftVersionIds,
+      calculationEngineVersion,
+      calculatedAt,
+      timezone: "Asia/Bangkok" as const,
     },
     warnings: [
       ...(solarResource

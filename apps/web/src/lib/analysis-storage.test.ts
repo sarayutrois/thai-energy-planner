@@ -3,6 +3,7 @@ import {
   analysisStorageKeys,
   clearPersistedAnalysisData,
   hasPersistedAnalysisData,
+  readLatestAnalysisTimestamp,
 } from "./analysis-storage";
 
 function createMemoryStorage(initial: Record<string, string> = {}) {
@@ -46,6 +47,21 @@ describe("analysis storage lifecycle", () => {
     expect(storage.getItem("sb-project-auth-token")).toBe("signed-in");
     expect(storage.getItem("thai-energy-planner.ui-density.v1")).toBe(
       "compact",
+    );
+  });
+
+  it("finds the latest timestamp across registered analysis snapshots", () => {
+    const storage = createMemoryStorage({
+      [analysisStorageKeys[1]]: JSON.stringify({
+        updatedAt: "2026-07-13T10:00:00.000Z",
+      }),
+      [analysisStorageKeys[7]]: JSON.stringify([
+        { createdAt: "2026-07-14T12:30:00.000Z" },
+      ]),
+    });
+
+    expect(readLatestAnalysisTimestamp(storage)).toBe(
+      "2026-07-14T12:30:00.000Z",
     );
   });
 });

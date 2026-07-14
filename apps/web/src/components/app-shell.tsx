@@ -19,6 +19,7 @@ import {
   AnalysisSessionDialog,
   StartNewAnalysisButton,
 } from "@/components/analysis-session-dialog";
+import { SampleBillNotice } from "@/components/sample-bill-notice";
 
 type NavigationItem = {
   label: string;
@@ -251,6 +252,7 @@ export function AppHeader() {
 }
 
 export function AppShell({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
   return (
     <>
       <a
@@ -267,6 +269,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </div>
       <AnalysisProgress />
       <AnalysisSessionDialog />
+      {pathname.startsWith("/analysis") ? (
+        <PageContainer>
+          <SampleBillNotice />
+        </PageContainer>
+      ) : null}
       <div className="content-enter" id="main-content" tabIndex={-1}>
         {children}
       </div>

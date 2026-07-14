@@ -109,6 +109,11 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             <Badge className="mt-3" variant={isCurrent ? "success" : "warning"}>
               {isCurrent ? "ข้อมูลปัจจุบัน" : "ผลลัพธ์ล้าสมัย"}
             </Badge>
+            {report.sourceProfile?.isSample ? (
+              <Badge className="ml-2 mt-3" variant="warning">
+                Sample data
+              </Badge>
+            ) : null}
           </div>
           <div className="flex flex-wrap gap-2 print:hidden" data-pdf-exclude>
             {isCurrent ? (

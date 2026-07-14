@@ -1,6 +1,6 @@
-import { SampleBillNotice } from "@/components/sample-bill-notice";
 import {
   getSolarAssumptionDraft,
+  hasExplicitSolarAssumptions,
   type SolarSearchParams,
 } from "@/lib/solar-assumptions";
 import { SolarApiRuntimePanel } from "./solar-api-runtime-panel";
@@ -12,15 +12,16 @@ export default async function SolarOverviewPage({
 }: {
   searchParams?: Promise<SolarSearchParams>;
 }) {
-  const { settings, queryString } = getSolarAssumptionDraft(
-    (await searchParams) ?? {},
-  );
+  const params = (await searchParams) ?? {};
+  const { settings } = getSolarAssumptionDraft(params);
 
   return (
-    <SolarPageShell active="overview" queryString={queryString}>
+    <SolarPageShell active="overview">
       <AnalysisGoalBanner />
-      <SampleBillNotice />
-      <SolarApiRuntimePanel settings={settings} />
+      <SolarApiRuntimePanel
+        settings={settings}
+        preferInitialSettings={hasExplicitSolarAssumptions(params)}
+      />
     </SolarPageShell>
   );
 }

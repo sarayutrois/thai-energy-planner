@@ -18,7 +18,6 @@ import {
   getReportReadinessStatus,
   type ReportReadinessInput,
 } from "./report-readiness-state";
-import { SampleBillNotice } from "@/components/sample-bill-notice";
 import {
   analysisGoalCopy,
   getAnalysisGoalGuidance,
@@ -164,7 +163,6 @@ export function ReportReadinessPanel() {
 
   return (
     <>
-      <SampleBillNotice />
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

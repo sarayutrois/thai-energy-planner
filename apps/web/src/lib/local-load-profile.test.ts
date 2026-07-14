@@ -41,4 +41,18 @@ describe("imported canonical load-profile flow", () => {
       "No uploaded load intervals were provided; the API used a sample screening profile.",
     );
   });
+
+  it("preserves sample provenance in the canonical profile", () => {
+    const profile = createCanonicalProfileForSnapshot({
+      sourceName: "ชุดทดลอง",
+      sourceKind: "appliance",
+      isSample: true,
+      detectedIntervalMinutes: 60,
+      generatedAt: "2026-07-01T00:00:00.000Z",
+      rows: [{ timestamp: "2026-07-01T00:00:00.000Z", energyKwh: 0.5 }],
+    });
+
+    expect(profile.source.kind).toBe("demo");
+    expect(profile.assumptions.isSample).toBe(true);
+  });
 });

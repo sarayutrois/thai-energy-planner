@@ -14,48 +14,46 @@ import {
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
 import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
+import type { SolarAssumptionSettings } from "@/lib/solar-assumptions";
 import {
-  buildSolarAssumptionQuery,
-  type SolarAssumptionSettings,
-} from "@/lib/solar-assumptions";
+  compactSolarCalculationSuccess,
+  deriveSolarStatus,
+  persistSolarAnalysis,
+  readStoredSolarAnalysis,
+  readStoredSolarAssumptions,
+  solarSettingsFingerprint,
+  storedSolarAnalysisMatches,
+  type SolarCalculationSuccess,
+  type SolarStatus,
+} from "@/lib/local-solar-analysis";
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 
 type SolarAnalyzeResponse =
-  | {
-      ok: true;
-      analysis: SolarAnalysisResult;
-      trace: {
-        authority: "PEA" | "MEA";
-        customerSegment: "residential" | "small_business";
-        billDate: string;
-        inputIntervalCount: number;
-        uploadedSolarIntervalCount: number;
-        tariffVersionIds: string[];
-      };
-      warnings: string[];
-    }
+  | SolarCalculationSuccess
   | {
       ok: false;
       error: string;
       issues?: Array<{ path: string; message: string }>;
     };
 
-const solarApiTimeoutMs = 12_000;
+const solarApiTimeoutMs = 30_000;
 
 export function SolarApiRuntimePanel({
   settings,
+  preferInitialSettings = false,
 }: {
   settings: SolarAssumptionSettings;
+  preferInitialSettings?: boolean;
 }) {
+  const [activeSettings, setActiveSettings] = useState(settings);
   const [snapshot, setSnapshot] = useState<LocalLoadProfileSnapshot | null>(
     null,
   );
-  const [calculatedResult, setCalculatedResult] = useState<Extract<
-    SolarAnalyzeResponse,
-    { ok: true }
-  > | null>(null);
+  const [calculatedResult, setCalculatedResult] =
+    useState<SolarCalculationSuccess | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [storageError, setStorageError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
 
@@ -76,15 +74,15 @@ export function SolarApiRuntimePanel({
           signal: controller.signal,
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            province: settings.province,
-            profile: settings.profile,
-            modelMode: settings.modelMode,
-            ...(settings.latitude === undefined
+            province: activeSettings.province,
+            profile: activeSettings.profile,
+            modelMode: activeSettings.modelMode,
+            ...(activeSettings.latitude === undefined
               ? {}
-              : { latitude: settings.latitude }),
-            ...(settings.longitude === undefined
+              : { latitude: activeSettings.latitude }),
+            ...(activeSettings.longitude === undefined
               ? {}
-              : { longitude: settings.longitude }),
+              : { longitude: activeSettings.longitude }),
             billDate:
               profileSnapshot.canonicalProfile?.period.startInclusive.slice(
                 0,
@@ -92,27 +90,28 @@ export function SolarApiRuntimePanel({
               ) ?? "2026-07-01",
             voltageLevel: "low_voltage",
             customerSegment:
-              settings.profile === "daytime_shop"
+              activeSettings.profile === "daytime_shop"
                 ? "small_business"
                 : "residential",
-            systemSizeKwp: settings.systemSizeKwp,
-            roofAreaSqm: settings.roofAreaSqm,
-            roofAzimuth: settings.roofAzimuth,
-            roofTilt: settings.roofTilt,
-            systemLossPercent: settings.systemLossPercent,
-            shadingLossPercent: settings.shadingLossPercent,
-            degradationPercentPerYear: settings.degradationPercentPerYear,
-            capexThb: settings.capexThb,
-            oAndMCostPerYear: settings.oAndMCostPerYear,
-            projectLifeYears: settings.projectLifeYears,
-            discountRatePercent: settings.discountRatePercent,
+            systemSizeKwp: activeSettings.systemSizeKwp,
+            roofAreaSqm: activeSettings.roofAreaSqm,
+            roofAzimuth: activeSettings.roofAzimuth,
+            roofTilt: activeSettings.roofTilt,
+            systemLossPercent: activeSettings.systemLossPercent,
+            shadingLossPercent: activeSettings.shadingLossPercent,
+            degradationPercentPerYear: activeSettings.degradationPercentPerYear,
+            capexThb: activeSettings.capexThb,
+            oAndMCostPerYear: activeSettings.oAndMCostPerYear,
+            projectLifeYears: activeSettings.projectLifeYears,
+            discountRatePercent: activeSettings.discountRatePercent,
             electricityEscalationRatePercent:
-              settings.electricityEscalationRatePercent,
-            inverterReplacementCostThb: settings.inverterReplacementCostThb,
-            inverterReplacementYear: settings.inverterReplacementYear,
-            exportEnabled: settings.exportEnabled,
-            exportRateThbPerKwh: settings.exportRateThbPerKwh,
-            exportLimitKw: settings.exportLimitKw,
+              activeSettings.electricityEscalationRatePercent,
+            inverterReplacementCostThb:
+              activeSettings.inverterReplacementCostThb,
+            inverterReplacementYear: activeSettings.inverterReplacementYear,
+            exportEnabled: activeSettings.exportEnabled,
+            exportRateThbPerKwh: activeSettings.exportRateThbPerKwh,
+            exportLimitKw: activeSettings.exportLimitKw,
             loadIntervals: profileSnapshot.canonicalProfile
               ? canonicalLoadProfileToLoadIntervals(
                   profileSnapshot.canonicalProfile,
@@ -126,6 +125,16 @@ export function SolarApiRuntimePanel({
         if (!response.ok || !result.ok)
           throw new Error(result.ok ? "" : result.error);
         setCalculatedResult(result);
+        const persisted = persistSolarAnalysis(window.localStorage, {
+          profileSnapshotId: profileSnapshot.id,
+          settingsFingerprint: solarSettingsFingerprint(activeSettings),
+          result: compactSolarCalculationSuccess(result),
+        });
+        setStorageError(
+          persisted
+            ? null
+            : "คำนวณสำเร็จ แต่บันทึกผลในอุปกรณ์นี้ไม่ได้ กรุณาส่งออกข้อมูลสำรองก่อนปิดหน้า",
+        );
       } catch (caught) {
         setCalculatedResult(null);
         setError(
@@ -140,13 +149,30 @@ export function SolarApiRuntimePanel({
         setIsLoading(false);
       }
     },
-    [settings],
+    [activeSettings],
   );
 
   useEffect(() => {
-    setSnapshot(readLocalLoadProfileSnapshot());
+    const restoredSettings = preferInitialSettings
+      ? settings
+      : (readStoredSolarAssumptions(window.localStorage) ?? settings);
+    const restoredSnapshot = readLocalLoadProfileSnapshot();
+    const storedResult = readStoredSolarAnalysis(window.localStorage);
+    setActiveSettings(restoredSettings);
+    setSnapshot(restoredSnapshot);
+    setCalculatedResult(
+      restoredSnapshot &&
+        storedResult &&
+        storedSolarAnalysisMatches(
+          storedResult,
+          restoredSnapshot.id,
+          restoredSettings,
+        )
+        ? storedResult.result
+        : null,
+    );
     setIsHydrated(true);
-  }, []);
+  }, [preferInitialSettings, settings]);
 
   if (!isHydrated)
     return (
@@ -156,6 +182,13 @@ export function SolarApiRuntimePanel({
         </CardContent>
       </Card>
     );
+
+  const status = deriveSolarStatus({
+    hasLoadProfile: Boolean(snapshot),
+    isCalculating: isLoading,
+    hasCalculatedResult: Boolean(calculatedResult),
+    hasError: Boolean(error),
+  });
 
   if (!snapshot)
     return (
@@ -220,6 +253,9 @@ export function SolarApiRuntimePanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            <Badge variant={status === "calculated" ? "success" : "outline"}>
+              {solarStatusLabel(status)}
+            </Badge>
             <Badge>{dataStatus.label}</Badge>
             <Badge variant="outline">
               {formatNumber(snapshot.totalKwh)} kWh
@@ -244,11 +280,11 @@ export function SolarApiRuntimePanel({
               />
               <Metric
                 label="ขนาด Solar เริ่มต้น"
-                value={`${formatNumber(settings.systemSizeKwp)} kWp`}
+                value={`${formatNumber(activeSettings.systemSizeKwp)} kWp`}
               />
               <Metric
                 label="เงินลงทุนตั้งต้น"
-                value={`${formatNumber(settings.capexThb)} บาท`}
+                value={`${formatNumber(activeSettings.capexThb)} บาท`}
               />
             </div>
             <p className="mt-3 text-xs leading-5 text-muted-foreground">
@@ -273,13 +309,27 @@ export function SolarApiRuntimePanel({
             {error}
           </div>
         ) : null}
+        {storageError ? (
+          <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
+            {storageError}
+          </div>
+        ) : null}
         {calculatedResult ? (
-          <RuntimeMetrics
-            analysis={calculatedResult.analysis}
-            trace={calculatedResult.trace}
-            snapshot={snapshot}
-            hasBills={readSavedBills().length > 0}
-          />
+          <>
+            <RuntimeMetrics
+              analysis={calculatedResult.analysis}
+              trace={calculatedResult.trace}
+              snapshot={snapshot}
+              hasBills={readSavedBills().length > 0}
+            />
+            <div className="rounded-md border border-border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
+              คำนวณเมื่อ {formatDate(calculatedResult.trace.calculatedAt)} ·
+              เขตเวลา {calculatedResult.trace.timezone} · Engine{" "}
+              {calculatedResult.trace.calculationEngineVersion} · Tariff{" "}
+              {calculatedResult.trace.tariffVersionIds.join(", ")} · Ft{" "}
+              {calculatedResult.trace.ftVersionIds.join(", ")}
+            </div>
+          </>
         ) : null}
         {calculatedResult?.warnings.length ? (
           <div className="rounded-md border border-warning bg-warning/10 p-3 text-sm leading-6 text-warning-foreground">
@@ -297,9 +347,11 @@ export function SolarApiRuntimePanel({
             <RefreshCw className="h-4 w-4" />
             {isLoading
               ? "กำลังประเมิน..."
-              : calculatedResult
-                ? "คำนวณใหม่"
-                : "เริ่มประเมิน Solar"}
+              : error
+                ? "ลองคำนวณใหม่"
+                : calculatedResult
+                  ? "คำนวณใหม่"
+                  : "เริ่มประเมิน Solar"}
           </Button>
           <a
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
@@ -309,7 +361,7 @@ export function SolarApiRuntimePanel({
           </a>
           <a
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
-            href={`/analysis/solar/config?${buildSolarAssumptionQuery(settings)}`}
+            href="/analysis/solar/config"
           >
             ตรวจและแก้สมมติฐาน Solar
           </a>
@@ -322,6 +374,17 @@ export function SolarApiRuntimePanel({
       </CardContent>
     </Card>
   );
+}
+
+function solarStatusLabel(status: SolarStatus) {
+  const labels: Record<SolarStatus, string> = {
+    missing_load_profile: "ยังไม่มี Load Profile",
+    ready_to_calculate: "พร้อมเริ่มประเมิน",
+    calculating: "กำลังคำนวณจริง",
+    calculated: "คำนวณเสร็จแล้ว",
+    error: "คำนวณไม่สำเร็จ",
+  };
+  return labels[status];
 }
 
 function RuntimeMetrics({
@@ -506,11 +569,15 @@ function getSolarDataStatus(
   snapshot: LocalLoadProfileSnapshot,
   hasBills: boolean,
 ) {
+  if (
+    snapshot.isSample ||
+    snapshot.canonicalProfile?.source.kind === "demo" ||
+    snapshot.sourceName.includes("ตัวอย่าง")
+  )
+    return { label: "ข้อมูลตัวอย่าง", warning: true };
   if (snapshot.canonicalProfile?.quality.level === "measured")
     return { label: "ข้อมูลจริงจาก Load Profile", warning: false };
   if (hasBills) return { label: "ข้อมูลประมาณการจากบิล", warning: true };
-  if (snapshot.sourceName.includes("ตัวอย่าง"))
-    return { label: "ข้อมูลตัวอย่าง", warning: true };
   return { label: "ข้อมูลยังไม่เพียงพอ", warning: true };
 }
 function readSavedBills() {
