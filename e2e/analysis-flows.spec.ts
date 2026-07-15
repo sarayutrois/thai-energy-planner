@@ -404,6 +404,13 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
       name: "เปรียบเทียบจาก Load Profile ที่บันทึกไว้",
     }),
   ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    ),
+  ).toBe(false);
+  await page.setViewportSize({ width: 1280, height: 720 });
   const decisionAnswer = page.getByRole("region", {
     name: "คำตอบหลักจากผลการวิเคราะห์",
   });
@@ -431,6 +438,13 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByText("0.1.0-foundation", { exact: false }),
   ).toBeVisible();
+  await expect(
+    page.getByText("ประหยัดค่าไฟรายปี", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("รายได้จากการส่งออกไฟรายปี", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByText("ประหยัดรายปี", { exact: true })).toHaveCount(0);
   await expect(
     page.getByText("คำนวณสำเร็จ แต่บันทึกผลในอุปกรณ์นี้ไม่ได้"),
   ).toHaveCount(0);

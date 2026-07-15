@@ -511,7 +511,7 @@ export function SolarSummary({ analysis }: { analysis: SolarAnalysisResult }) {
       />
       <Metric
         helpText={solarReadinessCopy.estimatedSavingsHint}
-        label="ประมาณการประหยัด/ปี"
+        label="ผลประโยชน์รวมโดยประมาณ/ปี"
         value={`${formatApproximateMoneyRange(comparison.netAnnualBenefit)}/ปี`}
       />
       <Metric
@@ -575,7 +575,7 @@ export function SolarDecisionSummary({
       reason={reason}
       evidence={[
         {
-          label: "ผลประหยัดสุทธิโดยประมาณ",
+          label: "ผลประโยชน์รวมโดยประมาณ",
           value: `${formatApproximateMoneyRange(analysis.billComparison.netAnnualBenefit)}/ปี`,
         },
         {

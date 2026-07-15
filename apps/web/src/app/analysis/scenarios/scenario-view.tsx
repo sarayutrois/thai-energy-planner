@@ -28,7 +28,7 @@ export function ScenarioView({
   const bestScenario = comparison.bestScenario;
 
   return (
-    <div className="grid gap-5">
+    <div className="grid w-full min-w-0 max-w-full gap-5 overflow-hidden">
       <DecisionStory
         title={formatScenarioName(bestScenario.name)}
         reason={formatDecisionReason(comparison)}
@@ -73,7 +73,7 @@ export function ScenarioView({
         />
       </div>
 
-      <details className="group rounded-2xl border border-border/90 bg-card/80 shadow-panel">
+      <details className="group min-w-0 max-w-full rounded-2xl border border-border/90 bg-card/80 shadow-panel">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 font-semibold md:p-6">
           <span className="flex items-center gap-2">
             <TrendingDown aria-hidden="true" className="h-5 w-5 text-primary" />
@@ -86,8 +86,8 @@ export function ScenarioView({
             ซ่อนรายละเอียด
           </span>
         </summary>
-        <div className="grid gap-5 border-t border-border/80 p-5 md:p-6">
-          <div className="overflow-x-auto rounded-xl border border-border">
+        <div className="grid min-w-0 gap-5 border-t border-border/80 p-5 md:p-6">
+          <div className="min-w-0 max-w-full overflow-x-auto rounded-xl border border-border">
             <table className="w-full min-w-[1080px] border-collapse text-left text-sm">
               <thead className="bg-muted text-muted-foreground">
                 <tr>

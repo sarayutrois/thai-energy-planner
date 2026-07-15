@@ -463,7 +463,7 @@ function RuntimeMetrics({
           value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`}
         />
         <Metric
-          label="ประหยัดโดยประมาณ"
+          label="ผลประโยชน์รวมโดยประมาณ"
           value={`${formatNumber(comparison.netAnnualBenefit / 12)} บาท/เดือน`}
         />
         <Metric
@@ -493,7 +493,7 @@ function RuntimeMetrics({
       </div>
       <section className="rounded-md border border-border bg-background p-4 text-sm">
         <h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-3">
+        <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
           <Info
             label="ค่าไฟก่อนติดตั้ง"
             value={`${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`}
@@ -503,8 +503,12 @@ function RuntimeMetrics({
             value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`}
           />
           <Info
-            label="ประหยัดรายปี"
-            value={`${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`}
+            label="ประหยัดค่าไฟรายปี"
+            value={`${formatNumber(comparison.billSavings)} บาท/ปี`}
+          />
+          <Info
+            label="รายได้จากการส่งออกไฟรายปี"
+            value={`${formatNumber(comparison.exportRevenue)} บาท/ปี`}
           />
         </div>
       </section>
@@ -647,7 +651,7 @@ function buildSolarRuntimeReportDraft(
         value: `${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`,
       },
       {
-        label: "ประหยัดโดยประมาณ",
+        label: "ผลประโยชน์รวมโดยประมาณ",
         value: `${formatNumber(comparison.netAnnualBenefit)} บาท/ปี`,
       },
       {
