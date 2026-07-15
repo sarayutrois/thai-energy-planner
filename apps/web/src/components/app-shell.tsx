@@ -10,6 +10,7 @@ import {
   ChevronRight,
   FileText,
   Gauge,
+  Layers3,
   Menu,
   SunMedium,
   UploadCloud,
@@ -56,6 +57,7 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: "ผลลัพธ์",
     items: [
+      { label: "แผนพลังงานรวม", href: "/analysis/ecosystem", icon: Layers3 },
       { label: "คำแนะนำและรายงาน", href: "/analysis/reports", icon: FileText },
     ],
   },

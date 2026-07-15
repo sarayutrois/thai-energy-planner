@@ -32,7 +32,7 @@ const localReportPayloadSchema = z
     id: localReportIdSchema.optional(),
     title: z.string().trim().min(1).max(240),
     reportTitle: z.string().trim().min(1).max(240).optional(),
-    module: z.enum(["scenario", "solar", "battery", "ev"]),
+    module: z.enum(["scenario", "solar", "battery", "ev", "ecosystem"]),
     moduleLabel: z.string().trim().min(1).max(80).optional(),
     printedAtLabel: z.string().trim().max(120).optional(),
     summary: z.string().trim().max(5_000).optional(),

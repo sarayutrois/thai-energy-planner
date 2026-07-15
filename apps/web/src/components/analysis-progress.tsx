@@ -21,6 +21,7 @@ function buildSteps(): Step[] {
   let hasBills = false;
   let hasProfile = false;
   let hasAnalysis = false;
+  let hasEcosystem = false;
 
   try {
     const workspace = readStoredBillWorkspace();
@@ -31,13 +32,15 @@ function buildSteps(): Step[] {
       ),
     );
     hasProfile = Boolean(readLocalLoadProfileSnapshot()?.canonicalProfile);
-    hasAnalysis = readLocalAnalysisReports().some(
+    const reports = readLocalAnalysisReports();
+    hasAnalysis = reports.some(
       (report) =>
         report.module === "scenario" ||
         report.module === "solar" ||
         report.module === "battery" ||
         report.module === "ev",
     );
+    hasEcosystem = reports.some((report) => report.module === "ecosystem");
   } catch {
     // The checklist remains actionable if a legacy or corrupt local value is found.
   }
@@ -87,8 +90,8 @@ function buildSteps(): Step[] {
     {
       label: "สรุปและรายงาน",
       href: "/analysis/reports",
-      activePaths: ["/analysis/reports"],
-      done: false,
+      activePaths: ["/analysis/ecosystem", "/analysis/reports"],
+      done: hasEcosystem,
       missing: "สร้างรายงานเมื่อพร้อม",
     },
   ];

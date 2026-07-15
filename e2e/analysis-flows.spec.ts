@@ -19,6 +19,7 @@ const analysisStorageKeys = [
   "thai-energy-planner.solar-analysis.v1",
   "thai-energy-planner.battery-mvp.v1",
   "thai-energy-planner.ev-mvp.v1",
+  "thai-energy-planner.ecosystem-mvp.v1",
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -538,6 +539,26 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await page.setViewportSize({ width: 1280, height: 720 });
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
+  await page.goto("/analysis/ecosystem");
+  await expect(
+    page.getByRole("heading", { name: "รวมทุกคำตอบเป็นแผนพลังงานเดียว" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ความพร้อมของคำตอบ" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Roadmap ที่ควรทำตามลำดับ" }),
+  ).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("NaN");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    ),
+  ).toBe(false);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
+
   await page.goto("/analysis/reports");
   await expect(
     page.getByRole("heading", { name: "สถานะรายงานปัจจุบัน" }),
@@ -551,6 +572,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   ).toBeVisible();
   await expect(
     page.getByRole("main").getByText("EV", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Ecosystem", { exact: true }),
   ).toBeVisible();
   const openReportLink = page.getByRole("link", {
     name: "เปิดรายงานเพื่อส่งออก",
@@ -636,7 +660,7 @@ test("the guided start and data hub share one production navigation", async ({
     await expect(header.locator('a[href="/analysis/battery"]')).toHaveCount(1);
     await expect(header.locator('a[href="/analysis/ev"]')).toHaveCount(1);
     await expect(header.locator('a[href="/analysis/ecosystem"]')).toHaveCount(
-      0,
+      1,
     );
 
     const content = await page.locator("main").innerText();
@@ -796,22 +820,9 @@ test("each analysis goal prioritizes a distinct recommendation and destination",
   }
 });
 
-test("remaining experimental modules stay behind the unavailable boundary", async ({
-  page,
+test("experimental server APIs stay behind the unavailable boundary", async ({
   request,
 }) => {
-  for (const path of ["/analysis/ecosystem"]) {
-    await page.goto(path);
-    await expect(page.locator("main")).toContainText("กำลังปรับปรุง");
-    await expect(
-      page.locator('header a[href="/analysis/battery"]'),
-    ).toHaveCount(1);
-    await expect(page.locator('header a[href="/analysis/ev"]')).toHaveCount(1);
-    await expect(
-      page.locator('header a[href="/analysis/ecosystem"]'),
-    ).toHaveCount(0);
-  }
-
   for (const path of ["/api/battery/summarize", "/api/ev/summarize"]) {
     const response = await request.post(path, { data: {} });
     expect(response.status()).toBe(404);

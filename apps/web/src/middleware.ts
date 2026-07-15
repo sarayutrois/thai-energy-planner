@@ -11,18 +11,6 @@ export function middleware(request: NextRequest) {
       { status: 404 },
     );
   }
-  const experimentalModule = experimentalModuleForPath(pathname);
-  const alwaysUnavailable = experimentalModule === "ecosystem";
-  if (
-    experimentalModule &&
-    (alwaysUnavailable ||
-      process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES !== "true")
-  ) {
-    const unavailable = new URL("/analysis/unavailable", request.url);
-    unavailable.searchParams.set("module", experimentalModule);
-    return NextResponse.rewrite(unavailable);
-  }
-
   const token = process.env.ADMIN_ACCESS_TOKEN?.trim();
   if (!pathname.startsWith("/admin")) return NextResponse.next();
 
@@ -53,13 +41,7 @@ export const config = {
     "/admin/:path*",
     "/analysis/battery/:path*",
     "/analysis/ev/:path*",
-    "/analysis/ecosystem/:path*",
     "/api/battery/:path*",
     "/api/ev/:path*",
   ],
 };
-
-function experimentalModuleForPath(pathname: string) {
-  if (pathname.startsWith("/analysis/ecosystem")) return "ecosystem";
-  return null;
-}

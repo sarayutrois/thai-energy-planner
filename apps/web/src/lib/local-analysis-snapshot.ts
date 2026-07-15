@@ -56,7 +56,8 @@ export type LocalBillReportSnapshot = {
   }>;
 };
 
-export type LocalAnalysisReportModule = "scenario" | "solar" | "battery" | "ev";
+export type LocalAnalysisReportModule =
+  "scenario" | "solar" | "battery" | "ev" | "ecosystem";
 
 export type LocalAnalysisReportMetric = {
   label: string;

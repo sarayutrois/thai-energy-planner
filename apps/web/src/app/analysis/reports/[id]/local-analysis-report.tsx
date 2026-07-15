@@ -487,6 +487,11 @@ const resultHeaderLabels: Record<string, string> = {
   monthlyBillIncreaseThb: "บิลเพิ่ม (บาท/เดือน)",
   costPer100Km: "ต้นทุน (บาท/100 km)",
   peakDemandIncreaseKw: "Peak เพิ่ม (kW)",
+  phase: "ลำดับ",
+  module: "โมดูล",
+  action: "สิ่งที่ควรทำ",
+  status: "สถานะ",
+  annualImpactThb: "ผลต่อค่าไฟ (บาท/ปี)",
 };
 
 function formatResultHeader(header: string) {

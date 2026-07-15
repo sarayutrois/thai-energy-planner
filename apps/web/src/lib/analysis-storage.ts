@@ -17,6 +17,7 @@ import {
 
 export const batteryMvpStorageKey = "thai-energy-planner.battery-mvp.v1";
 export const evMvpStorageKey = "thai-energy-planner.ev-mvp.v1";
+export const ecosystemMvpStorageKey = "thai-energy-planner.ecosystem-mvp.v1";
 
 export const analysisStorageKeys = [
   analysisGoalStorageKey,
@@ -31,6 +32,7 @@ export const analysisStorageKeys = [
   solarAnalysisStorageKey,
   batteryMvpStorageKey,
   evMvpStorageKey,
+  ecosystemMvpStorageKey,
 ] as const;
 
 export const analysisResumeSessionStorageKey =

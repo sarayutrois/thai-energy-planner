@@ -7,6 +7,7 @@
 | ภาพรวม        | เริ่มวิเคราะห์                   | `/analysis/new`                                                               |
 | ข้อมูลของฉัน  | บิลและรูปแบบการใช้ไฟ             | `/analysis/load-data`                                                         |
 | การวิเคราะห์  | ค่าไฟและ TOU, Solar, Battery, EV | `/analysis/scenarios`, `/analysis/solar`, `/analysis/battery`, `/analysis/ev` |
+| ผลลัพธ์       | แผนพลังงานรวมและรายงาน           | `/analysis/ecosystem`, `/analysis/reports`                                    |
 | ผลลัพธ์       | คำแนะนำและรายงาน                 | `/analysis/reports`                                                           |
 | ข้อมูลอ้างอิง | อัตราค่าไฟและสมมติฐาน            | `/analysis/tariff`                                                            |
 
@@ -14,18 +15,19 @@
 
 ## Route map
 
-| ก่อน/URL ที่คงอยู่                          | ชื่อที่ผู้ใช้เห็นใหม่      | ความรับผิดชอบ                              |
-| ------------------------------------------- | -------------------------- | ------------------------------------------ |
-| `/analysis/new`                             | เริ่มวิเคราะห์             | เลือกเป้าหมาย ประเภทผู้ใช้ และแหล่งข้อมูล  |
-| `/analysis/load-data`                       | บิลและรูปแบบการใช้ไฟ       | ศูนย์รวม source data, ไม่คำนวณผล           |
-| `/analysis/load-data/bills`                 | บิลค่าไฟ                   | Source of truth สำหรับบิล                  |
-| `/analysis/load-data/appliances`, `/import` | สร้าง/นำเข้ารูปแบบการใช้ไฟ | Source of truth สำหรับ Load Profile        |
-| `/analysis/load-data/dashboard`             | ตรวจสอบความพร้อมของข้อมูล  | สรุปคุณภาพข้อมูลและ next action            |
-| `/analysis/scenarios`                       | ค่าไฟและ TOU               | คำนวณ comparison จาก active profile        |
-| `/analysis/solar`                           | Solar                      | วิเคราะห์ Solar จาก input ที่พร้อม         |
-| `/analysis/battery`                         | Battery                    | เลือกขนาด งบ ระยะสำรอง และความคุ้มค่า      |
-| `/analysis/ev`                              | EV                         | วางแผนชาร์จ มิเตอร์ Solar และกำลัง charger |
-| `/analysis/reports`                         | คำแนะนำและรายงาน           | รวมรายงานที่สร้างจากผลวิเคราะห์            |
+| ก่อน/URL ที่คงอยู่                          | ชื่อที่ผู้ใช้เห็นใหม่      | ความรับผิดชอบ                                   |
+| ------------------------------------------- | -------------------------- | ----------------------------------------------- |
+| `/analysis/new`                             | เริ่มวิเคราะห์             | เลือกเป้าหมาย ประเภทผู้ใช้ และแหล่งข้อมูล       |
+| `/analysis/load-data`                       | บิลและรูปแบบการใช้ไฟ       | ศูนย์รวม source data, ไม่คำนวณผล                |
+| `/analysis/load-data/bills`                 | บิลค่าไฟ                   | Source of truth สำหรับบิล                       |
+| `/analysis/load-data/appliances`, `/import` | สร้าง/นำเข้ารูปแบบการใช้ไฟ | Source of truth สำหรับ Load Profile             |
+| `/analysis/load-data/dashboard`             | ตรวจสอบความพร้อมของข้อมูล  | สรุปคุณภาพข้อมูลและ next action                 |
+| `/analysis/scenarios`                       | ค่าไฟและ TOU               | คำนวณ comparison จาก active profile             |
+| `/analysis/solar`                           | Solar                      | วิเคราะห์ Solar จาก input ที่พร้อม              |
+| `/analysis/battery`                         | Battery                    | เลือกขนาด งบ ระยะสำรอง และความคุ้มค่า           |
+| `/analysis/ev`                              | EV                         | วางแผนชาร์จ มิเตอร์ Solar และกำลัง charger      |
+| `/analysis/ecosystem`                       | Ecosystem                  | รวมผลปัจจุบันเป็น Roadmap โดยไม่บวกผลประหยัดซ้ำ |
+| `/analysis/reports`                         | คำแนะนำและรายงาน           | รวมรายงานที่สร้างจากผลวิเคราะห์                 |
 
 ไม่มีการเปลี่ยน URL ของ route ที่เปิดใช้อยู่ จึงไม่ต้องมี redirect ใหม่และ deep link เดิมไม่กลายเป็น 404. ชื่อ `tariff-demo` ไม่ถูกใช้ใน navigation; route ภายในนั้นคงไว้เพื่อ compatibility จนกว่าจะมี migration ที่ยืนยันได้
 
@@ -37,24 +39,25 @@
 
 ## Page responsibility matrix
 
-| หน้า                      | ทำ                                | ไม่ทำ                                 |
-| ------------------------- | --------------------------------- | ------------------------------------- |
-| Dashboard                 | แสดง status, quality, next action | ไม่ให้กรอกข้อมูลทุกประเภทซ้ำ          |
-| บิล                       | รับและ validate ข้อมูลจากบิล      | ไม่สร้าง Load Profile แทนผู้ใช้       |
-| รูปแบบการใช้ไฟ            | สร้าง/import และตรวจ profile      | ไม่แทนที่บิล                          |
-| Scenario/Solar/Battery/EV | ใช้ active source data เพื่อคำนวณ | ไม่เก็บ source data ชุดใหม่แบบซ้ำซ้อน |
-| Reports                   | แสดงผลที่บันทึกและ readiness      | ไม่คำนวณ tariff/solar ซ้ำ             |
+| หน้า                      | ทำ                                         | ไม่ทำ                                        |
+| ------------------------- | ------------------------------------------ | -------------------------------------------- |
+| Dashboard                 | แสดง status, quality, next action          | ไม่ให้กรอกข้อมูลทุกประเภทซ้ำ                 |
+| บิล                       | รับและ validate ข้อมูลจากบิล               | ไม่สร้าง Load Profile แทนผู้ใช้              |
+| รูปแบบการใช้ไฟ            | สร้าง/import และตรวจ profile               | ไม่แทนที่บิล                                 |
+| Scenario/Solar/Battery/EV | ใช้ active source data เพื่อคำนวณ          | ไม่เก็บ source data ชุดใหม่แบบซ้ำซ้อน        |
+| Ecosystem                 | อ่านผลที่ตรงกับ active dataset และจัดลำดับ | ไม่จำลอง dispatch หลายเทคโนโลยีพร้อมกันใน v1 |
+| Reports                   | แสดงผลที่บันทึกและ readiness               | ไม่คำนวณ tariff/solar ซ้ำ                    |
 
 ## Data source of truth matrix
 
-| ข้อมูล               | Source of truth                                                | ผู้อ่านหลัก                             |
-| -------------------- | -------------------------------------------------------------- | --------------------------------------- |
-| ประเภทผู้ใช้         | query context เริ่มต้นและ bill workspace ที่บันทึก             | form และคำแนะนำ                         |
-| เป้าหมาย             | `thai-energy-planner.analysis-goal.v1`                         | start wizard และ future routing copy    |
-| บิล                  | `thai-energy-planner.bill-workspace.v1` + bill report snapshot | dashboard, report readiness             |
-| Active Load Profile  | helpers ใน `local-load-profile.ts`                             | Scenario, Solar, Battery, EV, dashboard |
-| ผลวิเคราะห์ที่บันทึก | `thai-energy-planner.analysis-reports.v1`                      | reports และ progress                    |
-| อัตราค่าไฟ           | tariff engine / tariff snapshot                                | Scenario, Solar, Battery และ EV         |
+| ข้อมูล               | Source of truth                                                | ผู้อ่านหลัก                                        |
+| -------------------- | -------------------------------------------------------------- | -------------------------------------------------- |
+| ประเภทผู้ใช้         | query context เริ่มต้นและ bill workspace ที่บันทึก             | form และคำแนะนำ                                    |
+| เป้าหมาย             | `thai-energy-planner.analysis-goal.v1`                         | start wizard และ future routing copy               |
+| บิล                  | `thai-energy-planner.bill-workspace.v1` + bill report snapshot | dashboard, report readiness                        |
+| Active Load Profile  | helpers ใน `local-load-profile.ts`                             | Scenario, Solar, Battery, EV, Ecosystem, dashboard |
+| ผลวิเคราะห์ที่บันทึก | `thai-energy-planner.analysis-reports.v1`                      | reports และ progress                               |
+| อัตราค่าไฟ           | tariff engine / tariff snapshot                                | Scenario, Solar, Battery และ EV                    |
 
 ## Redirect plan
 
