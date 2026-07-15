@@ -271,6 +271,54 @@ export function SolarControls({
               <option value="xhigh">ตรวจสอบรายละเอียด</option>
             </select>
           </Field>
+          <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm leading-6 md:col-span-2 xl:col-span-4">
+            <p className="font-semibold">ต้องการไฟสำรองหรือไม่</p>
+            <p className="text-muted-foreground">
+              คำตอบนี้ใช้เลือกระหว่าง On-grid กับ Hybrid
+              โดยไม่เอาความคุ้มค่าของ Solar ไปปนกับมูลค่าไฟสำรอง
+            </p>
+          </div>
+          <Field label="เป้าหมายไฟสำรอง">
+            <select
+              name="backupRequirement"
+              defaultValue={formSettings.backupRequirement}
+              className={inputClassName}
+            >
+              <option value="unknown">กรุณาเลือก</option>
+              <option value="none">ไม่ต้องการ — เน้นลดค่าไฟ</option>
+              <option value="essential">ต้องการ — สำรองอุปกรณ์จำเป็น</option>
+            </select>
+          </Field>
+          <Field label="โหลดจำเป็นที่ต้องสำรอง (kW)">
+            <input
+              name="essentialLoadKw"
+              type="number"
+              min="0.1"
+              step="0.1"
+              defaultValue={formSettings.essentialLoadKw}
+              className={inputClassName}
+            />
+          </Field>
+          <Field label="ต้องการสำรองไฟนาน (ชั่วโมง)">
+            <input
+              name="backupHours"
+              type="number"
+              min="0.5"
+              step="0.5"
+              defaultValue={formSettings.backupHours}
+              className={inputClassName}
+            />
+          </Field>
+          <Field label="งบแบตเตอรี่ประมาณการ (บาท/kWh)">
+            <input
+              name="batteryCostPerKwhThb"
+              type="number"
+              min="0"
+              step="1000"
+              defaultValue={formSettings.batteryCostPerKwhThb}
+              className={inputClassName}
+            />
+          </Field>
           <SolarLocationFields
             province={formSettings.province}
             latitude={formSettings.latitude}

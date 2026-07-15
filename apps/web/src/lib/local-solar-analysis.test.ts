@@ -71,12 +71,18 @@ describe("local solar analysis lifecycle", () => {
     const settings = getSolarAssumptionDraft({
       systemSizeKwp: "7.5",
       capexThb: "280000",
+      backupRequirement: "essential",
+      essentialLoadKw: "1.5",
+      backupHours: "5",
     }).settings;
 
     expect(persistSolarAssumptions(storage, settings)).toBe(true);
     const restored = readStoredSolarAssumptions(storage);
     expect(restored?.systemSizeKwp).toBe(7.5);
     expect(restored?.capexThb).toBe(280000);
+    expect(restored?.backupRequirement).toBe("essential");
+    expect(restored?.essentialLoadKw).toBe(1.5);
+    expect(restored?.backupHours).toBe(5);
   });
 
   it("restores a calculated result only for the same profile and assumptions", () => {

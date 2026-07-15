@@ -431,6 +431,10 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
   ).toHaveCount(0);
+  await expect(
+    page.getByRole("button", { name: "ตอบเรื่องไฟสำรองก่อน" }),
+  ).toBeDisabled();
+  await page.getByLabel("เป้าหมายไฟสำรอง").selectOption("none");
   await page.getByRole("button", { name: "เริ่มประเมิน Solar" }).click();
   await expect(
     page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
@@ -444,6 +448,13 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByText("รายได้จากการส่งออกไฟรายปี", { exact: true }),
   ).toBeVisible();
+  await expect(page.getByText("คำตอบ Solar สำหรับคุณ")).toBeVisible();
+  await expect(page.getByText("ระบบที่แนะนำ", { exact: true })).toBeVisible();
+  await expect(page.getByText("จำนวนแผงโดยประมาณ", { exact: true })).toBeVisible();
+  await expect(page.getByText("Inverter โดยประมาณ", { exact: true })).toBeVisible();
+  await expect(page.getByText("แบตเตอรี่", { exact: true })).toBeVisible();
+  await expect(page.getByText("งบติดตั้งเบื้องต้น", { exact: true })).toBeVisible();
+  await expect(page.getByText("ข้อจำกัดของข้อมูล", { exact: true })).toBeVisible();
   await expect(page.getByText("ประหยัดรายปี", { exact: true })).toHaveCount(0);
   await expect(
     page.getByText("คำนวณสำเร็จ แต่บันทึกผลในอุปกรณ์นี้ไม่ได้"),

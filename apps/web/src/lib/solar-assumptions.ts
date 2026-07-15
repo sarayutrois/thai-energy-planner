@@ -3,6 +3,7 @@ import type { SolarModelDetailLevel } from "@thai-energy-planner/calculation-eng
 export type SolarSearchParams = Record<string, string | string[] | undefined>;
 export type SolarUsageProfile =
   "evening_home" | "daytime_home" | "daytime_shop";
+export type SolarBackupRequirement = "unknown" | "none" | "essential";
 
 export type SavedBillSearchContext = {
   audience?: string | undefined;
@@ -33,6 +34,10 @@ export type SolarAssumptionSettings = {
   exportEnabled: boolean;
   exportRateThbPerKwh: number;
   exportLimitKw: number;
+  backupRequirement: SolarBackupRequirement;
+  essentialLoadKw: number;
+  backupHours: number;
+  batteryCostPerKwhThb: number;
   validationMessages: string[];
   defaultedFields: string[];
 };
@@ -83,6 +88,10 @@ const solarAssumptionParamNames = new Set([
   "exportEnabled",
   "exportRateThbPerKwh",
   "exportLimitKw",
+  "backupRequirement",
+  "essentialLoadKw",
+  "backupHours",
+  "batteryCostPerKwhThb",
 ]);
 
 export function hasExplicitSolarAssumptions(params: SolarSearchParams) {
@@ -264,6 +273,36 @@ export function getSolarAssumptionDraft(params: SolarSearchParams): {
       defaultedFields,
       "exportLimitKw",
     ),
+    backupRequirement: normalizeBackupRequirement(
+      getSingleParam(params.backupRequirement),
+    ),
+    essentialLoadKw: getNumberParam(
+      params.essentialLoadKw,
+      1,
+      0.1,
+      "กำลังไฟสำรองที่จำเป็น",
+      validationMessages,
+      defaultedFields,
+      "essentialLoadKw",
+    ),
+    backupHours: getNumberParam(
+      params.backupHours,
+      4,
+      0.5,
+      "ระยะเวลาสำรองไฟ",
+      validationMessages,
+      defaultedFields,
+      "backupHours",
+    ),
+    batteryCostPerKwhThb: getNumberParam(
+      params.batteryCostPerKwhThb,
+      35_000,
+      0,
+      "งบแบตเตอรี่ต่อ kWh",
+      validationMessages,
+      defaultedFields,
+      "batteryCostPerKwhThb",
+    ),
     validationMessages,
     defaultedFields,
   };
@@ -272,6 +311,8 @@ export function getSolarAssumptionDraft(params: SolarSearchParams): {
   if (!getSingleParam(params.province)) defaultedFields.push("province");
   if (getSingleParam(params.exportEnabled) === undefined)
     defaultedFields.push("exportEnabled");
+  if (getSingleParam(params.backupRequirement) === undefined)
+    defaultedFields.push("backupRequirement");
 
   return {
     settings,
@@ -308,6 +349,10 @@ export function buildSolarAssumptionQuery(settings: SolarAssumptionSettings) {
     exportEnabled: String(settings.exportEnabled),
     exportRateThbPerKwh: String(settings.exportRateThbPerKwh),
     exportLimitKw: String(settings.exportLimitKw),
+    backupRequirement: settings.backupRequirement,
+    essentialLoadKw: String(settings.essentialLoadKw),
+    backupHours: String(settings.backupHours),
+    batteryCostPerKwhThb: String(settings.batteryCostPerKwhThb),
   });
   if (settings.latitude !== undefined)
     params.set("latitude", String(settings.latitude));
@@ -329,6 +374,13 @@ function normalizeBaseline(value: string | undefined): "normal" | "tou" {
 function normalizeModelMode(value: string | undefined): SolarModelDetailLevel {
   if (value === "advanced" || value === "xhigh") return value;
   return "easy";
+}
+
+function normalizeBackupRequirement(
+  value: string | undefined,
+): SolarBackupRequirement {
+  if (value === "essential" || value === "none") return value;
+  return "unknown";
 }
 
 function getSingleParam(value: string | string[] | undefined) {

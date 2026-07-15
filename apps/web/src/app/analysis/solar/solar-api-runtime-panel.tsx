@@ -20,6 +20,7 @@ import {
   deriveSolarStatus,
   getSolarBenefitBreakdown,
   persistSolarAnalysis,
+  persistSolarAssumptions,
   readStoredSolarAnalysis,
   readStoredSolarAssumptions,
   solarSettingsFingerprint,
@@ -29,6 +30,10 @@ import {
 } from "@/lib/local-solar-analysis";
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
+import {
+  buildSolarSystemRecommendation,
+  type SolarSystemRecommendation,
+} from "@/lib/solar-system-recommendation";
 
 type SolarAnalyzeResponse =
   | SolarCalculationSuccess
@@ -191,6 +196,30 @@ export function SolarApiRuntimePanel({
     hasError: Boolean(error),
   });
 
+  function updateBackupSettings(
+    values: Partial<
+      Pick<
+        SolarAssumptionSettings,
+        "backupRequirement" | "essentialLoadKw" | "backupHours"
+      >
+    >,
+    confirmedFields: string[],
+  ) {
+    const nextSettings = {
+      ...activeSettings,
+      ...values,
+      defaultedFields: activeSettings.defaultedFields.filter(
+        (field) => !confirmedFields.includes(field),
+      ),
+    };
+    setActiveSettings(nextSettings);
+    if (!persistSolarAssumptions(window.localStorage, nextSettings))
+      setStorageError(
+        "บันทึกคำตอบเรื่องไฟสำรองในอุปกรณ์นี้ไม่ได้ กรุณาลองอีกครั้ง",
+      );
+    else setStorageError(null);
+  }
+
   if (!snapshot)
     return (
       <Card className="border-dashed">
@@ -224,12 +253,21 @@ export function SolarApiRuntimePanel({
       </Card>
     );
 
-  const dataStatus = getSolarDataStatus(snapshot, readSavedBills().length > 0);
+  const hasBills = readSavedBills().length > 0;
+  const dataStatus = getSolarDataStatus(snapshot, hasBills);
+  const systemRecommendation = calculatedResult
+    ? buildSolarSystemRecommendation({
+        analysis: calculatedResult.analysis,
+        settings: activeSettings,
+        hasCalibratedBills: Boolean(snapshot.calibration && hasBills),
+      })
+    : undefined;
   const reportDraft = calculatedResult
     ? buildSolarRuntimeReportDraft(
         calculatedResult.analysis,
         calculatedResult.trace,
         snapshot,
+        systemRecommendation!,
       )
     : undefined;
 
@@ -292,6 +330,81 @@ export function SolarApiRuntimePanel({
               ตัวเลขขนาดระบบและเงินลงทุนเป็นสมมติฐานตั้งต้น
               ยังไม่ใช่คำแนะนำหรือผลการประเมิน คุณสามารถแก้ไขได้ก่อนเริ่มคำนวณ
             </p>
+            <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-4">
+              <p className="text-sm font-semibold">
+                คำถามสำคัญก่อนเลือกระบบ
+              </p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                ต้องการไฟสำรองเวลาไฟดับหรือไม่ คำตอบนี้ใช้เลือกระหว่าง
+                On-grid กับ Hybrid
+              </p>
+              <div className="mt-3 grid gap-3 md:grid-cols-3">
+                <label className="grid gap-1.5 text-sm font-medium">
+                  <span>เป้าหมายไฟสำรอง</span>
+                  <select
+                    className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                    value={activeSettings.backupRequirement}
+                    onChange={(event) =>
+                      updateBackupSettings(
+                        {
+                          backupRequirement: event.target.value as
+                            | "unknown"
+                            | "none"
+                            | "essential",
+                        },
+                        ["backupRequirement"],
+                      )
+                    }
+                  >
+                    <option value="unknown">กรุณาเลือกก่อนคำนวณ</option>
+                    <option value="none">ไม่ต้องการ — เน้นลดค่าไฟ</option>
+                    <option value="essential">
+                      ต้องการ — สำรองอุปกรณ์จำเป็น
+                    </option>
+                  </select>
+                </label>
+                {activeSettings.backupRequirement === "essential" ? (
+                  <>
+                    <label className="grid gap-1.5 text-sm font-medium">
+                      <span>โหลดจำเป็น (kW)</span>
+                      <input
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        defaultValue={activeSettings.essentialLoadKw}
+                        min="0.1"
+                        step="0.1"
+                        type="number"
+                        onBlur={(event) => {
+                          const value = Number(event.target.value);
+                          if (Number.isFinite(value) && value >= 0.1)
+                            updateBackupSettings(
+                              { essentialLoadKw: value },
+                              ["essentialLoadKw"],
+                            );
+                        }}
+                      />
+                    </label>
+                    <label className="grid gap-1.5 text-sm font-medium">
+                      <span>สำรองนาน (ชั่วโมง)</span>
+                      <input
+                        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+                        defaultValue={activeSettings.backupHours}
+                        min="0.5"
+                        step="0.5"
+                        type="number"
+                        onBlur={(event) => {
+                          const value = Number(event.target.value);
+                          if (Number.isFinite(value) && value >= 0.5)
+                            updateBackupSettings(
+                              { backupHours: value },
+                              ["backupHours"],
+                            );
+                        }}
+                      />
+                    </label>
+                  </>
+                ) : null}
+              </div>
+            </div>
           </div>
         ) : null}
         {dataStatus.warning ? (
@@ -321,7 +434,8 @@ export function SolarApiRuntimePanel({
               analysis={calculatedResult.analysis}
               trace={calculatedResult.trace}
               snapshot={snapshot}
-              hasBills={readSavedBills().length > 0}
+              hasBills={hasBills}
+              systemRecommendation={systemRecommendation!}
             />
             <div className="rounded-md border border-border bg-muted/30 p-3 text-xs leading-5 text-muted-foreground">
               คำนวณเมื่อ {formatDate(calculatedResult.trace.calculatedAt)} ·
@@ -341,13 +455,17 @@ export function SolarApiRuntimePanel({
         ) : null}
         <div className="flex flex-wrap gap-2">
           <Button
-            disabled={isLoading}
+            disabled={
+              isLoading || activeSettings.backupRequirement === "unknown"
+            }
             onClick={() => void runAnalysis(snapshot)}
             variant={calculatedResult ? "outline" : "default"}
           >
             <RefreshCw className="h-4 w-4" />
             {isLoading
               ? "กำลังประเมิน..."
+              : activeSettings.backupRequirement === "unknown"
+                ? "ตอบเรื่องไฟสำรองก่อน"
               : error
                 ? "ลองคำนวณใหม่"
                 : calculatedResult
@@ -368,7 +486,7 @@ export function SolarApiRuntimePanel({
           </a>
         </div>
         <LocalBillResultContext
-          enabled={Boolean(reportDraft && readSavedBills().length > 0)}
+          enabled={Boolean(reportDraft && hasBills)}
           moduleName="Solar"
           reportDraft={reportDraft}
         />
@@ -393,43 +511,88 @@ function RuntimeMetrics({
   trace,
   snapshot,
   hasBills,
+  systemRecommendation,
 }: {
   analysis: SolarAnalysisResult;
   trace: Extract<SolarAnalyzeResponse, { ok: true }>["trace"];
   snapshot: LocalLoadProfileSnapshot;
   hasBills: boolean;
+  systemRecommendation: SolarSystemRecommendation;
 }) {
   const comparison = analysis.billComparison;
   const benefitBreakdown = getSolarBenefitBreakdown(comparison);
-  const decision = getSolarDecision({ analysis, snapshot, hasBills });
-  const recommendedSizing = analysis.sizing.recommended;
+  const recommendationTone =
+    systemRecommendation.verdict === "recommend"
+      ? "border-success bg-success/10"
+      : systemRecommendation.verdict === "not_recommended"
+        ? "border-warning bg-warning/10"
+        : "border-primary/40 bg-primary/5";
   return (
     <>
-      <section className={`rounded-md border p-4 ${decision.tone}`}>
+      <section className={`rounded-xl border p-5 ${recommendationTone}`}>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
-            <p className="text-xs font-medium uppercase tracking-wide">
-              ผลตัดสินใจ Solar
+            <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              คำตอบ Solar สำหรับคุณ
             </p>
-            <h3 className="mt-1 text-lg font-semibold">{decision.title}</h3>
-            <p className="mt-2 max-w-3xl text-sm leading-6">
-              {decision.explanation}
-            </p>
+            <h3 className="mt-1 text-xl font-semibold">
+              {systemRecommendation.headline}
+            </h3>
           </div>
-          <Badge variant={decision.variant}>{decision.badge}</Badge>
+          <div className="flex flex-wrap gap-2">
+            <Badge
+              variant={
+                systemRecommendation.verdict === "recommend"
+                  ? "success"
+                  : systemRecommendation.verdict === "not_recommended"
+                    ? "warning"
+                    : "outline"
+              }
+            >
+              {systemRecommendation.verdictLabel}
+            </Badge>
+            <Badge variant="outline">
+              {systemRecommendation.confidenceLabel}
+            </Badge>
+          </div>
         </div>
-        <div className="mt-4 grid gap-3 sm:grid-cols-3">
+        <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4">
           <Info
-            label="ขนาดที่กำลังประเมิน"
-            value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`}
+            label="ระบบที่แนะนำ"
+            value={systemRecommendation.systemTypeLabel}
           />
           <Info
-            label="ขนาดที่ผ่านเกณฑ์ความคุ้มค่า"
+            label="ขนาด Solar"
             value={
-              recommendedSizing
-                ? `${formatNumber(recommendedSizing.systemSizeKwp)} kWp · คืนทุน ${formatNumber(recommendedSizing.simplePaybackYears ?? 0)} ปี`
-                : "ไม่มีขนาดที่ผ่านเกณฑ์"
+              systemRecommendation.systemSizeKwp === null
+                ? "ยังไม่แนะนำขนาด"
+                : `${formatNumber(systemRecommendation.systemSizeKwp)} kWp`
             }
+          />
+          <Info
+            label="จำนวนแผงโดยประมาณ"
+            value={
+              systemRecommendation.panelCount === null
+                ? "—"
+                : `${systemRecommendation.panelCount.toLocaleString("th-TH")} แผง × ${formatNumber(systemRecommendation.panelWatt ?? 0)} W`
+            }
+          />
+          <Info
+            label="Inverter โดยประมาณ"
+            value={
+              systemRecommendation.inverterSizeKw === null
+                ? "—"
+                : `${formatNumber(systemRecommendation.inverterSizeKw)} kW`
+            }
+          />
+          <Info label="แบตเตอรี่" value={systemRecommendation.batteryLabel} />
+          <Info
+            label="งบติดตั้งเบื้องต้น"
+            value={formatRecommendationBudget(systemRecommendation)}
+          />
+          <Info
+            label="ระยะคืนทุน"
+            value={systemRecommendation.combinedPaybackLabel}
           />
           <Info
             label="ข้อมูลที่ใช้ตัดสินใจ"
@@ -442,14 +605,27 @@ function RuntimeMetrics({
             }
           />
         </div>
-        <p className="mt-3 text-xs leading-5 text-muted-foreground">
-          {decision.nextAction}
+        <div className="mt-5 grid gap-4 border-t border-border/70 pt-4 lg:grid-cols-2">
+          <div>
+            <p className="text-sm font-semibold">เหตุผลที่แนะนำ</p>
+            <ul className="mt-2 grid gap-1 text-sm leading-6 text-muted-foreground">
+              {systemRecommendation.reasons.map((reason) => (
+                <li key={reason}>• {reason}</li>
+              ))}
+            </ul>
+          </div>
+          <div>
+            <p className="text-sm font-semibold">ข้อจำกัดของข้อมูล</p>
+            <ul className="mt-2 grid gap-1 text-sm leading-6 text-muted-foreground">
+              {systemRecommendation.limitations.map((limitation) => (
+                <li key={limitation}>• {limitation}</li>
+              ))}
+            </ul>
+          </div>
+        </div>
+        <p className="mt-4 rounded-md bg-background/70 p-3 text-sm font-medium leading-6">
+          ขั้นต่อไป: {systemRecommendation.nextAction}
         </p>
-        <ul className="mt-2 grid gap-1 text-xs leading-5 text-muted-foreground">
-          {decision.actions.map((action) => (
-            <li key={action}>• {action}</li>
-          ))}
-        </ul>
       </section>
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
         <Metric
@@ -636,14 +812,38 @@ function buildSolarRuntimeReportDraft(
   analysis: SolarAnalysisResult,
   trace: Extract<SolarAnalyzeResponse, { ok: true }>["trace"],
   snapshot: LocalLoadProfileSnapshot,
+  systemRecommendation: SolarSystemRecommendation,
 ): LocalAnalysisReportDraft {
   const comparison = analysis.billComparison;
   return {
     module: "solar",
     moduleLabel: "Solar",
     title: "รายงานประเมิน Solar จาก Load Profile",
-    summary: `ประเมินจาก ${snapshot.sourceName} โดยใช้ระบบขนาด ${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`,
+    summary: `${systemRecommendation.headline} ประเมินจาก ${snapshot.sourceName}`,
     metrics: [
+      {
+        label: "คำแนะนำ",
+        value: systemRecommendation.verdictLabel,
+      },
+      {
+        label: "ประเภทระบบ",
+        value: systemRecommendation.systemTypeLabel,
+      },
+      {
+        label: "ขนาดระบบที่แนะนำ",
+        value:
+          systemRecommendation.systemSizeKwp === null
+            ? "ยังไม่แนะนำขนาด"
+            : `${formatNumber(systemRecommendation.systemSizeKwp)} kWp · ${systemRecommendation.panelCount} แผง · Inverter ${formatNumber(systemRecommendation.inverterSizeKw ?? 0)} kW`,
+      },
+      {
+        label: "แบตเตอรี่",
+        value: systemRecommendation.batteryLabel,
+      },
+      {
+        label: "งบติดตั้งเบื้องต้น",
+        value: formatRecommendationBudget(systemRecommendation),
+      },
       {
         label: "ค่าไฟก่อนติดตั้ง",
         value: `${formatNumber(comparison.bestWithoutSolar.monthlyBillThb)} บาท/เดือน`,
@@ -658,9 +858,7 @@ function buildSolarRuntimeReportDraft(
       },
       {
         label: "ระยะเวลาคืนทุน",
-        value: analysis.financial.simplePaybackYears
-          ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี`
-          : "ยังไม่คืนทุนในสมมติฐานนี้",
+        value: systemRecommendation.combinedPaybackLabel,
       },
     ],
     assumptions: [
@@ -689,10 +887,21 @@ function buildSolarRuntimeReportDraft(
         ),
       },
     ],
-    recommendations: analysis.recommendations.map((item) => ({
-      title: item.title,
-      description: item.explanation,
-      nextAction: item.nextAction,
+    recommendations: [
+      {
+        title: systemRecommendation.headline,
+        description: systemRecommendation.reasons.join(" "),
+        nextAction: systemRecommendation.nextAction,
+      },
+      ...analysis.recommendations.map((item) => ({
+        title: item.title,
+        description: item.explanation,
+        nextAction: item.nextAction,
+      })),
+    ],
+    limitations: systemRecommendation.limitations.map((limitation) => ({
+      title: "ข้อจำกัดของผลประเมิน",
+      description: limitation,
     })),
     references: [
       {
@@ -707,59 +916,16 @@ function roundReportNumber(value: number) {
   return Number(value.toFixed(2));
 }
 
-function getSolarDecision({
-  analysis,
-  snapshot,
-  hasBills,
-}: {
-  analysis: SolarAnalysisResult;
-  snapshot: LocalLoadProfileSnapshot;
-  hasBills: boolean;
-}) {
-  const recommended = analysis.sizing.recommended;
-  const selfUsePercent = analysis.selfConsumption.selfConsumptionRatio * 100;
-  if (!recommended) {
-    return {
-      title: "ยังไม่แนะนำติดตั้งตามข้อมูลปัจจุบัน",
-      badge: "ยังไม่แนะนำ",
-      variant: "warning" as const,
-      tone: "border-warning bg-warning/10 text-warning-foreground",
-      explanation: `ระบบลองขนาด 0.5–${formatNumber(analysis.sizing.constraints.appliedMaxKwp)} kWp แล้ว แต่ยังไม่มีขนาดที่ทั้ง NPV เป็นบวกและคืนทุนภายในอายุโครงการ โดยใช้ Solar เองเพียง ${formatNumber(selfUsePercent)}%.`,
-      nextAction:
-        "ลองลดขนาดระบบ เพิ่มการใช้ไฟช่วงกลางวัน หรือเติมข้อมูลเครื่องใช้และบิลเพื่อให้การประเมินแม่นขึ้นก่อนตัดสินใจลงทุน.",
-      actions: [
-        "ย้ายงานที่เลื่อนได้ เช่น ซักผ้า หรือปั๊มน้ำ มาช่วงกลางวัน",
-        "ตรวจรายการเครื่องใช้และเวลาการใช้งานที่ยังไม่ได้เพิ่ม",
-      ],
-    };
-  }
-  if (!snapshot.calibration || !hasBills || analysis.modelQuality.score < 60) {
-    return {
-      title: "ควรพิจารณาหลังเพิ่มข้อมูล",
-      badge: "ควรพิจารณา",
-      variant: "outline" as const,
-      tone: "border-primary/40 bg-primary/5",
-      explanation: `พบขนาด ${formatNumber(recommended.systemSizeKwp)} kWp ที่ผ่านเกณฑ์ความคุ้มค่า แต่ข้อมูลที่ใช้ยังไม่มั่นใจพอสำหรับยืนยันการลงทุน โดยใช้ Solar เองประมาณ ${formatNumber(selfUsePercent)}%.`,
-      nextAction:
-        "ยืนยันปรับเทียบ Load Profile กับบิล และเพิ่มข้อมูลการใช้ไฟช่วงกลางวันก่อนเลือกขนาดติดตั้งจริง.",
-      actions: [
-        "เพิ่มบิลอย่างน้อย 3 เดือนเพื่อยืนยันฤดูกาลใช้ไฟ",
-        "ตรวจพื้นที่หลังคาและเงาบัง",
-        "ใช้ขนาดที่ผ่านเกณฑ์เป็นจุดเริ่มต้นขอใบเสนอราคา",
-      ],
-    };
-  }
-  return {
-    title: "เหมาะสมสำหรับพิจารณาติดตั้ง",
-    badge: "เหมาะสม",
-    variant: "success" as const,
-    tone: "border-success bg-success/10",
-    explanation: `ขนาด ${formatNumber(recommended.systemSizeKwp)} kWp ให้ NPV สูงสุดในกลุ่มที่คืนทุนภายในอายุโครงการ และใช้ข้อมูล Load Profile ที่ปรับเทียบกับบิลแล้ว โดยใช้ Solar เองประมาณ ${formatNumber(selfUsePercent)}%.`,
-    nextAction:
-      "ตรวจพื้นที่หลังคา เงาบัง และใบเสนอราคาจริงก่อนตัดสินใจติดตั้ง.",
-    actions: [
-      "ใช้ขนาดที่ผ่านเกณฑ์เป็นจุดเริ่มต้นขอใบเสนอราคา",
-      "ยืนยันพื้นที่หลังคาและเงาบังหน้างาน",
-    ],
-  };
+function formatRecommendationBudget(
+  recommendation: SolarSystemRecommendation,
+) {
+  if (
+    recommendation.budgetLowThb === null ||
+    recommendation.budgetHighThb === null
+  )
+    return "ยังไม่แนะนำให้ออกงบลงทุน";
+  const batteryNote = recommendation.batteryRecommended
+    ? ` รวมแบตประมาณ ${formatNumber(recommendation.batteryUsableKwh ?? 0)} kWh`
+    : " ไม่รวมแบตเตอรี่";
+  return `${formatNumber(recommendation.budgetLowThb)}–${formatNumber(recommendation.budgetHighThb)} บาท (${batteryNote.trim()})`;
 }

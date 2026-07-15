@@ -10,6 +10,8 @@ describe("Solar assumption draft", () => {
 
     expect(draft.settings.systemSizeKwp).toBe(5);
     expect(draft.settings.capexThb).toBe(210_000);
+    expect(draft.settings.backupRequirement).toBe("unknown");
+    expect(draft.settings.defaultedFields).toContain("backupRequirement");
     expect(draft.settings.defaultedFields).toContain("systemSizeKwp");
     expect(draft.settings.defaultedFields).toContain("capexThb");
     expect(draft).not.toHaveProperty("analysis");
@@ -23,15 +25,24 @@ describe("Solar assumption draft", () => {
       capexThb: "480000",
       province: "Chiang Mai",
       exportEnabled: "false",
+      backupRequirement: "essential",
+      essentialLoadKw: "1.5",
+      backupHours: "6",
     });
 
     expect(draft.settings.systemSizeKwp).toBe(12);
     expect(draft.settings.capexThb).toBe(480_000);
     expect(draft.settings.province).toBe("Chiang Mai");
     expect(draft.settings.exportEnabled).toBe(false);
+    expect(draft.settings.backupRequirement).toBe("essential");
+    expect(draft.settings.essentialLoadKw).toBe(1.5);
+    expect(draft.settings.backupHours).toBe(6);
     expect(draft.settings.defaultedFields).not.toContain("systemSizeKwp");
     expect(buildSolarAssumptionQuery(draft.settings)).toContain(
       "systemSizeKwp=12",
+    );
+    expect(buildSolarAssumptionQuery(draft.settings)).toContain(
+      "backupRequirement=essential",
     );
   });
 });

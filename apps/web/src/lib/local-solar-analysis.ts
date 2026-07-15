@@ -85,6 +85,10 @@ export function solarSettingsFingerprint(settings: SolarAssumptionSettings) {
     settings.exportEnabled,
     settings.exportRateThbPerKwh,
     settings.exportLimitKw,
+    settings.backupRequirement,
+    settings.essentialLoadKw,
+    settings.backupHours,
+    settings.batteryCostPerKwhThb,
   ]);
 }
 
