@@ -275,12 +275,14 @@ export function EcosystemRuntimePanel() {
           </CardHeader>
           <CardContent className="grid gap-3 text-sm leading-6 text-muted-foreground">
             <p>
-              เงินประหยัดฐาน {formatMoney(plan.primaryAnnualSavingsThb)} บาท/ปี
-              จาก {plan.savingsSourceLabel ?? "ยังไม่มีผลที่พร้อม"}
+              เงินประหยัดฐาน: {formatAnnualMoney(plan.primaryAnnualSavingsThb)}
+              {plan.savingsSourceLabel
+                ? ` · จาก ${plan.savingsSourceLabel}`
+                : " · ยังไม่มีผลที่พร้อม"}
             </p>
             <p>
-              ค่าไฟ EV เพิ่ม {formatMoney(plan.evAnnualAddedCostThb)} บาท/ปี
-              และแยกจากผลประหยัดของบ้าน
+              ค่าไฟ EV เพิ่ม: {formatAnnualMoney(plan.evAnnualAddedCostThb)} ·
+              แยกจากผลประหยัดของบ้าน
             </p>
             <p className="font-medium text-foreground">
               ผลสุทธิประมาณ {formatNetChange(plan.netAnnualChangeThb)}
@@ -586,6 +588,10 @@ function formatMoney(value: number | null) {
     : new Intl.NumberFormat("th-TH", { maximumFractionDigits: 0 }).format(
         value,
       );
+}
+
+function formatAnnualMoney(value: number | null) {
+  return value === null ? "ยังคำนวณไม่ได้" : `${formatMoney(value)} บาท/ปี`;
 }
 
 function formatMoneyPerMonth(value: number | null) {

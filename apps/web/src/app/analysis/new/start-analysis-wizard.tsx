@@ -243,7 +243,7 @@ export function StartAnalysisWizard({ fresh = false }: { fresh?: boolean }) {
                 onClick={startDemoWorkspace}
                 type="button"
               >
-                ดูตัวอย่างผลลัพธ์
+                ดู Dashboard จากบิลตัวอย่าง
                 <PlayCircle aria-hidden="true" className="h-5 w-5" />
               </button>
             </div>

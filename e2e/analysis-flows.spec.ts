@@ -312,6 +312,17 @@ test("Flow A: user without data sees no fabricated KPI or export", async ({
   await page.goto("/analysis/reports");
   await expect(page.getByText("ยังไม่มีข้อมูลสำหรับสร้างรายงาน")).toBeVisible();
   await expect(page.getByText("ยัง export ไม่ได้:")).toBeVisible();
+
+  await page.goto("/analysis/ecosystem");
+  await expect(
+    page.getByRole("heading", { name: "ความพร้อมของคำตอบ" }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("เงินประหยัดฐาน: ยังคำนวณไม่ได้ · ยังไม่มีผลที่พร้อม"),
+  ).toBeVisible();
+  await expect(
+    page.getByText("ค่าไฟ EV เพิ่ม: ยังคำนวณไม่ได้ · แยกจากผลประหยัดของบ้าน"),
+  ).toBeVisible();
 });
 
 test("Flow B: sample bills are labelled and do not become user data", async ({
@@ -675,6 +686,9 @@ test("start flow supports keyboard focus and a narrow mobile viewport", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/analysis/new");
+  await expect(
+    page.getByRole("button", { name: "ดู Dashboard จากบิลตัวอย่าง" }),
+  ).toBeVisible();
 
   await page.keyboard.press("Tab");
   const skipLink = page.getByRole("link", { name: "ข้ามไปเนื้อหาหลัก" });
