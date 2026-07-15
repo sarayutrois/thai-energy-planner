@@ -473,6 +473,13 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(openReportLink).toBeVisible();
   await openReportLink.click();
   await page.waitForURL("**/analysis/reports/**");
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    ),
+  ).toBe(false);
+  await page.setViewportSize({ width: 1280, height: 720 });
   await expect(
     page.getByRole("button", { name: "ดาวน์โหลด JSON" }),
   ).toBeVisible();

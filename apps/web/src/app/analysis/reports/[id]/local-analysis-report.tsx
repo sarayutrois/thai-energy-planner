@@ -87,7 +87,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
 
   return (
     <article
-      className="rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none"
+      className="w-full min-w-0 max-w-full overflow-hidden rounded-md border border-border bg-card p-5 shadow-panel print:border-none print:shadow-none"
       id="analysis-report-pdf"
     >
       <header className="border-b border-border pb-5">
@@ -140,7 +140,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         </div>
       </header>
 
-      <section className="grid gap-5 py-5">
+      <section className="grid min-w-0 gap-5 py-5">
         {!isCurrent ? (
           <Card className="border-warning bg-warning/10">
             <CardHeader>
@@ -179,11 +179,11 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           </Card>
         ) : null}
 
-        <Card>
+        <Card className="min-w-0 max-w-full overflow-hidden">
           <CardHeader>
             <CardTitle>Executive summary</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0 max-w-full">
             <p className="leading-7 text-muted-foreground">{report.summary}</p>
           </CardContent>
         </Card>
@@ -301,14 +301,14 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           </Card>
         ))}
 
-        <Card>
+        <Card className="min-w-0 max-w-full overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary" />
               Results
             </CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="min-w-0 max-w-full">
             <ResultTable rows={report.resultRows} />
           </CardContent>
         </Card>
@@ -407,7 +407,7 @@ function ResultTable({
   }
 
   return (
-    <div className="overflow-x-auto rounded-md border border-border">
+    <div className="min-w-0 max-w-full overflow-x-auto rounded-md border border-border">
       <table className="w-full min-w-[720px] border-collapse text-left text-sm">
         <thead className="bg-muted text-muted-foreground">
           <tr>
