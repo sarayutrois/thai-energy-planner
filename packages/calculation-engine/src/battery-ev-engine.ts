@@ -955,13 +955,10 @@ export function runEvScenario(input: {
     .mul(input.config.weeklyDrivingDays)
     .div(7)
     .mul(targetDays);
-  const homeChargingCost = profile.intervals
-    .reduce((sum, interval) => sum.plus(interval.costThb), zero)
-    .mul(monthlyScaleFactor);
   const outsideChargingCost = new Decimal(profile.outsideChargingCostThb).mul(
     monthlyScaleFactor,
   );
-  const monthlyCost = homeChargingCost.plus(outsideChargingCost);
+  const monthlyCost = monthlyIncrease.plus(outsideChargingCost);
   const peakBefore = peakDemandKw(billingBaseIntervals);
   const peakAfter = peakDemandKw(afterIntervals);
 
@@ -1379,7 +1376,20 @@ function isBetterEvStrategy(
   if (candidate.chargingCompletionStatus !== current.chargingCompletionStatus) {
     return candidate.chargingCompletionStatus === "complete";
   }
-  return candidate.monthlyBillIncreaseThb < current.monthlyBillIncreaseThb;
+  if (candidate.chargingCostThb !== current.chargingCostThb)
+    return candidate.chargingCostThb < current.chargingCostThb;
+  if (candidate.peakDemandIncreaseKw !== current.peakDemandIncreaseKw)
+    return candidate.peakDemandIncreaseKw < current.peakDemandIncreaseKw;
+  return (
+    strategyPriority(candidate.strategy) < strategyPriority(current.strategy)
+  );
+}
+
+function strategyPriority(strategy: EvChargingStrategy) {
+  if (strategy === "SMART") return 0;
+  if (strategy === "OFF_PEAK") return 1;
+  if (strategy === "SOLAR_SURPLUS") return 2;
+  return 3;
 }
 
 function resolveEvBillingBaseIntervals(

@@ -8,6 +8,7 @@ import {
   BarChart3,
   BatteryCharging,
   CalendarDays,
+  CarFront,
   Database,
   ReceiptText,
   SunMedium,
@@ -506,6 +507,12 @@ export function LocalBillSummary() {
               icon={BatteryCharging}
               label="ลอง Battery"
             />
+            <NextStepLink
+              description="เทียบแผนชาร์จ Normal, TOU, Solar และกำลังเครื่องชาร์จที่เหมาะสม"
+              href={`/analysis/ev${savedBillQuery}`}
+              icon={CarFront}
+              label="วางแผนชาร์จ EV"
+            />
           </div>
         </section>
 
@@ -630,13 +637,6 @@ function NextStepLink({
   icon: LucideIcon;
   label: string;
 }) {
-  if (
-    href.startsWith("/analysis/ev") &&
-    process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES !== "true"
-  ) {
-    return null;
-  }
-
   return (
     <Link
       className="rounded-md border border-border bg-card p-4 transition hover:border-primary focus:outline-none focus:ring-2 focus:ring-ring"

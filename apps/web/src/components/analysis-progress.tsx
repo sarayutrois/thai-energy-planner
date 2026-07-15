@@ -35,7 +35,8 @@ function buildSteps(): Step[] {
       (report) =>
         report.module === "scenario" ||
         report.module === "solar" ||
-        report.module === "battery",
+        report.module === "battery" ||
+        report.module === "ev",
     );
   } catch {
     // The checklist remains actionable if a legacy or corrupt local value is found.
@@ -78,9 +79,10 @@ function buildSteps(): Step[] {
         "/analysis/scenarios",
         "/analysis/solar",
         "/analysis/battery",
+        "/analysis/ev",
       ],
       done: hasAnalysis,
-      missing: "เทียบ TOU, Solar หรือ Battery",
+      missing: "เทียบ TOU, Solar, Battery หรือ EV",
     },
     {
       label: "สรุปและรายงาน",

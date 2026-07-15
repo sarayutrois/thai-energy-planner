@@ -448,10 +448,29 @@ describe("phase 6 EV load generation", () => {
     );
 
     expect(comparison.scenarios).toHaveLength(4);
-    expect(
-      comparison.bestChargingStrategy.monthlyBillIncreaseThb,
-    ).toBeLessThanOrEqual(immediate?.monthlyBillIncreaseThb ?? Infinity);
+    expect(comparison.bestChargingStrategy.chargingCostThb).toBeLessThanOrEqual(
+      immediate?.chargingCostThb ?? Infinity,
+    );
     expect(comparison.recommendations.length).toBeGreaterThan(0);
+  });
+
+  it("includes outside charging in total EV charging cost", () => {
+    const scenario = runEvScenario({
+      baseLoadIntervals: load([[0, 18, 1]]),
+      normalTariff: demoNormalTariff,
+      touTariff: demoTouTariff,
+      config: { ...evConfig, chargerPowerKw: 2, dailyDistanceKm: 80 },
+      strategy: "CHARGE_IMMEDIATELY",
+      meterMode: "normal",
+      billDate: "2026-02-01",
+      monthlyScaleFactor: 1,
+    });
+
+    expect(scenario.profile.outsideChargingCostThb).toBeGreaterThan(0);
+    expect(scenario.chargingCostThb).toBeCloseTo(
+      scenario.monthlyBillIncreaseThb + scenario.profile.outsideChargingCostThb,
+      2,
+    );
   });
 
   it("runs demo EV comparison and links the integration path to tariff bills", () => {

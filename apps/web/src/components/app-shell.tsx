@@ -6,6 +6,7 @@ import { useState } from "react";
 import {
   BatteryCharging,
   Calculator,
+  CarFront,
   ChevronRight,
   FileText,
   Gauge,
@@ -49,6 +50,7 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
       { label: "ค่าไฟและ TOU", href: "/analysis/scenarios", icon: Calculator },
       { label: "Solar", href: "/analysis/solar", icon: SunMedium },
       { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
+      { label: "EV", href: "/analysis/ev", icon: CarFront },
     ],
   },
   {

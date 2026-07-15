@@ -481,6 +481,12 @@ const resultHeaderLabels: Record<string, string> = {
   paybackYears: "คืนทุน (ปี)",
   gridImportKwh: "ซื้อไฟจากกริด (kWh)",
   peakDemandKw: "กำลังไฟสูงสุด (kW)",
+  meter: "มิเตอร์",
+  chargingPlan: "แผนชาร์จ",
+  monthlyChargingCostThb: "ต้นทุนชาร์จ (บาท/เดือน)",
+  monthlyBillIncreaseThb: "บิลเพิ่ม (บาท/เดือน)",
+  costPer100Km: "ต้นทุน (บาท/100 km)",
+  peakDemandIncreaseKw: "Peak เพิ่ม (kW)",
 };
 
 function formatResultHeader(header: string) {

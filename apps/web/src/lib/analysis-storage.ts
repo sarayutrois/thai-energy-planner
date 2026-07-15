@@ -16,6 +16,7 @@ import {
 } from "./local-solar-analysis";
 
 export const batteryMvpStorageKey = "thai-energy-planner.battery-mvp.v1";
+export const evMvpStorageKey = "thai-energy-planner.ev-mvp.v1";
 
 export const analysisStorageKeys = [
   analysisGoalStorageKey,
@@ -29,6 +30,7 @@ export const analysisStorageKeys = [
   solarAssumptionsStorageKey,
   solarAnalysisStorageKey,
   batteryMvpStorageKey,
+  evMvpStorageKey,
 ] as const;
 
 export const analysisResumeSessionStorageKey =

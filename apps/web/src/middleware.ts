@@ -12,8 +12,7 @@ export function middleware(request: NextRequest) {
     );
   }
   const experimentalModule = experimentalModuleForPath(pathname);
-  const alwaysUnavailable =
-    experimentalModule === "ev" || experimentalModule === "ecosystem";
+  const alwaysUnavailable = experimentalModule === "ecosystem";
   if (
     experimentalModule &&
     (alwaysUnavailable ||
@@ -61,7 +60,6 @@ export const config = {
 };
 
 function experimentalModuleForPath(pathname: string) {
-  if (pathname.startsWith("/analysis/ev")) return "ev";
   if (pathname.startsWith("/analysis/ecosystem")) return "ecosystem";
   return null;
 }

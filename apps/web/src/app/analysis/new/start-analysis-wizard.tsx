@@ -4,6 +4,7 @@ import {
   ArrowRight,
   BatteryCharging,
   Building2,
+  CarFront,
   FileSpreadsheet,
   FileUp,
   Gauge,
@@ -131,6 +132,13 @@ const nextJourneys: Array<{
     description: "ดูว่าควรติดหรือไม่ ขนาด งบ ระยะสำรอง และความคุ้มค่า",
     href: "/analysis/battery",
     icon: BatteryCharging,
+  },
+  {
+    title: "วางแผนชาร์จ EV",
+    description:
+      "เทียบ Normal, TOU, Smart Charging, Solar และกำลังเครื่องชาร์จ",
+    href: "/analysis/ev",
+    icon: CarFront,
   },
 ];
 
