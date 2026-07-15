@@ -452,6 +452,7 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
   ).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("NaN");
   await expect(page.getByRole("button", { name: "คำนวณใหม่" })).toBeVisible();
   await expect(
     page.getByRole("button", { name: "บันทึกเป็นรายงาน" }),

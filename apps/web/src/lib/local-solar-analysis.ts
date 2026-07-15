@@ -180,6 +180,8 @@ export function compactSolarCalculationSuccess(
         bestWithSolar: {
           monthlyBillThb: analysis.billComparison.bestWithSolar.monthlyBillThb,
         },
+        billSavings: analysis.billComparison.billSavings,
+        exportRevenue: analysis.billComparison.exportRevenue,
         netAnnualBenefit: analysis.billComparison.netAnnualBenefit,
       },
       solarProfile: {
@@ -221,6 +223,24 @@ export function compactSolarCalculationSuccess(
       })),
     } as SolarAnalysisResult,
   };
+}
+
+export function getSolarBenefitBreakdown(
+  comparison: SolarAnalysisResult["billComparison"],
+) {
+  const inferredBillSavings = Math.max(
+    0,
+    (comparison.bestWithoutSolar.monthlyBillThb -
+      comparison.bestWithSolar.monthlyBillThb) *
+      12,
+  );
+  const billSavings = Number.isFinite(comparison.billSavings)
+    ? comparison.billSavings
+    : inferredBillSavings;
+  const exportRevenue = Number.isFinite(comparison.exportRevenue)
+    ? comparison.exportRevenue
+    : Math.max(0, comparison.netAnnualBenefit - billSavings);
+  return { billSavings, exportRevenue };
 }
 
 export function storedSolarAnalysisMatches(

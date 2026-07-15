@@ -3,6 +3,7 @@ import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engin
 import { getSolarAssumptionDraft } from "./solar-assumptions";
 import {
   deriveSolarStatus,
+  getSolarBenefitBreakdown,
   persistSolarAnalysis,
   persistSolarAssumptions,
   readStoredSolarAnalysis,
@@ -115,5 +116,18 @@ describe("local solar analysis lifecycle", () => {
     expect(storedSolarAnalysisMatches(restored!, "profile-2", settings)).toBe(
       false,
     );
+  });
+
+  it("derives a finite benefit breakdown for legacy compact snapshots", () => {
+    const breakdown = getSolarBenefitBreakdown({
+      bestWithoutSolar: { monthlyBillThb: 297.77 },
+      bestWithSolar: { monthlyBillThb: 297.77 },
+      netAnnualBenefit: 4326.4,
+    } as SolarAnalysisResult["billComparison"]);
+
+    expect(breakdown).toEqual({
+      billSavings: 0,
+      exportRevenue: 4326.4,
+    });
   });
 });

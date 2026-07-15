@@ -18,6 +18,7 @@ import type { SolarAssumptionSettings } from "@/lib/solar-assumptions";
 import {
   compactSolarCalculationSuccess,
   deriveSolarStatus,
+  getSolarBenefitBreakdown,
   persistSolarAnalysis,
   readStoredSolarAnalysis,
   readStoredSolarAssumptions,
@@ -399,6 +400,7 @@ function RuntimeMetrics({
   hasBills: boolean;
 }) {
   const comparison = analysis.billComparison;
+  const benefitBreakdown = getSolarBenefitBreakdown(comparison);
   const decision = getSolarDecision({ analysis, snapshot, hasBills });
   const recommendedSizing = analysis.sizing.recommended;
   return (
@@ -504,11 +506,11 @@ function RuntimeMetrics({
           />
           <Info
             label="ประหยัดค่าไฟรายปี"
-            value={`${formatNumber(comparison.billSavings)} บาท/ปี`}
+            value={`${formatNumber(benefitBreakdown.billSavings)} บาท/ปี`}
           />
           <Info
             label="รายได้จากการส่งออกไฟรายปี"
-            value={`${formatNumber(comparison.exportRevenue)} บาท/ปี`}
+            value={`${formatNumber(benefitBreakdown.exportRevenue)} บาท/ปี`}
           />
         </div>
       </section>
