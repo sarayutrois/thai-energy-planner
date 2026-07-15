@@ -4,6 +4,7 @@ import {
   CheckCircle2,
   Sparkles,
 } from "lucide-react";
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,7 @@ export function DecisionStory({
   nextAction,
   confidence,
   tone = "positive",
+  actions,
 }: {
   eyebrow?: string;
   title: string;
@@ -30,6 +32,7 @@ export function DecisionStory({
   nextAction: string;
   confidence?: string;
   tone?: "positive" | "caution" | "neutral";
+  actions?: ReactNode;
 }) {
   return (
     <section
@@ -132,14 +135,21 @@ export function DecisionStory({
         </div>
       ) : null}
 
-      <div className="flex gap-3 bg-primary px-6 py-5 text-primary-foreground lg:px-8">
-        <ArrowRight aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
-        <div>
-          <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground/75">
-            ขั้นตอนถัดไป
-          </p>
-          <p className="mt-1 text-base font-semibold leading-6">{nextAction}</p>
+      <div className="flex flex-col gap-4 bg-primary px-6 py-5 text-primary-foreground md:flex-row md:items-center md:justify-between lg:px-8">
+        <div className="flex gap-3">
+          <ArrowRight aria-hidden="true" className="mt-0.5 h-5 w-5 shrink-0" />
+          <div>
+            <p className="text-xs font-semibold uppercase tracking-[0.12em] text-primary-foreground/75">
+              ขั้นตอนถัดไป
+            </p>
+            <p className="mt-1 text-base font-semibold leading-6">
+              {nextAction}
+            </p>
+          </div>
         </div>
+        {actions ? (
+          <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>
+        ) : null}
       </div>
     </section>
   );

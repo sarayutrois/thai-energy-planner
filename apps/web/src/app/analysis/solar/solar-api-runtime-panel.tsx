@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { FileUp, RefreshCw, ServerCog } from "lucide-react";
+import Link from "next/link";
+import { ArrowRight, FileUp, RefreshCw, ServerCog } from "lucide-react";
 import {
   canonicalLoadProfileToLoadIntervals,
   type SolarAnalysisResult,
@@ -331,12 +332,10 @@ export function SolarApiRuntimePanel({
               ยังไม่ใช่คำแนะนำหรือผลการประเมิน คุณสามารถแก้ไขได้ก่อนเริ่มคำนวณ
             </p>
             <div className="mt-4 rounded-md border border-primary/30 bg-primary/5 p-4">
-              <p className="text-sm font-semibold">
-                คำถามสำคัญก่อนเลือกระบบ
-              </p>
+              <p className="text-sm font-semibold">คำถามสำคัญก่อนเลือกระบบ</p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                ต้องการไฟสำรองเวลาไฟดับหรือไม่ คำตอบนี้ใช้เลือกระหว่าง
-                On-grid กับ Hybrid
+                ต้องการไฟสำรองเวลาไฟดับหรือไม่ คำตอบนี้ใช้เลือกระหว่าง On-grid
+                กับ Hybrid
               </p>
               <div className="mt-3 grid gap-3 md:grid-cols-3">
                 <label className="grid gap-1.5 text-sm font-medium">
@@ -348,9 +347,7 @@ export function SolarApiRuntimePanel({
                       updateBackupSettings(
                         {
                           backupRequirement: event.target.value as
-                            | "unknown"
-                            | "none"
-                            | "essential",
+                            "unknown" | "none" | "essential",
                         },
                         ["backupRequirement"],
                       )
@@ -376,10 +373,9 @@ export function SolarApiRuntimePanel({
                         onBlur={(event) => {
                           const value = Number(event.target.value);
                           if (Number.isFinite(value) && value >= 0.1)
-                            updateBackupSettings(
-                              { essentialLoadKw: value },
-                              ["essentialLoadKw"],
-                            );
+                            updateBackupSettings({ essentialLoadKw: value }, [
+                              "essentialLoadKw",
+                            ]);
                         }}
                       />
                     </label>
@@ -394,10 +390,9 @@ export function SolarApiRuntimePanel({
                         onBlur={(event) => {
                           const value = Number(event.target.value);
                           if (Number.isFinite(value) && value >= 0.5)
-                            updateBackupSettings(
-                              { backupHours: value },
-                              ["backupHours"],
-                            );
+                            updateBackupSettings({ backupHours: value }, [
+                              "backupHours",
+                            ]);
                         }}
                       />
                     </label>
@@ -466,24 +461,24 @@ export function SolarApiRuntimePanel({
               ? "กำลังประเมิน..."
               : activeSettings.backupRequirement === "unknown"
                 ? "ตอบเรื่องไฟสำรองก่อน"
-              : error
-                ? "ลองคำนวณใหม่"
-                : calculatedResult
-                  ? "คำนวณใหม่"
-                  : "เริ่มประเมิน Solar"}
+                : error
+                  ? "ลองคำนวณใหม่"
+                  : calculatedResult
+                    ? "คำนวณใหม่"
+                    : "เริ่มประเมิน Solar"}
           </Button>
-          <a
+          <Link
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
             href="/analysis/load-data"
           >
             แก้ไขข้อมูลการใช้ไฟ
-          </a>
-          <a
+          </Link>
+          <Link
             className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 text-sm font-medium hover:bg-muted"
             href="/analysis/solar/config"
           >
             ตรวจและแก้สมมติฐาน Solar
-          </a>
+          </Link>
         </div>
         <LocalBillResultContext
           enabled={Boolean(reportDraft && hasBills)}
@@ -605,6 +600,9 @@ function RuntimeMetrics({
             }
           />
         </div>
+        {systemRecommendation.systemType !== "not_recommended" ? (
+          <SolarSystemFlow recommendation={systemRecommendation} />
+        ) : null}
         <div className="mt-5 grid gap-4 border-t border-border/70 pt-4 lg:grid-cols-2">
           <div>
             <p className="text-sm font-semibold">เหตุผลที่แนะนำ</p>
@@ -626,49 +624,24 @@ function RuntimeMetrics({
         <p className="mt-4 rounded-md bg-background/70 p-3 text-sm font-medium leading-6">
           ขั้นต่อไป: {systemRecommendation.nextAction}
         </p>
+        <div className="mt-4 flex flex-wrap gap-2">
+          <Link
+            className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/92"
+            href={
+              hasBills ? "#save-analysis-report" : "/analysis/load-data/bills"
+            }
+          >
+            {hasBills ? "บันทึกผลเป็นรายงาน" : "เพิ่มบิลเพื่อบันทึกรายงาน"}
+            <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </Link>
+          <Link
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background/80 px-4 text-sm font-semibold transition hover:bg-muted"
+            href="/analysis/reports"
+          >
+            ดูรายงานทั้งหมด
+          </Link>
+        </div>
       </section>
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
-        <Metric
-          label="ใช้ไฟโดยประมาณ"
-          value={`${formatNumber(comparison.bestWithoutSolar.monthlyEnergyKwh)} kWh/เดือน`}
-        />
-        <Metric
-          label="ค่าไฟหลัง Solar"
-          value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`}
-        />
-        <Metric
-          label="ขนาดที่กำลังประเมิน"
-          value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`}
-        />
-        <Metric
-          label="ผลประโยชน์รวมโดยประมาณ"
-          value={`${formatNumber(comparison.netAnnualBenefit / 12)} บาท/เดือน`}
-        />
-        <Metric
-          label="ลดไฟจากโครงข่าย"
-          value={`${formatNumber(analysis.selfConsumption.selfSufficiencyRatio * 100)}%`}
-        />
-        <Metric
-          label="เงินลงทุนโดยประมาณ"
-          value={`${formatNumber(analysis.financial.initialInvestmentThb)} บาท`}
-        />
-        <Metric
-          label="ระยะคืนทุน"
-          value={
-            analysis.financial.simplePaybackYears
-              ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี`
-              : "ไม่สามารถคืนทุนจากสมมติฐานนี้"
-          }
-        />
-        <Metric
-          label="สัดส่วนไฟ Solar ที่ใช้ภายในสถานที่"
-          value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`}
-        />
-        <Metric
-          label="ช่วงข้อมูลที่ใช้"
-          value={`${trace.inputIntervalCount.toLocaleString("th-TH")} ช่วง`}
-        />
-      </div>
       <section className="rounded-md border border-border bg-background p-4 text-sm">
         <h3 className="font-semibold">เปรียบเทียบก่อนและหลังติดตั้ง Solar</h3>
         <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
@@ -690,30 +663,148 @@ function RuntimeMetrics({
           />
         </div>
       </section>
-      <section className="rounded-md border border-border bg-background p-4 text-sm">
-        <h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3>
-        <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
-          <Info
-            label="ข้อมูลการใช้ไฟ"
-            value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`}
-          />
-          <Info
-            label="ข้อมูลจากบิล"
-            value={
-              hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"
-            }
-          />
-          <Info
-            label="อัตราค่าไฟ"
-            value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`}
-          />
-          <Info
-            label="ข้อมูลแสงอาทิตย์"
-            value={`${solarSourceLabel(analysis.solarProfile.source.authority)} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`}
-          />
+      <details className="group rounded-md border border-border bg-background text-sm">
+        <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
+          <span>ดูตัวเลขและที่มาข้อมูลเพิ่มเติม</span>
+          <span className="text-xs text-muted-foreground group-open:hidden">
+            เปิดรายละเอียด
+          </span>
+          <span className="hidden text-xs text-muted-foreground group-open:inline">
+            ซ่อนรายละเอียด
+          </span>
+        </summary>
+        <div className="grid gap-4 border-t border-border p-4">
+          <div className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:grid-cols-5">
+            <Metric
+              label="ใช้ไฟโดยประมาณ"
+              value={`${formatNumber(comparison.bestWithoutSolar.monthlyEnergyKwh)} kWh/เดือน`}
+            />
+            <Metric
+              label="ค่าไฟหลัง Solar"
+              value={`${formatNumber(comparison.bestWithSolar.monthlyBillThb)} บาท/เดือน`}
+            />
+            <Metric
+              label="ขนาดที่กำลังประเมิน"
+              value={`${formatNumber(analysis.solarProfile.assumptionsSnapshot.systemSizeKwp)} kWp`}
+            />
+            <Metric
+              label="ผลประโยชน์รวมโดยประมาณ"
+              value={`${formatNumber(comparison.netAnnualBenefit / 12)} บาท/เดือน`}
+            />
+            <Metric
+              label="ลดไฟจากโครงข่าย"
+              value={`${formatNumber(analysis.selfConsumption.selfSufficiencyRatio * 100)}%`}
+            />
+            <Metric
+              label="เงินลงทุนโดยประมาณ"
+              value={`${formatNumber(analysis.financial.initialInvestmentThb)} บาท`}
+            />
+            <Metric
+              label="ระยะคืนทุน"
+              value={
+                analysis.financial.simplePaybackYears
+                  ? `${formatNumber(analysis.financial.simplePaybackYears)} ปี`
+                  : "ไม่สามารถคืนทุนจากสมมติฐานนี้"
+              }
+            />
+            <Metric
+              label="Solar ที่ใช้เอง"
+              value={`${formatNumber(analysis.selfConsumption.selfConsumptionRatio * 100)}%`}
+            />
+            <Metric
+              label="ช่วงข้อมูลที่ใช้"
+              value={`${trace.inputIntervalCount.toLocaleString("th-TH")} ช่วง`}
+            />
+          </div>
+          <div>
+            <h3 className="font-semibold">ที่มาข้อมูลและสมมติฐานที่ใช้</h3>
+            <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+              <Info
+                label="ข้อมูลการใช้ไฟ"
+                value={`${snapshot.sourceName} (${snapshot.canonicalProfile?.quality.level === "measured" ? "ข้อมูลวัดจริง" : snapshot.canonicalProfile?.quality.level === "modeled" ? "รูปแบบจำลอง" : "ค่าประมาณ"})`}
+              />
+              <Info
+                label="ข้อมูลจากบิล"
+                value={
+                  hasBills ? "ใช้เพื่อปรับสัดส่วนรายเดือน" : "ยังไม่มีข้อมูลบิล"
+                }
+              />
+              <Info
+                label="อัตราค่าไฟ"
+                value={`${trace.authority} · วันที่อ้างอิง ${trace.billDate}`}
+              />
+              <Info
+                label="ข้อมูลแสงอาทิตย์"
+                value={`${solarSourceLabel(analysis.solarProfile.source.authority)} · ${sourceStatus(analysis.solarProfile.source.status)}${analysis.solarProfile.source.verifiedAt ? ` · ตรวจสอบ ${analysis.solarProfile.source.verifiedAt}` : ""}`}
+              />
+            </div>
+          </div>
         </div>
-      </section>
+      </details>
     </>
+  );
+}
+
+function SolarSystemFlow({
+  recommendation,
+}: {
+  recommendation: SolarSystemRecommendation;
+}) {
+  const nodes = [
+    {
+      label: "แผง Solar",
+      value: `${recommendation.panelCount?.toLocaleString("th-TH") ?? "—"} แผง · ${formatNumber(recommendation.systemSizeKwp ?? 0)} kWp`,
+    },
+    {
+      label: "Inverter",
+      value: `${formatNumber(recommendation.inverterSizeKw ?? 0)} kW`,
+    },
+    { label: "โหลดภายใน", value: "ใช้ไฟ Solar ก่อน" },
+    { label: "โครงข่ายไฟฟ้า", value: "รับหรือส่งไฟส่วนเกิน" },
+  ];
+
+  return (
+    <div
+      aria-label="ภาพการทำงานของระบบ Solar ที่แนะนำ"
+      className="mt-5 rounded-xl border border-border/70 bg-background/75 p-4"
+    >
+      <p className="text-sm font-semibold">
+        ภาพรวมระบบ {recommendation.systemTypeLabel.split(" — ")[0]}
+      </p>
+      <div className="mt-3 grid gap-2 md:grid-cols-[1fr_auto_1fr_auto_1fr_auto_1fr] md:items-stretch">
+        {nodes.map((node, index) => (
+          <div className="contents" key={node.label}>
+            <div className="rounded-lg border border-primary/20 bg-primary/[0.06] p-3 text-center">
+              <span className="mx-auto flex h-7 w-7 items-center justify-center rounded-full bg-primary text-xs font-bold text-primary-foreground">
+                {index + 1}
+              </span>
+              <p className="mt-2 text-sm font-semibold">{node.label}</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                {node.value}
+              </p>
+            </div>
+            {index < nodes.length - 1 ? (
+              <ArrowRight
+                aria-hidden="true"
+                className="mx-auto h-4 w-4 rotate-90 self-center text-primary md:rotate-0"
+              />
+            ) : null}
+          </div>
+        ))}
+      </div>
+      {recommendation.batteryRecommended ? (
+        <div className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-sm">
+          <span className="font-semibold">แบตเตอรี่สำรอง:</span>{" "}
+          {formatNumber(recommendation.batteryUsableKwh ?? 0)} kWh เชื่อมกับ
+          Hybrid Inverter เพื่อจ่ายไฟให้วงจรจำเป็นเมื่อไฟดับ
+        </div>
+      ) : (
+        <p className="mt-3 text-xs leading-5 text-muted-foreground">
+          ระบบนี้ไม่ใส่แบตเตอรี่ เพราะเป้าหมายหลักคือประหยัดค่าไฟและคืนทุนเร็ว
+          เมื่อไฟดับ On-grid จะหยุดจ่ายไฟเพื่อความปลอดภัย
+        </p>
+      )}
+    </div>
   );
 }
 
@@ -916,9 +1007,7 @@ function roundReportNumber(value: number) {
   return Number(value.toFixed(2));
 }
 
-function formatRecommendationBudget(
-  recommendation: SolarSystemRecommendation,
-) {
+function formatRecommendationBudget(recommendation: SolarSystemRecommendation) {
   if (
     recommendation.budgetLowThb === null ||
     recommendation.budgetHighThb === null

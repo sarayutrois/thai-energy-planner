@@ -3,6 +3,7 @@ import type {
   ScenarioRecommendation,
   ScenarioResult,
 } from "@thai-energy-planner/calculation-engine";
+import Link from "next/link";
 import {
   AlertTriangle,
   BadgeCheck,
@@ -30,12 +31,19 @@ export function ScenarioView({
   return (
     <div className="grid w-full min-w-0 max-w-full gap-5 overflow-hidden">
       <DecisionStory
-        title={formatScenarioName(bestScenario.name)}
+        title={formatDecisionTitle(comparison)}
         reason={formatDecisionReason(comparison)}
         evidence={[
           {
-            label: "ประหยัดได้โดยประมาณ",
-            value: `${formatNumber(bestScenario.savingsAnnual)} บาท/ปี`,
+            label: "ค่าไฟที่คาดว่าจะจ่าย",
+            value: `${formatNumber(bestScenario.grandTotal)} บาท/เดือน`,
+          },
+          {
+            label: "ต่างจากมิเตอร์ปกติ",
+            value:
+              bestScenario.savingsMonthly > 0
+                ? `ประหยัด ${formatNumber(bestScenario.savingsMonthly)} บาท/เดือน`
+                : "ยังไม่ประหยัดกว่า",
           },
           {
             label: "สัดส่วน Off-Peak ปัจจุบัน",
@@ -52,26 +60,23 @@ export function ScenarioView({
         nextAction={formatDecisionNextAction(comparison)}
         confidence={`ความน่าเชื่อถือ ${formatDataQuality(comparison.dataQuality.level)} · ${comparison.dataQuality.score}/100`}
         tone={comparison.dataQuality.level === "LOW" ? "caution" : "positive"}
+        actions={
+          <>
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-lg bg-card px-4 text-sm font-semibold text-primary shadow-sm transition hover:-translate-y-0.5 hover:bg-card/90"
+              href="/analysis/solar"
+            >
+              ประเมิน Solar ต่อ
+            </Link>
+            <Link
+              className="inline-flex h-10 items-center justify-center rounded-lg border border-primary-foreground/35 px-4 text-sm font-semibold text-primary-foreground transition hover:bg-primary-foreground/10"
+              href="/analysis/reports"
+            >
+              ดูรายงาน
+            </Link>
+          </>
+        }
       />
-
-      <div className="grid gap-3 md:grid-cols-4">
-        <Metric
-          label="ทางเลือกที่เหมาะกับคุณ"
-          value={formatScenarioName(comparison.bestScenario.name)}
-        />
-        <Metric
-          label="ค่าไฟที่คาดว่าจะจ่าย"
-          value={`${formatNumber(comparison.bestScenario.grandTotal)} บาท/เดือน`}
-        />
-        <Metric
-          label="ใช้ไฟช่วง Off-Peak"
-          value={`${formatNumber(comparison.breakEven.currentOffPeakRatio)}%`}
-        />
-        <Metric
-          label="ความน่าเชื่อถือของข้อมูล"
-          value={`${formatDataQuality(comparison.dataQuality.level)} ${comparison.dataQuality.score}/100`}
-        />
-      </div>
 
       <details className="group min-w-0 max-w-full rounded-2xl border border-border/90 bg-card/80 shadow-panel">
         <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-5 font-semibold md:p-6">
@@ -351,15 +356,6 @@ function BreakdownTable({ scenario }: { scenario: ScenarioResult }) {
   );
 }
 
-function Metric({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-md border border-border bg-card p-4">
-      <p className="text-xs font-medium text-muted-foreground">{label}</p>
-      <p className="mt-2 text-lg font-semibold tracking-normal">{value}</p>
-    </div>
-  );
-}
-
 function BreakEvenRow({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex items-center justify-between gap-3">
@@ -421,6 +417,18 @@ function formatDecisionReason(comparison: ScenarioComparisonResult) {
   }
 
   return `${formatScenarioName(best.name)} มีค่าไฟประมาณ ${formatNumber(best.grandTotal)} บาท/เดือน และยังเป็นทางเลือกที่เหมาะที่สุดจากข้อมูลชุดนี้`;
+}
+
+function formatDecisionTitle(comparison: ScenarioComparisonResult) {
+  switch (comparison.bestScenario.kind) {
+    case "CURRENT_TOU":
+      return "ควรพิจารณาเปลี่ยนเป็นมิเตอร์ TOU";
+    case "LOAD_SHIFT_TO_OFF_PEAK":
+    case "CUSTOM_LOAD_SHIFT":
+      return "TOU จะคุ้มขึ้นเมื่อย้ายการใช้ไฟไป Off-Peak";
+    default:
+      return "ตอนนี้ยังควรใช้มิเตอร์ปกติ";
+  }
 }
 
 function formatDecisionNextAction(comparison: ScenarioComparisonResult) {

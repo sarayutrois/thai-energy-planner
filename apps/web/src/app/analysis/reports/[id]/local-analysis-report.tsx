@@ -111,7 +111,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
             </Badge>
             {report.sourceProfile?.isSample ? (
               <Badge className="ml-2 mt-3" variant="warning">
-                Sample data
+                ข้อมูลตัวอย่าง
               </Badge>
             ) : null}
           </div>
@@ -179,9 +179,9 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           </Card>
         ) : null}
 
-        <Card className="min-w-0 max-w-full overflow-hidden">
+        <Card className="min-w-0 max-w-full overflow-hidden border-2 border-primary/35 bg-primary/[0.04]">
           <CardHeader>
-            <CardTitle>Executive summary</CardTitle>
+            <CardTitle>คำตอบสำคัญจากการวิเคราะห์</CardTitle>
           </CardHeader>
           <CardContent className="min-w-0 max-w-full">
             <p className="leading-7 text-muted-foreground">{report.summary}</p>
@@ -198,6 +198,35 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           ))}
         </div>
 
+        {report.recommendations.length > 0 ? (
+          <Card className="border-success/35 bg-success/[0.04]">
+            <CardHeader>
+              <CardTitle>คำแนะนำที่ควรทำต่อ</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3">
+              {report.recommendations.map((recommendation, index) => (
+                <div
+                  key={`${recommendation.title}-${recommendation.nextAction ?? ""}`}
+                  className="rounded-md border border-border bg-card p-4"
+                >
+                  <Badge variant={index === 0 ? "success" : "outline"}>
+                    {index === 0 ? "ควรพิจารณาก่อน" : "คำแนะนำเพิ่มเติม"}
+                  </Badge>
+                  <p className="mt-3 font-semibold">{recommendation.title}</p>
+                  <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                    {recommendation.description}
+                  </p>
+                  {recommendation.nextAction ? (
+                    <p className="mt-2 text-sm font-medium">
+                      ขั้นต่อไป: {recommendation.nextAction}
+                    </p>
+                  ) : null}
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        ) : null}
+
         <div className="grid gap-5 lg:grid-cols-[0.9fr_1.1fr]">
           <Card>
             <CardHeader>
@@ -206,13 +235,13 @@ export function LocalAnalysisReport({ id }: { id: string }) {
                   aria-hidden="true"
                   className="h-5 w-5 text-primary"
                 />
-                Saved bill source
+                ข้อมูลบิลที่ใช้ในรายงาน
               </CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               <InfoRow
                 label="ประเภทผู้ใช้"
-                value={report.sourceBill.audience}
+                value={formatAudience(report.sourceBill.audience)}
               />
               <InfoRow
                 label="จำนวนเดือน"
@@ -235,7 +264,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
 
           <Card>
             <CardHeader>
-              <CardTitle>Assumptions</CardTitle>
+              <CardTitle>สมมติฐานที่ใช้</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               {report.assumptions.map((item) => (
@@ -252,24 +281,24 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         {report.sourceProfile ? (
           <Card className="border-primary/40 bg-primary/5">
             <CardHeader>
-              <CardTitle>Canonical load profile source</CardTitle>
+              <CardTitle>ข้อมูลการใช้ไฟที่ใช้คำนวณ</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
               <InfoRow label="Load Profile" value={report.sourceProfile.name} />
               <InfoRow
-                label="Source / quality"
-                value={`${report.sourceProfile.sourceKind} / ${report.sourceProfile.qualityLevel}`}
+                label="แหล่งข้อมูล / คุณภาพ"
+                value={`${formatProfileSource(report.sourceProfile.sourceKind)} / ${formatQuality(report.sourceProfile.qualityLevel)}`}
               />
               <InfoRow
-                label="Intervals"
+                label="จำนวนช่วงข้อมูล"
                 value={report.sourceProfile.intervalCount.toLocaleString(
                   "th-TH",
                 )}
               />
               {report.billCalibration ? (
                 <InfoRow
-                  label="Bill calibration"
-                  value={`${report.billCalibration.comparedMonthCount} months · ${formatNumber(report.billCalibration.varianceKwh)} kWh`}
+                  label="การเทียบกับบิล"
+                  value={`${report.billCalibration.comparedMonthCount} เดือน · ส่วนต่าง ${formatNumber(report.billCalibration.varianceKwh)} kWh`}
                 />
               ) : null}
             </CardContent>
@@ -279,7 +308,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         {report.sections?.map((section) => (
           <Card key={section.title}>
             <CardHeader>
-              <CardTitle>{section.title}</CardTitle>
+              <CardTitle>{formatSectionTitle(section.title)}</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               {section.paragraphs?.map((paragraph) => (
@@ -305,7 +334,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BarChart3 aria-hidden="true" className="h-5 w-5 text-primary" />
-              Results
+              ตารางผลการคำนวณ
             </CardTitle>
           </CardHeader>
           <CardContent className="min-w-0 max-w-full">
@@ -316,7 +345,7 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         {report.references?.length ? (
           <Card>
             <CardHeader>
-              <CardTitle>Assumptions & References</CardTitle>
+              <CardTitle>แหล่งอ้างอิงและเงื่อนไข</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               {report.references.map((item) => (
@@ -330,35 +359,10 @@ export function LocalAnalysisReport({ id }: { id: string }) {
           </Card>
         ) : null}
 
-        <Card>
-          <CardHeader>
-            <CardTitle>คำแนะนำ</CardTitle>
-          </CardHeader>
-          <CardContent className="grid gap-3">
-            {report.recommendations.map((recommendation) => (
-              <div
-                key={`${recommendation.title}-${recommendation.nextAction ?? ""}`}
-                className="rounded-md border border-border p-4"
-              >
-                <Badge variant="outline">คำแนะนำ</Badge>
-                <p className="mt-3 font-semibold">{recommendation.title}</p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {recommendation.description}
-                </p>
-                {recommendation.nextAction ? (
-                  <p className="mt-2 text-sm font-medium">
-                    {recommendation.nextAction}
-                  </p>
-                ) : null}
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-
         {report.limitations?.length ? (
           <Card>
             <CardHeader>
-              <CardTitle>Limitations & Next Steps</CardTitle>
+              <CardTitle>ข้อจำกัดและขั้นตอนถัดไป</CardTitle>
             </CardHeader>
             <CardContent className="grid gap-3">
               {report.limitations.map((item) => (
@@ -382,8 +386,8 @@ export function LocalAnalysisReport({ id }: { id: string }) {
         ) : null}
 
         <p className="border-t border-border pt-4 text-center text-xs leading-6 text-muted-foreground">
-          รายงานนี้เป็นรายงานที่บันทึกไว้ในเซสชันนี้ โดยสร้างจาก saved bills,
-          tariff snapshot และข้อมูลสำหรับประเมินเบื้องต้น
+          รายงานนี้บันทึกไว้ในอุปกรณ์นี้ โดยสร้างจากข้อมูลบิล อัตราค่าไฟ ณ
+          วันที่คำนวณ และข้อมูลสำหรับประเมินเบื้องต้น
           ใช้เพื่อสื่อสารเบื้องต้นก่อนตรวจข้อมูลหน้างานและรับใบเสนอราคาทางการ
         </p>
       </section>
@@ -401,7 +405,7 @@ function ResultTable({
   if (headers.length === 0) {
     return (
       <p className="text-sm text-muted-foreground">
-        ยังไม่มี result rows สำหรับรายงานนี้
+        ยังไม่มีตารางผลการคำนวณสำหรับรายงานนี้
       </p>
     );
   }
@@ -413,7 +417,7 @@ function ResultTable({
           <tr>
             {headers.map((header) => (
               <th key={header} className="px-3 py-2 font-medium">
-                {header}
+                {formatResultHeader(header)}
               </th>
             ))}
           </tr>
@@ -423,7 +427,7 @@ function ResultTable({
             <tr key={index} className="border-t border-border">
               {headers.map((header) => (
                 <td key={header} className="px-3 py-2">
-                  {row[header] ?? "-"}
+                  {formatResultValue(row[header])}
                 </td>
               ))}
             </tr>
@@ -456,4 +460,69 @@ function formatNumber(value: number) {
   return new Intl.NumberFormat("th-TH", { maximumFractionDigits: 2 }).format(
     value,
   );
+}
+
+const resultHeaderLabels: Record<string, string> = {
+  plan: "ทางเลือก",
+  monthlyBillThb: "ค่าไฟ (บาท/เดือน)",
+  annualBillThb: "ค่าไฟ (บาท/ปี)",
+  annualSavingsThb: "ประหยัด (บาท/ปี)",
+  peakKwh: "ใช้ไฟ Peak (kWh)",
+  offPeakKwh: "ใช้ไฟ Off-Peak (kWh)",
+  monthlyBillBeforeThb: "ค่าไฟก่อนติดตั้ง (บาท/เดือน)",
+  monthlyBillAfterThb: "ค่าไฟหลังติดตั้ง (บาท/เดือน)",
+  annualBenefitThb: "ผลประโยชน์รวม (บาท/ปี)",
+  systemSizeKwp: "ขนาดระบบ (kWp)",
+  panelCount: "จำนวนแผง",
+  inverterSizeKw: "ขนาด Inverter (kW)",
+  budgetLowThb: "งบต่ำสุด (บาท)",
+  budgetHighThb: "งบสูงสุด (บาท)",
+  paybackYears: "คืนทุน (ปี)",
+};
+
+function formatResultHeader(header: string) {
+  return (
+    resultHeaderLabels[header] ??
+    header
+      .replace(/([a-z])([A-Z])/g, "$1 $2")
+      .replace(/\bThb\b/gi, "บาท")
+      .replace(/\bKwh\b/gi, "kWh")
+  );
+}
+
+function formatResultValue(value: unknown) {
+  if (value === null || value === undefined || value === "") return "-";
+  if (typeof value === "number") return formatNumber(value);
+  if (typeof value === "boolean") return value ? "ใช่" : "ไม่ใช่";
+  return String(value);
+}
+
+function formatAudience(value: string) {
+  if (value === "home") return "บ้านพักอาศัย";
+  if (value === "shop") return "ร้านค้า";
+  if (value === "business") return "ธุรกิจขนาดเล็ก";
+  return value;
+}
+
+function formatProfileSource(value: string) {
+  if (value === "meter") return "ข้อมูลจากมิเตอร์";
+  if (value === "appliance") return "รายการเครื่องใช้ไฟฟ้า";
+  if (value === "csv") return "ไฟล์ที่นำเข้า";
+  if (value === "demo") return "ข้อมูลตัวอย่าง";
+  return value;
+}
+
+function formatQuality(value: string) {
+  if (value === "measured" || value === "high") return "ข้อมูลวัดจริง / สูง";
+  if (value === "modeled" || value === "medium") return "ข้อมูลจำลอง / ปานกลาง";
+  if (value === "estimated" || value === "low") return "ข้อมูลประมาณการ / ต่ำ";
+  return value;
+}
+
+function formatSectionTitle(value: string) {
+  if (value === "Executive summary") return "สรุปคำตอบ";
+  if (value === "Assumptions") return "สมมติฐาน";
+  if (value === "Results") return "ผลการคำนวณ";
+  if (value === "Limitations") return "ข้อจำกัด";
+  return value;
 }

@@ -93,7 +93,10 @@ export function LocalBillResultContext({
   }
 
   return (
-    <Card className="mt-6 border-primary/40 bg-primary/5">
+    <Card
+      className="mt-6 scroll-mt-24 border-primary/40 bg-primary/5"
+      id="save-analysis-report"
+    >
       <CardHeader>
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>

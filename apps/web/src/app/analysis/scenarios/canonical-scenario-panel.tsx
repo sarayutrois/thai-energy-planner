@@ -199,7 +199,7 @@ export function CanonicalScenarioPanel() {
               }
             >
               {isSampleLocalLoadProfile(activeSnapshot)
-                ? "Sample data"
+                ? "ข้อมูลตัวอย่าง"
                 : "ข้อมูลพร้อมคำนวณ"}
             </Badge>
           </div>
@@ -333,7 +333,7 @@ function buildScenarioReportDraft(
     module: "scenario",
     moduleLabel: "Normal / TOU",
     title: "รายงานเปรียบเทียบค่าไฟ Normal / TOU",
-    summary: `ผลเปรียบเทียบจาก ${profile.name} พบว่าแผนที่เหมาะสมที่สุดในข้อมูลชุดนี้คือ ${best.name}`,
+    summary: `${formatScenarioReportDecision(best.kind)} จากข้อมูล ${profile.name} โดยคาดว่าจะจ่ายค่าไฟประมาณ ${formatNumber(best.grandTotal)} บาท/เดือน${best.savingsMonthly > 0 ? ` และประหยัดกว่ามิเตอร์ปกติประมาณ ${formatNumber(best.savingsMonthly)} บาท/เดือน` : ""}`,
     metrics: [
       {
         label: "ค่าไฟฐานต่อเดือน",
@@ -357,7 +357,7 @@ function buildScenarioReportDraft(
       { label: "อัตราค่าไฟ", value: best.calculationTrace.tariffVersionLabel },
     ],
     resultRows: [result.baseline, ...result.scenarios].map((row) => ({
-      plan: row.name,
+      plan: formatScenarioReportPlan(row.name),
       monthlyBillThb: roundReportNumber(row.monthlyEstimatedBill),
       annualBillThb: roundReportNumber(row.annualEstimatedBill),
       annualSavingsThb: roundReportNumber(row.savingsAnnual),
@@ -393,4 +393,19 @@ function formatNumber(value: number) {
 
 function roundReportNumber(value: number) {
   return Number(value.toFixed(2));
+}
+
+function formatScenarioReportDecision(kind: string) {
+  if (kind === "CURRENT_TOU") return "ควรพิจารณาเปลี่ยนเป็นมิเตอร์ TOU";
+  if (kind === "LOAD_SHIFT_TO_OFF_PEAK" || kind === "CUSTOM_LOAD_SHIFT")
+    return "TOU จะคุ้มขึ้นเมื่อย้ายการใช้ไฟไปช่วง Off-Peak";
+  return "ตอนนี้ยังควรใช้มิเตอร์ปกติ";
+}
+
+function formatScenarioReportPlan(value: string) {
+  if (value.includes("Load Shift")) return "ย้ายการใช้ไฟไปช่วง Off-Peak";
+  if (value.includes("Switch to TOU")) return "เปลี่ยนเป็นมิเตอร์ TOU";
+  if (value.includes("Current TOU")) return "มิเตอร์ TOU ตามการใช้ไฟปัจจุบัน";
+  if (value.includes("Current Normal")) return "มิเตอร์ปกติตามการใช้ไฟปัจจุบัน";
+  return value;
 }

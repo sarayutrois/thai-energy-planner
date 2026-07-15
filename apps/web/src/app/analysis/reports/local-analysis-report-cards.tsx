@@ -73,7 +73,7 @@ export function LocalAnalysisReportCards() {
                 </Badge>
                 <Badge variant="outline">{report.moduleLabel}</Badge>
                 {report.sourceProfile?.isSample ? (
-                  <Badge variant="warning">Sample data</Badge>
+                  <Badge variant="warning">ข้อมูลตัวอย่าง</Badge>
                 ) : null}
               </div>
             </div>
@@ -96,12 +96,13 @@ export function LocalAnalysisReportCards() {
             {report.sourceProfile ? (
               <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
                 <p className="font-semibold">
-                  Load Profile: {report.sourceProfile.name}
+                  ข้อมูลการใช้ไฟ: {report.sourceProfile.name}
                 </p>
                 <p className="mt-1 text-muted-foreground">
-                  {report.sourceProfile.sourceKind} ·{" "}
+                  {formatProfileSource(report.sourceProfile.sourceKind)} ·{" "}
                   {report.sourceProfile.intervalCount.toLocaleString("th-TH")}{" "}
-                  ช่วงข้อมูล · {report.sourceProfile.qualityLevel}
+                  ช่วงข้อมูล ·{" "}
+                  {formatQuality(report.sourceProfile.qualityLevel)}
                 </p>
                 {report.billCalibration ? (
                   <p className="mt-2 text-muted-foreground">
@@ -149,4 +150,19 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="mt-2 text-sm font-semibold text-foreground">{value}</p>
     </div>
   );
+}
+
+function formatProfileSource(value: string) {
+  if (value === "meter") return "ข้อมูลจากมิเตอร์";
+  if (value === "appliance") return "รายการเครื่องใช้ไฟฟ้า";
+  if (value === "csv") return "ไฟล์ที่นำเข้า";
+  if (value === "demo") return "ข้อมูลตัวอย่าง";
+  return value;
+}
+
+function formatQuality(value: string) {
+  if (value === "measured" || value === "high") return "คุณภาพสูง";
+  if (value === "modeled" || value === "medium") return "คุณภาพปานกลาง";
+  if (value === "estimated" || value === "low") return "คุณภาพต่ำ";
+  return value;
 }
