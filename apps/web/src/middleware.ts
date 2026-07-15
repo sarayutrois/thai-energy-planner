@@ -13,9 +13,7 @@ export function middleware(request: NextRequest) {
   }
   const experimentalModule = experimentalModuleForPath(pathname);
   const alwaysUnavailable =
-    experimentalModule === "battery" ||
-    experimentalModule === "ev" ||
-    experimentalModule === "ecosystem";
+    experimentalModule === "ev" || experimentalModule === "ecosystem";
   if (
     experimentalModule &&
     (alwaysUnavailable ||
@@ -63,7 +61,6 @@ export const config = {
 };
 
 function experimentalModuleForPath(pathname: string) {
-  if (pathname.startsWith("/analysis/battery")) return "battery";
   if (pathname.startsWith("/analysis/ev")) return "ev";
   if (pathname.startsWith("/analysis/ecosystem")) return "ecosystem";
   return null;

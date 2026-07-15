@@ -17,6 +17,7 @@ const analysisStorageKeys = [
   "thai-energy-planner.analysis-reports.v1",
   "thai-energy-planner.solar-assumptions.v1",
   "thai-energy-planner.solar-analysis.v1",
+  "thai-energy-planner.battery-mvp.v1",
 ];
 
 test.beforeEach(async ({ page }) => {
@@ -450,11 +451,19 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   ).toBeVisible();
   await expect(page.getByText("คำตอบ Solar สำหรับคุณ")).toBeVisible();
   await expect(page.getByText("ระบบที่แนะนำ", { exact: true })).toBeVisible();
-  await expect(page.getByText("จำนวนแผงโดยประมาณ", { exact: true })).toBeVisible();
-  await expect(page.getByText("Inverter โดยประมาณ", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("จำนวนแผงโดยประมาณ", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("Inverter โดยประมาณ", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("แบตเตอรี่", { exact: true })).toBeVisible();
-  await expect(page.getByText("งบติดตั้งเบื้องต้น", { exact: true })).toBeVisible();
-  await expect(page.getByText("ข้อจำกัดของข้อมูล", { exact: true })).toBeVisible();
+  await expect(
+    page.getByText("งบติดตั้งเบื้องต้น", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("ข้อจำกัดของข้อมูล", { exact: true }),
+  ).toBeVisible();
   await expect(page.getByText("ประหยัดรายปี", { exact: true })).toHaveCount(0);
   await expect(
     page.getByText("คำนวณสำเร็จ แต่บันทึกผลในอุปกรณ์นี้ไม่ได้"),
@@ -470,6 +479,27 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   ).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
+  await page.goto("/analysis/battery");
+  await expect(
+    page.getByRole("heading", {
+      name: "ประเมินแบตเตอรี่จากรูปแบบการใช้ไฟของคุณ",
+    }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: /สำรองไฟ/ }).click();
+  await page.getByRole("button", { name: "เริ่มประเมิน Battery" }).click();
+  const batteryAnswer = page.getByRole("region", {
+    name: "คำตอบหลักจากผลการวิเคราะห์",
+  });
+  await expect(batteryAnswer).toBeVisible();
+  await expect(batteryAnswer.getByText("รูปแบบระบบ")).toBeVisible();
+  await expect(batteryAnswer.getByText("ขนาด Battery / กำลัง")).toBeVisible();
+  await expect(batteryAnswer.getByText("ระยะสำรองโดยประมาณ")).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ระบบที่กำลังประเมิน" }),
+  ).toBeVisible();
+  await expect(page.getByRole("main")).not.toContainText("NaN");
+  await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
+
   await page.goto("/analysis/reports");
   await expect(
     page.getByRole("heading", { name: "สถานะรายงานปัจจุบัน" }),
@@ -477,6 +507,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(page.getByText("Normal / TOU", { exact: true })).toBeVisible();
   await expect(
     page.getByRole("main").getByText("Solar", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("main").getByText("Battery", { exact: true }),
   ).toBeVisible();
   const openReportLink = page.getByRole("link", {
     name: "เปิดรายงานเพื่อส่งออก",
@@ -559,7 +592,7 @@ test("the guided start and data hub share one production navigation", async ({
     await expect(
       header.locator('nav[aria-label="เมนูหลัก"] > div'),
     ).toHaveCount(5);
-    await expect(header.locator('a[href="/analysis/battery"]')).toHaveCount(0);
+    await expect(header.locator('a[href="/analysis/battery"]')).toHaveCount(1);
     await expect(header.locator('a[href="/analysis/ev"]')).toHaveCount(0);
     await expect(header.locator('a[href="/analysis/ecosystem"]')).toHaveCount(
       0,
@@ -722,13 +755,11 @@ test("each analysis goal prioritizes a distinct recommendation and destination",
   }
 });
 
-test("experimental modules stay behind the unavailable boundary", async ({
+test("remaining experimental modules stay behind the unavailable boundary", async ({
   page,
   request,
 }) => {
   for (const path of [
-    "/analysis/battery",
-    "/analysis/battery/config",
     "/analysis/ev",
     "/analysis/ev/results",
     "/analysis/ecosystem",
@@ -737,7 +768,7 @@ test("experimental modules stay behind the unavailable boundary", async ({
     await expect(page.locator("main")).toContainText("กำลังปรับปรุง");
     await expect(
       page.locator('header a[href="/analysis/battery"]'),
-    ).toHaveCount(0);
+    ).toHaveCount(1);
     await expect(page.locator('header a[href="/analysis/ev"]')).toHaveCount(0);
     await expect(
       page.locator('header a[href="/analysis/ecosystem"]'),

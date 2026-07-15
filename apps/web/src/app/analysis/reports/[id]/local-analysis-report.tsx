@@ -463,6 +463,7 @@ function formatNumber(value: number) {
 }
 
 const resultHeaderLabels: Record<string, string> = {
+  case: "สถานะ",
   plan: "ทางเลือก",
   monthlyBillThb: "ค่าไฟ (บาท/เดือน)",
   annualBillThb: "ค่าไฟ (บาท/ปี)",
@@ -478,6 +479,8 @@ const resultHeaderLabels: Record<string, string> = {
   budgetLowThb: "งบต่ำสุด (บาท)",
   budgetHighThb: "งบสูงสุด (บาท)",
   paybackYears: "คืนทุน (ปี)",
+  gridImportKwh: "ซื้อไฟจากกริด (kWh)",
+  peakDemandKw: "กำลังไฟสูงสุด (kW)",
 };
 
 function formatResultHeader(header: string) {

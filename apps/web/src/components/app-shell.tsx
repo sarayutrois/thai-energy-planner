@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
+  BatteryCharging,
   Calculator,
   ChevronRight,
   FileText,
@@ -47,6 +48,7 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
     items: [
       { label: "ค่าไฟและ TOU", href: "/analysis/scenarios", icon: Calculator },
       { label: "Solar", href: "/analysis/solar", icon: SunMedium },
+      { label: "Battery", href: "/analysis/battery", icon: BatteryCharging },
     ],
   },
   {

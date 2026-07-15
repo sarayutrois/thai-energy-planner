@@ -6,6 +6,7 @@ import {
   AlertTriangle,
   ArrowRight,
   BarChart3,
+  BatteryCharging,
   CalendarDays,
   Database,
   ReceiptText,
@@ -499,6 +500,12 @@ export function LocalBillSummary() {
               icon={SunMedium}
               label="ลอง Solar"
             />
+            <NextStepLink
+              description="ประเมินขนาด Battery งบ ระยะสำรอง และความคุ้มค่าจาก Load Profile"
+              href={`/analysis/battery${savedBillQuery}`}
+              icon={BatteryCharging}
+              label="ลอง Battery"
+            />
           </div>
         </section>
 
@@ -624,7 +631,7 @@ function NextStepLink({
   label: string;
 }) {
   if (
-    (href.startsWith("/analysis/battery") || href.startsWith("/analysis/ev")) &&
+    href.startsWith("/analysis/ev") &&
     process.env.NEXT_PUBLIC_ENABLE_EXPERIMENTAL_MODULES !== "true"
   ) {
     return null;

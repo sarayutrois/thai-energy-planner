@@ -2,6 +2,7 @@
 
 import {
   ArrowRight,
+  BatteryCharging,
   Building2,
   FileSpreadsheet,
   FileUp,
@@ -124,6 +125,12 @@ const nextJourneys: Array<{
     description: "ประเมินขนาดระบบ เงินลงทุน คืนทุน และผลประหยัดต่อปี",
     href: "/analysis/solar",
     icon: SunMedium,
+  },
+  {
+    title: "ลอง Battery",
+    description: "ดูว่าควรติดหรือไม่ ขนาด งบ ระยะสำรอง และความคุ้มค่า",
+    href: "/analysis/battery",
+    icon: BatteryCharging,
   },
 ];
 
