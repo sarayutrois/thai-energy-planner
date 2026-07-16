@@ -482,12 +482,27 @@ export function LocalBillSummary() {
 
         <section className="rounded-md border border-border bg-muted/25 p-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-sm font-semibold">ต่อยอดจากข้อมูลบิลนี้</h2>
+            <h2 className="text-sm font-semibold">ขั้นต่อไปที่แนะนำ</h2>
             <p className="text-sm leading-6 text-muted-foreground">
-              เลือกงานถัดไปได้เลย ทุกหน้าด้านล่างจะอ่านข้อมูลบิลที่บันทึกไว้ใน
-              browser นี้เพื่อแนะนำค่าเริ่มต้นให้
+              {profile
+                ? "เริ่มจากเทียบค่าไฟ Normal / TOU แล้วระบบจะพาไปประเมิน Solar ต่อ"
+                : "สร้าง Load Profile ก่อน เพื่อให้ระบบรู้ว่าคุณใช้ไฟช่วงเวลาใดและคำนวณ TOU กับ Solar ได้"}
             </p>
           </div>
+          <Link
+            className="mt-4 inline-flex min-h-11 items-center justify-center gap-2 rounded-lg bg-primary px-5 py-2 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/92"
+            href={
+              profile
+                ? `/analysis/scenarios${savedBillQuery}`
+                : "/analysis/load-data/appliances"
+            }
+          >
+            {profile ? "เทียบค่าไฟ Normal / TOU" : "สร้าง Load Profile"}
+            <ArrowRight aria-hidden="true" className="h-4 w-4" />
+          </Link>
+          <p className="mt-5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            ทางเลือกเสริม
+          </p>
           <div className="mt-4 grid gap-3 md:grid-cols-2 xl:grid-cols-4">
             <NextStepLink
               description="เทียบ Normal / TOU และลองย้ายโหลดจากช่วงที่เหมาะกับประเภทผู้ใช้"

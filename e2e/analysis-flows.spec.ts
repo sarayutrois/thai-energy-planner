@@ -436,6 +436,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(decisionAnswer).not.toContainText(
     "Interval data is shorter than 30 days",
   );
+  await expect(
+    page.getByRole("link", { name: "วิเคราะห์ Solar ต่อ" }),
+  ).toHaveAttribute("href", "/analysis/solar");
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
   await page.goto("/analysis/solar");
@@ -488,6 +491,12 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(page.getByRole("main")).not.toContainText("NaN");
   await expect(page.getByRole("button", { name: "คำนวณใหม่" })).toBeVisible();
   await expect(
+    page.getByRole("link", { name: "รวมเป็นแผนพลังงาน" }),
+  ).toHaveAttribute("href", "/analysis/ecosystem");
+  await expect(
+    page.getByRole("link", { name: "ประเมิน Battery (ทางเลือก)" }),
+  ).toHaveAttribute("href", "/analysis/battery");
+  await expect(
     page.getByRole("button", { name: "บันทึกเป็นรายงาน" }),
   ).toBeVisible({ timeout: 15_000 });
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
@@ -510,6 +519,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("heading", { name: "ระบบที่กำลังประเมิน" }),
   ).toBeVisible();
+  await expect(
+    batteryAnswer.getByRole("link", { name: "รวมเป็นแผนพลังงาน" }),
+  ).toHaveAttribute("href", "/analysis/ecosystem");
   await expect(page.getByRole("main")).not.toContainText("NaN");
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
 
@@ -540,6 +552,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
     }),
   ).toBeVisible();
   await expect(page.getByText("ควรมี Battery หรือไม่")).toBeVisible();
+  await expect(
+    evAnswer.getByRole("link", { name: "รวมเป็นแผนพลังงาน" }),
+  ).toHaveAttribute("href", "/analysis/ecosystem");
   await expect(page.getByRole("main")).not.toContainText("NaN");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
@@ -560,6 +575,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("heading", { name: "Roadmap ที่ควรทำตามลำดับ" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("link", { name: "บันทึกแผนเป็นรายงาน" }),
+  ).toHaveAttribute("href", "#save-analysis-report");
   await expect(page.getByRole("main")).not.toContainText("NaN");
   await page.setViewportSize({ width: 390, height: 844 });
   expect(

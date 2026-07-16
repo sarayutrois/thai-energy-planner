@@ -109,6 +109,33 @@ export function EcosystemRuntimePanel() {
   }
 
   const { plan } = state;
+  const nextRequiredModule = state.modules.find(
+    (item) =>
+      (item.key === "scenario" || item.key === "solar") &&
+      item.status !== "ready",
+  );
+  const primaryNextAction = nextRequiredModule
+    ? {
+        href: nextRequiredModule.href,
+        label:
+          nextRequiredModule.status === "stale"
+            ? `อัปเดตผล ${nextRequiredModule.label}`
+            : `วิเคราะห์ ${nextRequiredModule.label}`,
+        description: "ทำขั้นหลักนี้ให้ครบเพื่อให้คำแนะนำและตัวเลขรวมแม่นยำขึ้น",
+      }
+    : state.hasBills
+      ? {
+          href: "#save-analysis-report",
+          label: "บันทึกแผนเป็นรายงาน",
+          description:
+            "ผลหลักพร้อมแล้ว ส่วน Battery และ EV เป็นทางเลือกเสริมที่เพิ่มภายหลังได้",
+        }
+      : {
+          href: "/analysis/load-data/bills",
+          label: "เพิ่มบิลเพื่อบันทึกรายงาน",
+          description:
+            "ผลหลักพร้อมแล้ว เหลือเพิ่มค่าไฟจริงเพื่อใส่บริบททางการเงินในรายงาน",
+        };
   return (
     <div className="mt-6 grid min-w-0 gap-6">
       <Card className="overflow-hidden border-2 border-primary/35 bg-gradient-to-br from-primary/[0.09] via-card to-information/[0.07]">
@@ -151,6 +178,23 @@ export function EcosystemRuntimePanel() {
             label="คืนทุน Solar/แผนฐาน"
             value={formatPayback(plan.blendedSimplePaybackYears)}
           />
+          <div className="col-span-full mt-2 flex flex-col gap-3 rounded-xl border border-primary/25 bg-background/80 p-4 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+                ขั้นต่อไปที่แนะนำ
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                {primaryNextAction.description}
+              </p>
+            </div>
+            <Link
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
+              href={primaryNextAction.href}
+            >
+              {primaryNextAction.label}
+              <ArrowRight aria-hidden="true" className="h-4 w-4" />
+            </Link>
+          </div>
         </CardContent>
       </Card>
 

@@ -627,18 +627,30 @@ function RuntimeMetrics({
         <div className="mt-4 flex flex-wrap gap-2">
           <Link
             className="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/92"
-            href={
-              hasBills ? "#save-analysis-report" : "/analysis/load-data/bills"
-            }
+            href="/analysis/ecosystem"
           >
-            {hasBills ? "บันทึกผลเป็นรายงาน" : "เพิ่มบิลเพื่อบันทึกรายงาน"}
+            รวมเป็นแผนพลังงาน
             <ArrowRight aria-hidden="true" className="h-4 w-4" />
           </Link>
           <Link
             className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background/80 px-4 text-sm font-semibold transition hover:bg-muted"
-            href="/analysis/reports"
+            href="/analysis/battery"
           >
-            ดูรายงานทั้งหมด
+            ประเมิน Battery (ทางเลือก)
+          </Link>
+          <Link
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background/80 px-4 text-sm font-semibold transition hover:bg-muted"
+            href="/analysis/ev"
+          >
+            วางแผน EV (ทางเลือก)
+          </Link>
+          <Link
+            className="inline-flex h-10 items-center justify-center rounded-lg border border-border bg-background/80 px-4 text-sm font-semibold transition hover:bg-muted"
+            href={
+              hasBills ? "#save-analysis-report" : "/analysis/load-data/bills"
+            }
+          >
+            {hasBills ? "บันทึกผล Solar" : "เพิ่มบิลเพื่อทำรายงาน"}
           </Link>
         </div>
       </section>

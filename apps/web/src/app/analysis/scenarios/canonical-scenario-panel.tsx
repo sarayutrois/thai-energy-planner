@@ -313,7 +313,35 @@ export function CanonicalScenarioPanel() {
         <p className="text-sm text-destructive">{result.error}</p>
       ) : null}
       {result && !("error" in result) ? (
-        <ScenarioView comparison={result} />
+        <>
+          <ScenarioView comparison={result} />
+          <section className="rounded-xl border border-primary/30 bg-primary/[0.06] p-4">
+            <p className="text-xs font-semibold uppercase tracking-wide text-primary">
+              ขั้นต่อไปที่แนะนำ
+            </p>
+            <h2 className="mt-1 text-lg font-semibold">
+              ใช้ผลค่าไฟนี้ประเมิน Solar ต่อ
+            </h2>
+            <p className="mt-1 text-sm leading-6 text-muted-foreground">
+              ระบบจะนำ Load Profile และรูปแบบมิเตอร์ไปแนะนำประเภทระบบ ขนาด งบ
+              และระยะคืนทุน
+            </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <a
+                className="inline-flex h-10 items-center justify-center rounded-md bg-primary px-4 text-sm font-semibold text-primary-foreground"
+                href="/analysis/solar"
+              >
+                วิเคราะห์ Solar ต่อ
+              </a>
+              <a
+                className="inline-flex h-10 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium"
+                href="/analysis/ecosystem"
+              >
+                ดูแผนพลังงานเท่าที่มี
+              </a>
+            </div>
+          </section>
+        </>
       ) : null}
       <LocalBillResultContext
         enabled={Boolean(reportDraft && hasBillContext)}

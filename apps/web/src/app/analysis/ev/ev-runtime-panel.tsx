@@ -402,19 +402,19 @@ export function EvRuntimePanel() {
               <>
                 <Link
                   className="inline-flex h-10 items-center justify-center rounded-lg bg-card px-4 text-sm font-semibold text-primary shadow-sm"
+                  href="/analysis/ecosystem"
+                >
+                  รวมเป็นแผนพลังงาน
+                </Link>
+                <Link
+                  className="inline-flex h-10 items-center justify-center rounded-lg border border-primary-foreground/35 px-4 text-sm font-semibold text-primary-foreground"
                   href={
                     hasBills
                       ? "#save-analysis-report"
                       : "/analysis/load-data/bills"
                   }
                 >
-                  {hasBills ? "บันทึกเป็นรายงาน" : "เพิ่มบิลเพื่อทำรายงาน"}
-                </Link>
-                <Link
-                  className="inline-flex h-10 items-center justify-center rounded-lg border border-primary-foreground/35 px-4 text-sm font-semibold text-primary-foreground"
-                  href="/analysis/reports"
-                >
-                  ดูรายงาน
+                  {hasBills ? "บันทึกผล EV" : "เพิ่มบิลเพื่อทำรายงาน"}
                 </Link>
               </>
             }
