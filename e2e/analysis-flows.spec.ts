@@ -892,6 +892,11 @@ test("project workspaces require a signed-in owner", async ({
   );
   expect([401, 503]).toContain(projectReportsResponse.status());
 
+  const projectLoadProfilesResponse = await request.get(
+    "/api/load-profiles?projectId=project-owner-check",
+  );
+  expect([401, 503]).toContain(projectLoadProfilesResponse.status());
+
   const saveProjectBillsResponse = await request.put(
     "/api/projects/project-owner-check/bills",
     {
@@ -998,6 +1003,131 @@ test("project report history can be restored to another device", async ({
       }, analysisReportsKey),
     )
     .toBe("generated-report-1");
+});
+
+test("project Load Profile can be restored to another device", async ({
+  page,
+}) => {
+  await page.route("**/api/load-profiles?projectId=project-test", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        profiles: [
+          {
+            id: "profile-test",
+            name: "meter-july.csv",
+            source: "CSV",
+            intervalMinutes: 60,
+            qualityScore: 100,
+            updatedAt: "2026-07-17T00:00:00.000Z",
+            intervalCount: 2,
+          },
+        ],
+      }),
+    }),
+  );
+  await page.route("**/api/load-profiles/profile-test", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        profile: {
+          id: "profile-test",
+          canonicalProfile: {
+            schemaVersion: "1",
+            id: "profile-test",
+            name: "meter-july.csv",
+            source: {
+              kind: "csv",
+              reference: "meter-july.csv",
+              generatedAt: "2026-07-17T00:00:00.000Z",
+            },
+            timezone: "Asia/Bangkok",
+            intervalMinutes: 60,
+            period: {
+              startInclusive: "2026-07-01T00:00:00.000Z",
+              endExclusive: "2026-07-01T02:00:00.000Z",
+            },
+            intervals: [
+              {
+                timestamp: "2026-07-01T00:00:00.000Z",
+                energyKwh: 1.25,
+                averagePowerKw: 1.25,
+                qualityFlags: [],
+              },
+              {
+                timestamp: "2026-07-01T01:00:00.000Z",
+                energyKwh: 1.5,
+                averagePowerKw: 1.5,
+                qualityFlags: [],
+              },
+            ],
+            quality: {
+              level: "measured",
+              completeness: 1,
+              missingIntervalCount: 0,
+              duplicateIntervalCount: 0,
+              warnings: [],
+            },
+            assumptions: {},
+            calculationVersion: "e2e-test",
+          },
+        },
+      }),
+    }),
+  );
+  await page.evaluate(
+    ({ key, project }) =>
+      window.localStorage.setItem(key, JSON.stringify(project)),
+    {
+      key: activeProjectKey,
+      project: {
+        id: "project-test",
+        name: "บ้านทดสอบ",
+        updatedAt: "2026-07-17T00:00:00.000Z",
+      },
+    },
+  );
+
+  await page.goto("/analysis/load-data/dashboard");
+  await expect(
+    page.getByRole("heading", { name: "Load Profile ของโปรเจกต์" }),
+  ).toBeVisible();
+  await expect(page.getByRole("combobox")).toHaveValue("profile-test");
+  await page.getByRole("button", { name: "นำมาใช้ในอุปกรณ์นี้" }).click();
+  await expect(
+    page.getByText(
+      "นำ Load Profile มาใช้แล้ว ผลวิเคราะห์และรายงานจะอ้างอิงข้อมูลชุดนี้",
+    ),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate(() => {
+        const stored = JSON.parse(
+          window.localStorage.getItem("thai-energy-planner.load-profile.v1") ??
+            "null",
+        ) as { serverLoadProfileId?: string; rowCount?: number } | null;
+        return `${stored?.serverLoadProfileId}:${stored?.rowCount}`;
+      }),
+    )
+    .toBe("profile-test:2");
+  await expect(page.getByText("แหล่งข้อมูล: meter-july.csv")).toBeVisible();
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByRole("heading", { name: "Load Profile ของโปรเจกต์" }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
+  await expect(
+    page.getByRole("button", { name: "นำมาใช้ในอุปกรณ์นี้" }),
+  ).toBeVisible();
 });
 
 test("Solar web-vital endpoint accepts only anonymous allow-listed metrics", async ({

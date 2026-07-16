@@ -24,6 +24,10 @@ import {
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
 import { authenticatedFetch } from "@/lib/auth-fetch";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+} from "@/lib/active-project";
 import { ScenarioView } from "./scenario-view";
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
@@ -52,15 +56,32 @@ export function CanonicalScenarioPanel() {
   useEffect(() => {
     refreshProfiles();
     setHasBillContext(Boolean(readLocalBillReportSnapshot()));
-    void authenticatedFetch("/api/load-profiles")
-      .then(async (response) => {
-        if (!response.ok) return null;
-        return response.json() as Promise<{
-          profiles?: Array<{ id: string; name: string; intervalCount: number }>;
-        }>;
-      })
-      .then((payload) => setAccountProfiles(payload?.profiles ?? []))
-      .catch(() => setAccountProfiles([]));
+    const refreshAccountProfiles = () => {
+      const project = readActiveProject(window.localStorage);
+      const query = project
+        ? `?projectId=${encodeURIComponent(project.id)}`
+        : "";
+      void authenticatedFetch(`/api/load-profiles${query}`)
+        .then(async (response) => {
+          if (!response.ok) return null;
+          return response.json() as Promise<{
+            profiles?: Array<{
+              id: string;
+              name: string;
+              intervalCount: number;
+            }>;
+          }>;
+        })
+        .then((payload) => setAccountProfiles(payload?.profiles ?? []))
+        .catch(() => setAccountProfiles([]));
+    };
+    refreshAccountProfiles();
+    window.addEventListener(activeProjectChangedEvent, refreshAccountProfiles);
+    return () =>
+      window.removeEventListener(
+        activeProjectChangedEvent,
+        refreshAccountProfiles,
+      );
   }, []);
 
   const activeSnapshot = snapshot;

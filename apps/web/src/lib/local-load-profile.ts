@@ -16,6 +16,8 @@ export const localLoadProfilesStorageKey =
   "thai-energy-planner.load-profiles.v1";
 export const activeLocalLoadProfileIdStorageKey =
   "thai-energy-planner.active-load-profile.v1";
+export const localLoadProfileChangedEvent =
+  "thai-energy-planner:load-profile-changed";
 
 export type LocalLoadProfileSnapshot = {
   id: string;
@@ -93,6 +95,7 @@ export function saveLocalLoadProfileSnapshot(input: {
     JSON.stringify([snapshot, ...profiles].slice(0, 20)),
   );
   window.localStorage.setItem(activeLocalLoadProfileIdStorageKey, snapshot.id);
+  announceLocalLoadProfileChanged();
   if (input.persist !== false) void persistLocalLoadProfile(snapshot);
   return snapshot;
 }
@@ -209,6 +212,7 @@ export function deleteLocalLoadProfileSnapshot() {
     profiles[0]?.id ?? "",
   );
   window.localStorage.removeItem(localLoadProfileStorageKey);
+  announceLocalLoadProfileChanged();
 }
 
 export function isSampleLocalLoadProfile(
@@ -304,6 +308,7 @@ export function selectLocalLoadProfileSnapshot(id: string) {
     localLoadProfileStorageKey,
     JSON.stringify(profile),
   );
+  announceLocalLoadProfileChanged();
   return profile;
 }
 
@@ -348,7 +353,13 @@ export function hydrateLocalLoadProfileSnapshot(
     localLoadProfileStorageKey,
     JSON.stringify(snapshot),
   );
+  announceLocalLoadProfileChanged();
   return snapshot;
+}
+
+export function announceLocalLoadProfileChanged() {
+  if (typeof window === "undefined") return;
+  window.dispatchEvent(new Event(localLoadProfileChangedEvent));
 }
 
 function replaceLocalSnapshot(snapshot: LocalLoadProfileSnapshot) {

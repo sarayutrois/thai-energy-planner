@@ -14,6 +14,7 @@ const requestSchema = z.object({
     .regex(/^[a-z0-9_-]{8,160}$/i)
     .optional(),
 });
+const projectIdSchema = z.string().regex(/^[a-z0-9_-]{8,160}$/i);
 
 const sourceByKind = {
   smart_meter: "CSV",
@@ -30,13 +31,34 @@ export async function GET(request: Request) {
 
   try {
     const projectId = new URL(request.url).searchParams.get("projectId");
+    if (projectId && !projectIdSchema.safeParse(projectId).success) {
+      return NextResponse.json(
+        { ok: false, error: "Invalid project id." },
+        { status: 400 },
+      );
+    }
+    if (projectId) {
+      const project = await prisma.site.findFirst({
+        where: {
+          id: projectId,
+          organization: { is: { ownerId: auth.user.id } },
+        },
+        select: { id: true },
+      });
+      if (!project) {
+        return NextResponse.json(
+          { ok: false, error: "Project not found." },
+          { status: 404 },
+        );
+      }
+    }
     const profiles = await prisma.loadProfile.findMany({
       where: {
         userId: auth.user.id,
         ...(projectId ? { meter: { is: { siteId: projectId } } } : {}),
       },
       orderBy: { updatedAt: "desc" },
-      take: 50,
+      take: 20,
       select: {
         id: true,
         name: true,

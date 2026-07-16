@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import type { StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
 import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import {
+  localLoadProfileChangedEvent,
   readLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
@@ -23,13 +24,19 @@ export function EnergyOverviewDashboard() {
   const [profile, setProfile] = useState<LocalLoadProfileSnapshot | null>(null);
   const [bills, setBills] = useState<StoredBillWorkspace | null>(null);
   useEffect(() => {
-    try {
-      setProfile(readLocalLoadProfileSnapshot());
-      setBills(readStoredBillWorkspace());
-    } catch {
-      setProfile(null);
-      setBills(null);
-    }
+    const refresh = () => {
+      try {
+        setProfile(readLocalLoadProfileSnapshot());
+        setBills(readStoredBillWorkspace());
+      } catch {
+        setProfile(null);
+        setBills(null);
+      }
+    };
+    refresh();
+    window.addEventListener(localLoadProfileChangedEvent, refresh);
+    return () =>
+      window.removeEventListener(localLoadProfileChangedEvent, refresh);
   }, []);
   const load = useMemo(
     () =>

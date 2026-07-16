@@ -5,6 +5,7 @@ import {
 } from "./local-analysis-dataset";
 import type { LocalLoadProfileSnapshot } from "./local-load-profile";
 import type { LocalBillReportSnapshot } from "./local-analysis-snapshot";
+import { createCanonicalProfileForSnapshot } from "./local-load-profile";
 
 const billSnapshot: LocalBillReportSnapshot = {
   id: "local-bill-summary",
@@ -118,5 +119,58 @@ describe("analysis dataset fingerprints", () => {
       profileSnapshot,
     });
     expect(isCurrentAnalysisDataset(undefined, current)).toBe(false);
+  });
+
+  it("keeps a report current after the same profile is restored from storage", () => {
+    const rows = [
+      { timestamp: "2026-01-01T00:00:00.000Z", energyKwh: 0.123456789 },
+      { timestamp: "2026-01-01T01:00:00.000Z", energyKwh: 0.987654321 },
+    ];
+    const canonicalProfile = createCanonicalProfileForSnapshot({
+      sourceName: "meter.csv",
+      sourceKind: "csv",
+      detectedIntervalMinutes: 60,
+      generatedAt: "2026-01-01T02:00:00.000Z",
+      rows,
+    });
+    const original = {
+      ...profileSnapshot,
+      sourceName: "meter.csv",
+      rows,
+      canonicalProfile,
+    };
+    const restoredCanonical = {
+      ...canonicalProfile,
+      id: "server-profile-id",
+      intervals: canonicalProfile.intervals.map((row) => ({
+        ...row,
+        energyKwh: Number(row.energyKwh.toFixed(6)),
+        averagePowerKw: Number(row.averagePowerKw.toFixed(6)),
+      })),
+    };
+    const restored = {
+      ...profileSnapshot,
+      id: "restored-local-id",
+      sourceName: "meter.csv",
+      rows: restoredCanonical.intervals.map((row) => ({
+        timestamp: row.timestamp,
+        energyKwh: row.energyKwh,
+        powerKw: row.averagePowerKw,
+      })),
+      canonicalProfile: restoredCanonical,
+      serverLoadProfileId: "server-profile-id",
+    };
+
+    expect(
+      createAnalysisDatasetFingerprint({
+        billSnapshot,
+        profileSnapshot: original,
+      }).profileFingerprint,
+    ).toBe(
+      createAnalysisDatasetFingerprint({
+        billSnapshot,
+        profileSnapshot: restored,
+      }).profileFingerprint,
+    );
   });
 });

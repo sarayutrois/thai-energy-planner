@@ -27,15 +27,7 @@ export function createAnalysisDatasetFingerprint({
       })),
   });
   const profileFingerprint = profileSnapshot
-    ? fingerprint({
-        intervalMinutes: profileSnapshot.detectedIntervalMinutes,
-        rows: profileSnapshot.rows.map((row) => ({
-          energyKwh: row.energyKwh,
-          powerKw: row.powerKw ?? null,
-          timestamp: row.timestamp,
-        })),
-        sourceName: profileSnapshot.sourceName,
-      })
+    ? createProfileFingerprint(profileSnapshot)
     : null;
 
   return {
@@ -43,6 +35,33 @@ export function createAnalysisDatasetFingerprint({
     profileFingerprint,
     fingerprint: fingerprint({ billFingerprint, profileFingerprint }),
   };
+}
+
+function createProfileFingerprint(snapshot: LocalLoadProfileSnapshot) {
+  const canonical = snapshot.canonicalProfile;
+  return fingerprint({
+    intervalMinutes:
+      canonical?.intervalMinutes ?? snapshot.detectedIntervalMinutes,
+    rows: canonical
+      ? canonical.intervals.map((row) => ({
+          energyKwh: normalizeStoredNumber(row.energyKwh),
+          powerKw: normalizeStoredNumber(row.averagePowerKw),
+          timestamp: row.timestamp,
+        }))
+      : snapshot.rows.map((row) => ({
+          energyKwh: normalizeStoredNumber(row.energyKwh),
+          powerKw:
+            row.powerKw === undefined
+              ? null
+              : normalizeStoredNumber(row.powerKw),
+          timestamp: row.timestamp,
+        })),
+    sourceName: canonical?.name ?? snapshot.sourceName,
+  });
+}
+
+function normalizeStoredNumber(value: number) {
+  return Number(value.toFixed(6));
 }
 
 export function isCurrentAnalysisDataset(

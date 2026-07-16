@@ -1,5 +1,6 @@
 import { EnergyOverviewDashboard } from "./energy-overview-dashboard";
 import { LocalBillSummary } from "./local-bill-summary";
+import { ProjectLoadProfileSync } from "./project-load-profile-sync";
 import { PageHeader } from "@/components/ui/page-layout";
 
 export default function LoadDashboardPage() {
@@ -11,6 +12,7 @@ export default function LoadDashboardPage() {
           title="ตรวจสอบข้อมูลการใช้ไฟ"
           description="ดูว่าระบบกำลังใช้ข้อมูลชุดใด ความน่าเชื่อถือระดับใด และควรเพิ่มข้อมูลอะไรต่อก่อนตัดสินใจ"
         />
+        <ProjectLoadProfileSync />
         <EnergyOverviewDashboard />
         <LocalBillSummary />
       </section>
