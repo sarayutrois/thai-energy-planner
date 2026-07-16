@@ -8,6 +8,13 @@ import {
 export const solarAssumptionsStorageKey =
   "thai-energy-planner.solar-assumptions.v1";
 export const solarAnalysisStorageKey = "thai-energy-planner.solar-analysis.v1";
+export const solarAssumptionsByProjectStorageKey =
+  "thai-energy-planner.solar-assumptions-by-project.v1";
+export const solarAnalysisByProjectStorageKey =
+  "thai-energy-planner.solar-analysis-by-project.v1";
+
+const projectIdPattern = /^[a-z0-9_-]{8,160}$/i;
+const maxStoredProjects = 20;
 
 export type SolarStatus =
   | "missing_load_profile"
@@ -94,11 +101,15 @@ export function solarSettingsFingerprint(settings: SolarAssumptionSettings) {
 
 export function readStoredSolarAssumptions(
   storage: ReadableStorage,
+  projectId?: string | null,
 ): SolarAssumptionSettings | null {
   try {
-    const raw = storage.getItem(solarAssumptionsStorageKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = readScopedValue(
+      storage,
+      solarAssumptionsStorageKey,
+      solarAssumptionsByProjectStorageKey,
+      projectId,
+    );
     if (!parsed || typeof parsed !== "object") return null;
     const candidate = parsed as {
       schemaVersion?: unknown;
@@ -116,33 +127,48 @@ export function readStoredSolarAssumptions(
 export function persistSolarAssumptions(
   storage: WritableStorage,
   settings: SolarAssumptionSettings,
+  projectId?: string | null,
 ) {
   try {
-    storage.setItem(
+    return writeScopedValue(
+      storage,
       solarAssumptionsStorageKey,
-      JSON.stringify({
+      solarAssumptionsByProjectStorageKey,
+      projectId,
+      {
         schemaVersion: 1,
         savedAt: new Date().toISOString(),
         settings: serializableSettings(settings),
-      }),
+      },
     );
-    return true;
   } catch {
     return false;
   }
 }
 
-export function clearStoredSolarAssumptions(storage: WritableStorage) {
-  storage.removeItem(solarAssumptionsStorageKey);
+export function clearStoredSolarAssumptions(
+  storage: WritableStorage,
+  projectId?: string | null,
+) {
+  clearScopedValue(
+    storage,
+    solarAssumptionsStorageKey,
+    solarAssumptionsByProjectStorageKey,
+    projectId,
+  );
 }
 
 export function readStoredSolarAnalysis(
   storage: ReadableStorage,
+  projectId?: string | null,
 ): StoredSolarAnalysis | null {
   try {
-    const raw = storage.getItem(solarAnalysisStorageKey);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw) as unknown;
+    const parsed = readScopedValue(
+      storage,
+      solarAnalysisStorageKey,
+      solarAnalysisByProjectStorageKey,
+      projectId,
+    );
     return isStoredSolarAnalysis(parsed) ? parsed : null;
   } catch {
     return null;
@@ -154,17 +180,32 @@ export function persistSolarAnalysis(
   input: Omit<StoredSolarAnalysis, "schemaVersion" | "calculatedAt"> & {
     calculatedAt?: string;
   },
+  projectId?: string | null,
 ) {
   try {
     const calculatedAt = input.calculatedAt ?? input.result.trace.calculatedAt;
-    storage.setItem(
+    return writeScopedValue(
+      storage,
       solarAnalysisStorageKey,
-      JSON.stringify({ ...input, schemaVersion: 1, calculatedAt }),
+      solarAnalysisByProjectStorageKey,
+      projectId,
+      { ...input, schemaVersion: 1, calculatedAt },
     );
-    return true;
   } catch {
     return false;
   }
+}
+
+export function clearStoredSolarAnalysis(
+  storage: WritableStorage,
+  projectId?: string | null,
+) {
+  clearScopedValue(
+    storage,
+    solarAnalysisStorageKey,
+    solarAnalysisByProjectStorageKey,
+    projectId,
+  );
 }
 
 export function compactSolarCalculationSuccess(
@@ -298,4 +339,89 @@ function toSolarSearchParams(
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function readScopedValue(
+  storage: ReadableStorage,
+  personalKey: string,
+  projectKey: string,
+  projectId?: string | null,
+) {
+  if (!projectId) {
+    const raw = storage.getItem(personalKey);
+    return raw ? (JSON.parse(raw) as unknown) : null;
+  }
+  if (!projectIdPattern.test(projectId)) return null;
+  const store = readProjectStore(storage, projectKey);
+  return store.entries[projectId] ?? null;
+}
+
+function writeScopedValue(
+  storage: WritableStorage,
+  personalKey: string,
+  projectKey: string,
+  projectId: string | null | undefined,
+  value: Record<string, unknown>,
+) {
+  if (!projectId) {
+    storage.setItem(personalKey, JSON.stringify(value));
+    return true;
+  }
+  if (!projectIdPattern.test(projectId)) return false;
+  const store = readProjectStore(storage, projectKey);
+  const entries = { ...store.entries, [projectId]: value };
+  const orderedEntries = Object.entries(entries)
+    .sort(
+      ([, left], [, right]) => storedTimestamp(right) - storedTimestamp(left),
+    )
+    .slice(0, maxStoredProjects);
+  storage.setItem(
+    projectKey,
+    JSON.stringify({
+      schemaVersion: 1,
+      entries: Object.fromEntries(orderedEntries),
+    }),
+  );
+  return true;
+}
+
+function clearScopedValue(
+  storage: WritableStorage,
+  personalKey: string,
+  projectKey: string,
+  projectId?: string | null,
+) {
+  if (!projectId) {
+    storage.removeItem(personalKey);
+    return;
+  }
+  if (!projectIdPattern.test(projectId)) return;
+  const store = readProjectStore(storage, projectKey);
+  const entries = { ...store.entries };
+  delete entries[projectId];
+  if (Object.keys(entries).length === 0) storage.removeItem(projectKey);
+  else
+    storage.setItem(projectKey, JSON.stringify({ schemaVersion: 1, entries }));
+}
+
+function readProjectStore(storage: ReadableStorage, key: string) {
+  try {
+    const raw = storage.getItem(key);
+    const parsed = raw ? (JSON.parse(raw) as unknown) : null;
+    if (!isPlainObject(parsed) || parsed.schemaVersion !== 1) {
+      return { entries: {} as Record<string, unknown> };
+    }
+    const entries = isPlainObject(parsed.entries) ? parsed.entries : {};
+    return { entries };
+  } catch {
+    return { entries: {} as Record<string, unknown> };
+  }
+}
+
+function storedTimestamp(value: unknown) {
+  if (!isPlainObject(value)) return 0;
+  const timestamp = value.savedAt ?? value.calculatedAt;
+  return typeof timestamp === "string" && Number.isFinite(Date.parse(timestamp))
+    ? Date.parse(timestamp)
+    : 0;
 }

@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { parseProjectAnalysisReports } from "./project-analysis-reports";
+import {
+  localAnalysisReportMatchesProject,
+  parseProjectAnalysisReports,
+} from "./project-analysis-reports";
+import type { LocalAnalysisReportSnapshot } from "./local-analysis-snapshot";
 
 const metadata = {
   id: "local-analysis-solar-123",
@@ -53,5 +57,24 @@ describe("project analysis report restore", () => {
         ],
       }),
     ).toEqual([]);
+  });
+
+  it("keeps local reports inside their project context", () => {
+    const personal = metadata as LocalAnalysisReportSnapshot;
+    const project = {
+      ...metadata,
+      projectId: "project-alpha",
+    } as LocalAnalysisReportSnapshot;
+
+    expect(localAnalysisReportMatchesProject(personal)).toBe(true);
+    expect(localAnalysisReportMatchesProject(personal, "project-alpha")).toBe(
+      false,
+    );
+    expect(localAnalysisReportMatchesProject(project, "project-alpha")).toBe(
+      true,
+    );
+    expect(localAnalysisReportMatchesProject(project, "project-bravo")).toBe(
+      false,
+    );
   });
 });

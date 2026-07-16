@@ -32,6 +32,7 @@ export type LocalLoadProfileSnapshot = {
   isSample?: boolean;
   canonicalProfile?: CanonicalLoadProfile;
   serverLoadProfileId?: string;
+  projectId?: string;
   calibration?: {
     appliedAt: string;
     factor: number;
@@ -57,6 +58,7 @@ export function saveLocalLoadProfileSnapshot(input: {
   persist?: boolean;
 }): LocalLoadProfileSnapshot {
   const existing = readLocalLoadProfileSnapshot();
+  const projectId = readActiveProject(window.localStorage)?.id;
   const now = new Date().toISOString();
   const snapshot: LocalLoadProfileSnapshot = {
     id: crypto.randomUUID(),
@@ -78,6 +80,7 @@ export function saveLocalLoadProfileSnapshot(input: {
       ...input,
       generatedAt: now,
     }),
+    ...(projectId ? { projectId } : {}),
     ...(input.calibration === undefined
       ? {}
       : { calibration: input.calibration }),
@@ -106,12 +109,14 @@ export async function persistLocalLoadProfile(
   if (!snapshot.canonicalProfile) {
     return { status: "local_only", reason: "network_or_server" };
   }
+  const projectId =
+    snapshot.projectId ?? readActiveProject(window.localStorage)?.id;
   const response = await authenticatedFetch("/api/load-profiles", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       profile: snapshot.canonicalProfile,
-      projectId: readActiveProject(window.localStorage)?.id,
+      projectId,
     }),
   }).catch(() => null);
   if (!response?.ok) {
@@ -129,6 +134,7 @@ export async function persistLocalLoadProfile(
     replaceLocalSnapshot({
       ...current,
       serverLoadProfileId: payload.loadProfileId,
+      ...(projectId ? { projectId } : {}),
     });
   }
   return { status: "saved", loadProfileId: payload.loadProfileId };
@@ -224,6 +230,16 @@ export function isSampleLocalLoadProfile(
   );
 }
 
+export function localLoadProfileMatchesProject(
+  snapshot: LocalLoadProfileSnapshot | null,
+  projectId?: string,
+) {
+  if (!snapshot) return false;
+  return projectId
+    ? snapshot.projectId === projectId
+    : snapshot.projectId === undefined;
+}
+
 export function clearSampleLocalLoadProfiles() {
   const profiles = listLocalLoadProfileSnapshots().filter(
     (profile) => !isSampleLocalLoadProfile(profile),
@@ -315,6 +331,7 @@ export function selectLocalLoadProfileSnapshot(id: string) {
 export function hydrateLocalLoadProfileSnapshot(
   canonicalProfile: CanonicalLoadProfile,
   serverLoadProfileId: string,
+  projectId?: string,
 ): LocalLoadProfileSnapshot {
   const now = new Date().toISOString();
   const snapshot: LocalLoadProfileSnapshot = {
@@ -340,6 +357,7 @@ export function hydrateLocalLoadProfileSnapshot(
     canonicalProfile,
     ...(canonicalProfile.source.kind === "demo" ? { isSample: true } : {}),
     serverLoadProfileId,
+    ...(projectId ? { projectId } : {}),
   };
   const profiles = listLocalLoadProfileSnapshots().filter(
     (profile) => profile.serverLoadProfileId !== serverLoadProfileId,
@@ -401,6 +419,8 @@ function isLocalLoadProfileSnapshot(
     typeof candidate.totalKwh === "number" &&
     Array.isArray(candidate.rows) &&
     candidate.rows.every(isLoadInterval) &&
+    (candidate.projectId === undefined ||
+      /^[a-z0-9_-]{8,160}$/i.test(candidate.projectId)) &&
     (candidate.canonicalProfile === undefined ||
       CanonicalLoadProfileSchema.safeParse(candidate.canonicalProfile).success)
   );

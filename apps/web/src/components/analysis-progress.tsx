@@ -4,10 +4,23 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { CheckCircle2, Circle, LockKeyhole } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
-import { readLocalAnalysisReports } from "@/lib/local-analysis-report";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
-import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import {
+  localAnalysisReportMatchesProject,
+  readLocalAnalysisReports,
+} from "@/lib/local-analysis-report";
+import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
+import {
+  localLoadProfileMatchesProject,
+  readLocalLoadProfileSnapshot,
+} from "@/lib/local-load-profile";
 import { analysisStorageChangedEvent } from "@/lib/analysis-storage";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+} from "@/lib/active-project";
 
 type Step = {
   label: string;
@@ -17,7 +30,7 @@ type Step = {
   missing: string;
 };
 
-function buildSteps(): Step[] {
+function buildSteps(projectId?: string): Step[] {
   let hasBills = false;
   let hasProfile = false;
   let hasAnalysis = false;
@@ -27,12 +40,19 @@ function buildSteps(): Step[] {
     const workspace = readStoredBillWorkspace();
     hasBills = Boolean(
       workspace?.mode === "user" &&
+      storedBillWorkspaceMatchesProject(workspace, projectId) &&
       workspace.rows.some(
         (row) => Number(row.energyKwh) > 0 && Number(row.totalCostThb) > 0,
       ),
     );
-    hasProfile = Boolean(readLocalLoadProfileSnapshot()?.canonicalProfile);
-    const reports = readLocalAnalysisReports();
+    const profile = readLocalLoadProfileSnapshot();
+    hasProfile = Boolean(
+      localLoadProfileMatchesProject(profile, projectId) &&
+      profile?.canonicalProfile,
+    );
+    const reports = readLocalAnalysisReports().filter((report) =>
+      localAnalysisReportMatchesProject(report, projectId),
+    );
     hasAnalysis = reports.some(
       (report) =>
         report.module === "scenario" ||
@@ -100,17 +120,22 @@ function buildSteps(): Step[] {
 export function AnalysisProgress() {
   const pathname = usePathname();
   const [steps, setSteps] = useState<Step[]>([]);
-  const refresh = useCallback(() => setSteps(buildSteps()), []);
+  const refresh = useCallback(
+    () => setSteps(buildSteps(readActiveProject(window.localStorage)?.id)),
+    [],
+  );
 
   useEffect(() => {
     refresh();
     window.addEventListener("focus", refresh);
     window.addEventListener("storage", refresh);
     window.addEventListener(analysisStorageChangedEvent, refresh);
+    window.addEventListener(activeProjectChangedEvent, refresh);
     return () => {
       window.removeEventListener("focus", refresh);
       window.removeEventListener("storage", refresh);
       window.removeEventListener(analysisStorageChangedEvent, refresh);
+      window.removeEventListener(activeProjectChangedEvent, refresh);
     };
   }, [pathname, refresh]);
 

@@ -12,13 +12,21 @@ import { summarizeLoadProfile } from "@thai-energy-planner/calculation-engine";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import type { StoredBillWorkspace } from "@/lib/local-analysis-snapshot";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
+import {
+  localLoadProfileMatchesProject,
   localLoadProfileChangedEvent,
   readLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
 import { DataConfidence, MetricCard } from "@/components/ui/states";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+} from "@/lib/active-project";
 
 export function EnergyOverviewDashboard() {
   const [profile, setProfile] = useState<LocalLoadProfileSnapshot | null>(null);
@@ -26,8 +34,19 @@ export function EnergyOverviewDashboard() {
   useEffect(() => {
     const refresh = () => {
       try {
-        setProfile(readLocalLoadProfileSnapshot());
-        setBills(readStoredBillWorkspace());
+        const projectId = readActiveProject(window.localStorage)?.id;
+        const localProfile = readLocalLoadProfileSnapshot();
+        const localBills = readStoredBillWorkspace();
+        setProfile(
+          localLoadProfileMatchesProject(localProfile, projectId)
+            ? localProfile
+            : null,
+        );
+        setBills(
+          storedBillWorkspaceMatchesProject(localBills, projectId)
+            ? localBills
+            : null,
+        );
       } catch {
         setProfile(null);
         setBills(null);
@@ -35,8 +54,11 @@ export function EnergyOverviewDashboard() {
     };
     refresh();
     window.addEventListener(localLoadProfileChangedEvent, refresh);
-    return () =>
+    window.addEventListener(activeProjectChangedEvent, refresh);
+    return () => {
       window.removeEventListener(localLoadProfileChangedEvent, refresh);
+      window.removeEventListener(activeProjectChangedEvent, refresh);
+    };
   }, []);
   const load = useMemo(
     () =>

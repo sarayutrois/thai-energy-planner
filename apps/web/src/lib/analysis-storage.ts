@@ -12,7 +12,9 @@ import {
 } from "./local-load-profile";
 import {
   solarAnalysisStorageKey,
+  solarAnalysisByProjectStorageKey,
   solarAssumptionsStorageKey,
+  solarAssumptionsByProjectStorageKey,
 } from "./local-solar-analysis";
 
 export const batteryMvpStorageKey = "thai-energy-planner.battery-mvp.v1";
@@ -30,6 +32,8 @@ export const analysisStorageKeys = [
   localAnalysisReportsStorageKey,
   solarAssumptionsStorageKey,
   solarAnalysisStorageKey,
+  solarAssumptionsByProjectStorageKey,
+  solarAnalysisByProjectStorageKey,
   batteryMvpStorageKey,
   evMvpStorageKey,
   ecosystemMvpStorageKey,

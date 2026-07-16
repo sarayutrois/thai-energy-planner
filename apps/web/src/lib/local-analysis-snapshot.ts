@@ -23,6 +23,7 @@ export type StoredBillWorkspace = {
   mode: BillWorkspaceMode;
   rows: StoredBillRow[];
   updatedAt: string;
+  projectId?: string;
 };
 
 export type LocalBillReportSnapshot = {
@@ -98,6 +99,7 @@ export type LocalAnalysisReportDraft = {
 export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
   id: string;
   createdAt: string;
+  projectId?: string | undefined;
   serverGeneratedReportId?: string | undefined;
   serverAnalysisRunId?: string | undefined;
   reportAccessToken?: string | undefined;

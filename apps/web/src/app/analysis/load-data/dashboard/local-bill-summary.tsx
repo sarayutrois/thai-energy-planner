@@ -31,13 +31,22 @@ import {
   localBillReportId,
   type StoredBillWorkspace,
 } from "@/lib/local-analysis-snapshot";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
+import {
+  localLoadProfileChangedEvent,
+  localLoadProfileMatchesProject,
   persistLocalLoadProfile,
   readLocalLoadProfileSnapshot,
   saveLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+} from "@/lib/active-project";
 
 const audienceSegment: Record<
   StoredBillWorkspace["audience"],
@@ -60,18 +69,40 @@ export function LocalBillSummary() {
   >("idle");
 
   useEffect(() => {
-    try {
-      const parsed = readStoredBillWorkspace();
-      setWorkspace(parsed?.mode === "user" ? normalizeWorkspace(parsed) : null);
-      const nextSnapshot = readLocalLoadProfileSnapshot();
-      setSnapshot(nextSnapshot);
-      setProfile(nextSnapshot?.canonicalProfile ?? null);
-      setReadError(false);
-    } catch {
-      setWorkspace(null);
-      setProfile(null);
-      setReadError(true);
-    }
+    const refresh = () => {
+      try {
+        const projectId = readActiveProject(window.localStorage)?.id;
+        const parsed = readStoredBillWorkspace();
+        setWorkspace(
+          parsed?.mode === "user" &&
+            storedBillWorkspaceMatchesProject(parsed, projectId)
+            ? normalizeWorkspace(parsed)
+            : null,
+        );
+        const localSnapshot = readLocalLoadProfileSnapshot();
+        const nextSnapshot = localLoadProfileMatchesProject(
+          localSnapshot,
+          projectId,
+        )
+          ? localSnapshot
+          : null;
+        setSnapshot(nextSnapshot);
+        setProfile(nextSnapshot?.canonicalProfile ?? null);
+        setReadError(false);
+      } catch {
+        setWorkspace(null);
+        setSnapshot(null);
+        setProfile(null);
+        setReadError(true);
+      }
+    };
+    refresh();
+    window.addEventListener(activeProjectChangedEvent, refresh);
+    window.addEventListener(localLoadProfileChangedEvent, refresh);
+    return () => {
+      window.removeEventListener(activeProjectChangedEvent, refresh);
+      window.removeEventListener(localLoadProfileChangedEvent, refresh);
+    };
   }, []);
 
   const bills = useMemo(

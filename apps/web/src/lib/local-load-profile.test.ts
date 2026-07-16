@@ -4,7 +4,11 @@ import {
   runSolarAnalyzeApiCalculation,
   solarAnalyzeRequestSchema,
 } from "./calculation-api";
-import { createCanonicalProfileForSnapshot } from "./local-load-profile";
+import {
+  createCanonicalProfileForSnapshot,
+  localLoadProfileMatchesProject,
+  type LocalLoadProfileSnapshot,
+} from "./local-load-profile";
 
 describe("imported canonical load-profile flow", () => {
   it("converts imported intervals into a canonical profile usable by Solar", () => {
@@ -54,5 +58,34 @@ describe("imported canonical load-profile flow", () => {
 
     expect(profile.source.kind).toBe("demo");
     expect(profile.assumptions.isSample).toBe(true);
+  });
+
+  it("does not reuse a Load Profile across project boundaries", () => {
+    const personal: LocalLoadProfileSnapshot = {
+      id: "profile-personal",
+      createdAt: "2026-07-17T00:00:00.000Z",
+      updatedAt: "2026-07-17T00:00:00.000Z",
+      sourceName: "meter.csv",
+      rowCount: 0,
+      totalKwh: 0,
+      peakKw: 0,
+      detectedIntervalMinutes: 60,
+      rows: [],
+    };
+    const project = {
+      ...personal,
+      id: "profile-project",
+      projectId: "project-alpha",
+    };
+
+    expect(localLoadProfileMatchesProject(personal)).toBe(true);
+    expect(localLoadProfileMatchesProject(personal, "project-alpha")).toBe(
+      false,
+    );
+    expect(localLoadProfileMatchesProject(project, "project-alpha")).toBe(true);
+    expect(localLoadProfileMatchesProject(project, "project-bravo")).toBe(
+      false,
+    );
+    expect(localLoadProfileMatchesProject(project)).toBe(false);
   });
 });

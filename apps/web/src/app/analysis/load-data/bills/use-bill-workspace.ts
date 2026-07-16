@@ -73,6 +73,12 @@ export type EditableBillRow = {
   meterMode: "normal" | "tou";
 };
 
+type EditableBillWorkspace = {
+  mode: BillWorkspaceMode;
+  rows: EditableBillRow[];
+  projectId: string | null;
+};
+
 export function useBillWorkspace(
   initialBills: MonthlyBillInput[],
   audience: AnalysisAudience,
@@ -81,13 +87,14 @@ export function useBillWorkspace(
     createInitialWorkspace(initialBills),
   );
   const [hasHydrated, setHasHydrated] = useState(false);
-  const [activeProject, setActiveProjectState] =
-    useState<ActiveProject | null>(null);
+  const [activeProject, setActiveProjectState] = useState<ActiveProject | null>(
+    null,
+  );
   const [cloudStatus, setCloudStatus] = useState<
     "idle" | "syncing" | "restoring" | "success" | "error"
   >("idle");
   const [cloudMessage, setCloudMessage] = useState<string | null>(null);
-  const { mode, rows } = workspace;
+  const { mode, rows, projectId: workspaceProjectId } = workspace;
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
 
   useEffect(() => {
@@ -116,6 +123,7 @@ export function useBillWorkspace(
         mode,
         rows,
         updatedAt: new Date().toISOString(),
+        ...(workspaceProjectId ? { projectId: workspaceProjectId } : {}),
       };
       window.localStorage.setItem(
         billWorkspaceStorageKey,
@@ -126,20 +134,25 @@ export function useBillWorkspace(
         `บันทึกอัตโนมัติ ${new Date().toLocaleTimeString("th-TH", { hour: "2-digit", minute: "2-digit" })}`,
       );
     },
-    [audience, hasHydrated, mode, rows],
+    [audience, hasHydrated, mode, rows, workspaceProjectId],
     500,
   );
 
   function updateRow(id: string, patch: Partial<EditableBillRow>) {
     setWorkspace((current) => {
       if (current.mode === "sample") {
-        return { mode: "user", rows: [{ ...emptyRow(), id, ...patch }] };
+        return {
+          mode: "user",
+          rows: [{ ...emptyRow(), id, ...patch }],
+          projectId: activeProject?.id ?? null,
+        };
       }
       return {
         mode: "user",
         rows: current.rows.map((row) =>
           row.id === id ? { ...row, ...patch } : row,
         ),
+        projectId: current.projectId ?? activeProject?.id ?? null,
       };
     });
   }
@@ -164,13 +177,18 @@ export function useBillWorkspace(
                 meterMode: current.rows.at(-1)?.meterMode ?? "normal",
               },
             ],
+      projectId: current.projectId ?? activeProject?.id ?? null,
     }));
   }
 
   function removeRow(id: string) {
     setWorkspace((current) => {
       const rows = current.rows.filter((row) => row.id !== id);
-      return { mode: rows.length === 0 ? "empty" : current.mode, rows };
+      return {
+        mode: rows.length === 0 ? "empty" : current.mode,
+        rows,
+        projectId: current.projectId ?? activeProject?.id ?? null,
+      };
     });
   }
 
@@ -180,6 +198,7 @@ export function useBillWorkspace(
         return {
           mode: "user",
           rows: [{ ...emptyRow(), ...patch, id: crypto.randomUUID() }],
+          projectId: activeProject?.id ?? null,
         };
       }
       const rows = current.rows;
@@ -190,7 +209,11 @@ export function useBillWorkspace(
           ...next[existingIdx],
           ...patch,
         } as EditableBillRow;
-        return { mode: "user", rows: next };
+        return {
+          mode: "user",
+          rows: next,
+          projectId: current.projectId ?? activeProject?.id ?? null,
+        };
       }
       return {
         mode: "user",
@@ -208,23 +231,29 @@ export function useBillWorkspace(
             meterMode: rows.at(-1)?.meterMode ?? "normal",
           },
         ].sort((a, b) => a.month.localeCompare(b.month)),
+        projectId: current.projectId ?? activeProject?.id ?? null,
       };
     });
   }
 
   function loadExample() {
     const sampleRows = sampleHomeBills.map(toEditableRow);
-    setWorkspace({ mode: "sample", rows: sampleRows });
-    persistWorkspace(audience, "sample", sampleRows);
+    const projectId = activeProject?.id ?? null;
+    setWorkspace({ mode: "sample", rows: sampleRows, projectId });
+    persistWorkspace(audience, "sample", sampleRows, projectId);
   }
 
   function resetWorkspace() {
     window.localStorage.removeItem(billWorkspaceStorageKey);
-    setWorkspace({ mode: "empty", rows: [] });
+    setWorkspace({ mode: "empty", rows: [], projectId: null });
   }
 
   function startUserEntry() {
-    setWorkspace({ mode: "user", rows: [] });
+    setWorkspace({
+      mode: "user",
+      rows: [],
+      projectId: activeProject?.id ?? null,
+    });
   }
 
   function exportWorkspace() {
@@ -233,6 +262,7 @@ export function useBillWorkspace(
       mode,
       rows,
       updatedAt: new Date().toISOString(),
+      ...(workspaceProjectId ? { projectId: workspaceProjectId } : {}),
     };
     downloadJsonFile("thai-energy-planner-bills.json", payload);
   }
@@ -276,7 +306,11 @@ export function useBillWorkspace(
           setSaveStatus("ไฟล์ CSV ไม่มีข้อมูลบิลที่นำเข้าได้");
           return;
         }
-        setWorkspace({ mode: "user", rows: importedRows });
+        setWorkspace({
+          mode: "user",
+          rows: importedRows,
+          projectId: activeProject?.id ?? null,
+        });
         setSaveStatus("นำเข้า CSV แล้ว");
         return;
       }
@@ -297,7 +331,11 @@ export function useBillWorkspace(
         return;
       }
 
-      setWorkspace({ mode: "user", rows: rawRows.map(sanitizeRow) });
+      setWorkspace({
+        mode: "user",
+        rows: rawRows.map(sanitizeRow),
+        projectId: activeProject?.id ?? null,
+      });
       setSaveStatus("นำเข้าข้อมูลบิลแล้ว");
     } catch {
       setSaveStatus("นำเข้าไฟล์ไม่สำเร็จ");
@@ -308,6 +346,13 @@ export function useBillWorkspace(
 
   async function syncToProject() {
     if (!activeProject || mode !== "user" || rows.length === 0) return;
+    if (workspaceProjectId && workspaceProjectId !== activeProject.id) {
+      setCloudStatus("error");
+      setCloudMessage(
+        "บิลในเครื่องผูกกับโปรเจกต์อื่นอยู่ กรุณาดึงบิลของโปรเจกต์นี้หรือเริ่มชุดใหม่ก่อน",
+      );
+      return;
+    }
     setCloudStatus("syncing");
     setCloudMessage(null);
     const response = await authenticatedFetch(
@@ -333,6 +378,10 @@ export function useBillWorkspace(
       return;
     }
     setCloudStatus("success");
+    setWorkspace((current) => ({
+      ...current,
+      projectId: activeProject.id,
+    }));
     setCloudMessage(`ซิงก์บิลเข้าโปรเจกต์ “${activeProject.name}” แล้ว`);
   }
 
@@ -373,8 +422,17 @@ export function useBillWorkspace(
     if (current) {
       window.localStorage.setItem(billWorkspaceRestoreBackupKey, current);
     }
-    persistWorkspace(restored.audience, "user", restored.rows);
-    setWorkspace({ mode: "user", rows: restored.rows });
+    persistWorkspace(
+      restored.audience,
+      "user",
+      restored.rows,
+      activeProject.id,
+    );
+    setWorkspace({
+      mode: "user",
+      rows: restored.rows,
+      projectId: activeProject.id,
+    });
     setCloudStatus("success");
     setCloudMessage(`นำบิลจากโปรเจกต์ “${activeProject.name}” มาใช้แล้ว`);
   }
@@ -398,6 +456,11 @@ export function useBillWorkspace(
     cloudMessage,
     syncToProject,
     restoreFromProject,
+    workspaceProjectMismatch: Boolean(
+      activeProject &&
+      workspaceProjectId &&
+      workspaceProjectId !== activeProject.id,
+    ),
   };
 }
 
@@ -428,7 +491,7 @@ export function toBillInput(row: EditableBillRow): MonthlyBillInput {
 function loadStoredWorkspace(
   initialBills: MonthlyBillInput[],
   audience: AnalysisAudience,
-): { mode: BillWorkspaceMode; rows: EditableBillRow[] } {
+): EditableBillWorkspace {
   if (typeof window === "undefined")
     return createInitialWorkspace(initialBills);
 
@@ -438,16 +501,19 @@ function loadStoredWorkspace(
       return {
         mode: initialBills.length > 0 ? "user" : "empty",
         rows: initialBills.map(toEditableRow),
+        projectId: null,
       };
     const mode = getStoredWorkspaceMode(parsed, audience);
     return {
       mode,
       rows: mode === "empty" ? [] : parsed.rows!.map(sanitizeRow),
+      projectId: parsed.projectId ?? null,
     };
   } catch {
     return {
       mode: initialBills.length > 0 ? "user" : "empty",
       rows: initialBills.map(toEditableRow),
+      projectId: null,
     };
   }
 }
@@ -455,10 +521,12 @@ function loadStoredWorkspace(
 function createInitialWorkspace(initialBills: MonthlyBillInput[]): {
   mode: BillWorkspaceMode;
   rows: EditableBillRow[];
+  projectId: string | null;
 } {
   return {
     mode: initialBills.length > 0 ? "user" : "empty",
     rows: initialBills.map(toEditableRow),
+    projectId: null,
   };
 }
 
@@ -466,6 +534,7 @@ function persistWorkspace(
   audience: AnalysisAudience,
   mode: BillWorkspaceMode,
   rows: EditableBillRow[],
+  projectId: string | null,
 ) {
   window.localStorage.setItem(
     billWorkspaceStorageKey,
@@ -474,6 +543,7 @@ function persistWorkspace(
       mode,
       rows,
       updatedAt: new Date().toISOString(),
+      ...(projectId ? { projectId } : {}),
     } satisfies StoredBillWorkspace),
   );
   window.localStorage.removeItem(billReportStorageKey);

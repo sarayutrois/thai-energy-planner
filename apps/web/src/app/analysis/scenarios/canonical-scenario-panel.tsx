@@ -17,6 +17,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   hydrateLocalLoadProfileSnapshot,
   isSampleLocalLoadProfile,
+  localLoadProfileMatchesProject,
   formatLocalLoadProfileLabel,
   listDistinctLocalLoadProfileSnapshots,
   readLocalLoadProfileSnapshot,
@@ -27,10 +28,15 @@ import { authenticatedFetch } from "@/lib/auth-fetch";
 import {
   activeProjectChangedEvent,
   readActiveProject,
+  type ActiveProject,
 } from "@/lib/active-project";
 import { ScenarioView } from "./scenario-view";
 import { LocalBillResultContext } from "@/components/local-bill-result-context";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
+import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 
 export function CanonicalScenarioPanel() {
@@ -47,6 +53,9 @@ export function CanonicalScenarioPanel() {
   >("residential");
   const [showHistory, setShowHistory] = useState(false);
   const [hasBillContext, setHasBillContext] = useState(false);
+  const [activeProject, setActiveProject] = useState<ActiveProject | null>(
+    null,
+  );
 
   function refreshProfiles() {
     setProfiles(listDistinctLocalLoadProfileSnapshots());
@@ -55,9 +64,15 @@ export function CanonicalScenarioPanel() {
 
   useEffect(() => {
     refreshProfiles();
-    setHasBillContext(Boolean(readLocalBillReportSnapshot()));
     const refreshAccountProfiles = () => {
       const project = readActiveProject(window.localStorage);
+      setActiveProject(project);
+      setHasBillContext(
+        storedBillWorkspaceMatchesProject(
+          readStoredBillWorkspace(),
+          project?.id,
+        ) && Boolean(readLocalBillReportSnapshot()),
+      );
       const query = project
         ? `?projectId=${encodeURIComponent(project.id)}`
         : "";
@@ -84,7 +99,15 @@ export function CanonicalScenarioPanel() {
       );
   }, []);
 
-  const activeSnapshot = snapshot;
+  const activeSnapshot = localLoadProfileMatchesProject(
+    snapshot,
+    activeProject?.id,
+  )
+    ? snapshot
+    : null;
+  const availableProfiles = profiles.filter((profile) =>
+    localLoadProfileMatchesProject(profile, activeProject?.id),
+  );
   const profile: CanonicalLoadProfile | null =
     activeSnapshot?.canonicalProfile ?? null;
 
@@ -131,7 +154,11 @@ export function CanonicalScenarioPanel() {
     return (
       <Card className="mt-6 border-dashed">
         <CardHeader>
-          <CardTitle>ยังไม่มี Load Profile สำหรับเปรียบเทียบ</CardTitle>
+          <CardTitle>
+            {activeProject
+              ? `ยังไม่มี Load Profile ของโปรเจกต์ “${activeProject.name}” สำหรับเปรียบเทียบ`
+              : "ยังไม่มี Load Profile สำหรับเปรียบเทียบ"}
+          </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-sm leading-6 text-muted-foreground">
@@ -177,6 +204,7 @@ export function CanonicalScenarioPanel() {
                       const hydrated = hydrateLocalLoadProfileSnapshot(
                         remote.canonicalProfile,
                         remote.id,
+                        readActiveProject(window.localStorage)?.id,
                       );
                       setSnapshot(hydrated);
                       setProfiles(listDistinctLocalLoadProfileSnapshots());
@@ -252,7 +280,7 @@ export function CanonicalScenarioPanel() {
                   <RefreshCw className="h-4 w-4" />
                   รีเฟรชข้อมูลล่าสุด
                 </button>
-                {profiles.length > 1 ? (
+                {availableProfiles.length > 1 ? (
                   <button
                     className="inline-flex h-10 items-center gap-2 rounded-md border border-border bg-card px-3 text-sm font-medium hover:bg-muted"
                     type="button"
@@ -266,7 +294,7 @@ export function CanonicalScenarioPanel() {
             </div>
             {showHistory ? (
               <div className="mt-4 grid gap-2 border-t border-border pt-4">
-                {profiles.map((item) => (
+                {availableProfiles.map((item) => (
                   <button
                     key={item.id}
                     className={`flex items-center justify-between gap-3 rounded-md border p-3 text-left text-sm hover:bg-muted ${item.id === activeSnapshot.id ? "border-primary bg-primary/5" : "border-border"}`}

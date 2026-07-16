@@ -92,6 +92,7 @@ export function GuidedBillWorkspace({
     cloudMessage,
     syncToProject,
     restoreFromProject,
+    workspaceProjectMismatch,
   } = useBillWorkspace(initialBills, audience);
   const router = useRouter();
   const goal = useAnalysisGoal();
@@ -318,9 +319,11 @@ export function GuidedBillWorkspace({
                   โปรเจกต์: {activeProject.name}
                 </p>
                 <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                  {mode === "sample"
-                    ? "ข้อมูลตัวอย่างจะไม่ถูกซิงก์ เปลี่ยนเป็นบิลของคุณก่อนบันทึกเข้าบัญชี"
-                    : "ซิงก์บิลไว้ในบัญชีเพื่อเปิดต่อจากอุปกรณ์อื่น หรือดึงสำเนาล่าสุดกลับมาใช้เครื่องนี้"}
+                  {workspaceProjectMismatch
+                    ? "บิลในเครื่องเป็นของโปรเจกต์อื่น ระบบจะไม่ซิงก์ทับหรือใช้กับผล Solar ของโปรเจกต์นี้ กรุณาดึงข้อมูลจากบัญชีหรือเริ่มชุดใหม่"
+                    : mode === "sample"
+                      ? "ข้อมูลตัวอย่างจะไม่ถูกซิงก์ เปลี่ยนเป็นบิลของคุณก่อนบันทึกเข้าบัญชี"
+                      : "ซิงก์บิลไว้ในบัญชีเพื่อเปิดต่อจากอุปกรณ์อื่น หรือดึงสำเนาล่าสุดกลับมาใช้เครื่องนี้"}
                 </p>
                 {cloudMessage ? (
                   <p className="mt-1 text-xs font-medium" aria-live="polite">
@@ -331,7 +334,9 @@ export function GuidedBillWorkspace({
               <div className="flex flex-wrap gap-2">
                 <button
                   className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
-                  disabled={cloudStatus === "restoring" || cloudStatus === "syncing"}
+                  disabled={
+                    cloudStatus === "restoring" || cloudStatus === "syncing"
+                  }
                   onClick={() => void restoreFromProject()}
                   type="button"
                 >
@@ -347,6 +352,7 @@ export function GuidedBillWorkspace({
                   disabled={
                     rows.length === 0 ||
                     mode !== "user" ||
+                    workspaceProjectMismatch ||
                     cloudStatus === "restoring" ||
                     cloudStatus === "syncing"
                   }
@@ -364,7 +370,8 @@ export function GuidedBillWorkspace({
             </div>
           ) : (
             <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
-              ต้องการเปิดข้อมูลจากหลายอุปกรณ์? เลือกโปรเจกต์ในหน้า “โปรเจกต์ของฉัน” แล้วกลับมาซิงก์บิลได้
+              ต้องการเปิดข้อมูลจากหลายอุปกรณ์? เลือกโปรเจกต์ในหน้า
+              “โปรเจกต์ของฉัน” แล้วกลับมาซิงก์บิลได้
             </div>
           )}
           <div className="overflow-x-auto rounded-md border border-border">

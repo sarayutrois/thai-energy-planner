@@ -19,6 +19,10 @@ const storedBillWorkspaceSchema = z.object({
   mode: z.enum(["empty", "sample", "user"]),
   rows: z.array(storedBillRowSchema).max(maxBillRows),
   updatedAt: z.string().datetime(),
+  projectId: z
+    .string()
+    .regex(/^[a-z0-9_-]{8,160}$/i)
+    .optional(),
 });
 
 export function parseStoredBillWorkspace(
@@ -29,7 +33,11 @@ export function parseStoredBillWorkspace(
   if (parsed.data.mode === "empty" && parsed.data.rows.length > 0) return null;
   if (parsed.data.mode !== "empty" && parsed.data.rows.length === 0)
     return null;
-  return parsed.data;
+  const { projectId, ...workspace } = parsed.data;
+  return {
+    ...workspace,
+    ...(projectId ? { projectId } : {}),
+  };
 }
 
 export function readStoredBillWorkspace(): StoredBillWorkspace | null {
@@ -40,6 +48,16 @@ export function readStoredBillWorkspace(): StoredBillWorkspace | null {
   } catch {
     return null;
   }
+}
+
+export function storedBillWorkspaceMatchesProject(
+  workspace: StoredBillWorkspace | null,
+  projectId?: string,
+) {
+  if (!workspace) return false;
+  return projectId
+    ? workspace.projectId === projectId
+    : workspace.projectId === undefined;
 }
 
 export { maxBillRows };

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SolarAnalysisResult } from "@thai-energy-planner/calculation-engine";
 import { getSolarAssumptionDraft } from "./solar-assumptions";
 import {
+  clearStoredSolarAssumptions,
   deriveSolarStatus,
   getSolarBenefitBreakdown,
   persistSolarAnalysis,
@@ -135,5 +136,74 @@ describe("local solar analysis lifecycle", () => {
       billSavings: 0,
       exportRevenue: 4326.4,
     });
+  });
+
+  it("isolates assumptions between personal use and different projects", () => {
+    const storage = createMemoryStorage();
+    const personal = getSolarAssumptionDraft({ systemSizeKwp: "3" }).settings;
+    const projectA = getSolarAssumptionDraft({ systemSizeKwp: "5" }).settings;
+    const projectB = getSolarAssumptionDraft({ systemSizeKwp: "8" }).settings;
+
+    expect(persistSolarAssumptions(storage, personal)).toBe(true);
+    expect(persistSolarAssumptions(storage, projectA, "project-alpha")).toBe(
+      true,
+    );
+    expect(persistSolarAssumptions(storage, projectB, "project-bravo")).toBe(
+      true,
+    );
+
+    expect(readStoredSolarAssumptions(storage)?.systemSizeKwp).toBe(3);
+    expect(
+      readStoredSolarAssumptions(storage, "project-alpha")?.systemSizeKwp,
+    ).toBe(5);
+    expect(
+      readStoredSolarAssumptions(storage, "project-bravo")?.systemSizeKwp,
+    ).toBe(8);
+    expect(readStoredSolarAssumptions(storage, "project-empty")).toBeNull();
+
+    clearStoredSolarAssumptions(storage, "project-alpha");
+    expect(readStoredSolarAssumptions(storage, "project-alpha")).toBeNull();
+    expect(
+      readStoredSolarAssumptions(storage, "project-bravo")?.systemSizeKwp,
+    ).toBe(8);
+    expect(readStoredSolarAssumptions(storage)?.systemSizeKwp).toBe(3);
+  });
+
+  it("restores calculated results only inside their project", () => {
+    const storage = createMemoryStorage();
+    const settings = getSolarAssumptionDraft({}).settings;
+    const result = {
+      ok: true,
+      analysis: {} as SolarAnalysisResult,
+      trace: {
+        authority: "PEA",
+        customerSegment: "residential",
+        billDate: "2026-07-01",
+        inputIntervalCount: 24,
+        uploadedSolarIntervalCount: 0,
+        tariffVersionIds: ["tariff-v1"],
+        ftVersionIds: ["ft-v1"],
+        calculationEngineVersion: "engine-v1",
+        calculatedAt: "2026-07-17T12:00:00.000Z",
+        timezone: "Asia/Bangkok",
+      },
+      warnings: [],
+    } satisfies SolarCalculationSuccess;
+
+    expect(
+      persistSolarAnalysis(
+        storage,
+        {
+          profileSnapshotId: "profile-a",
+          settingsFingerprint: solarSettingsFingerprint(settings),
+          result,
+        },
+        "project-alpha",
+      ),
+    ).toBe(true);
+
+    expect(readStoredSolarAnalysis(storage, "project-alpha")).not.toBeNull();
+    expect(readStoredSolarAnalysis(storage, "project-bravo")).toBeNull();
+    expect(readStoredSolarAnalysis(storage)).toBeNull();
   });
 });

@@ -7,8 +7,11 @@ import {
   type LocalBillReportSnapshot,
 } from "@/lib/local-analysis-snapshot";
 import { calibrateLoadProfileAgainstBills } from "@thai-energy-planner/calculation-engine";
-import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
-import { isSampleLocalLoadProfile } from "@/lib/local-load-profile";
+import {
+  isSampleLocalLoadProfile,
+  localLoadProfileMatchesProject,
+  readLocalLoadProfileSnapshot,
+} from "@/lib/local-load-profile";
 import { authenticatedFetch } from "@/lib/auth-fetch";
 import {
   createAnalysisDatasetFingerprint,
@@ -18,11 +21,18 @@ import {
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
 import { readActiveProject } from "@/lib/active-project";
 import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "./local-bill-workspace";
+import {
   isLocalAnalysisReportSnapshot,
   parseProjectAnalysisReports,
 } from "./project-analysis-reports";
 
-export { parseProjectAnalysisReports } from "./project-analysis-reports";
+export {
+  localAnalysisReportMatchesProject,
+  parseProjectAnalysisReports,
+} from "./project-analysis-reports";
 
 const maxStoredReports = 12;
 
@@ -46,14 +56,18 @@ export function readLocalAnalysisReport(
   return readLocalAnalysisReports().find((report) => report.id === id) ?? null;
 }
 
-export function restoreProjectAnalysisReports(value: unknown) {
-  const remoteReports = parseProjectAnalysisReports(value);
+export function restoreProjectAnalysisReports(
+  value: unknown,
+  projectId: string,
+) {
+  const remoteReports = parseProjectAnalysisReports(value).map((report) => ({
+    ...report,
+    projectId,
+  }));
   const remoteIds = new Set(remoteReports.map((report) => report.id));
   const nextReports = [
     ...remoteReports,
-    ...readLocalAnalysisReports().filter(
-      (report) => !remoteIds.has(report.id),
-    ),
+    ...readLocalAnalysisReports().filter((report) => !remoteIds.has(report.id)),
   ].slice(0, maxStoredReports);
   window.localStorage.setItem(
     localAnalysisReportsStorageKey,
@@ -62,12 +76,21 @@ export function restoreProjectAnalysisReports(value: unknown) {
   return { restoredCount: remoteReports.length, reports: nextReports };
 }
 
-export function getCurrentAnalysisDataset(): AnalysisDatasetFingerprint | null {
+export function getCurrentAnalysisDataset(
+  projectId = readActiveProject(window.localStorage)?.id,
+): AnalysisDatasetFingerprint | null {
+  const workspace = readStoredBillWorkspace();
+  const profileSnapshot = readLocalLoadProfileSnapshot();
+  if (
+    !storedBillWorkspaceMatchesProject(workspace, projectId) ||
+    !localLoadProfileMatchesProject(profileSnapshot, projectId)
+  )
+    return null;
   const billSnapshot = readLocalBillReportSnapshot();
   if (!billSnapshot) return null;
   return createAnalysisDatasetFingerprint({
     billSnapshot,
-    profileSnapshot: readLocalLoadProfileSnapshot(),
+    profileSnapshot,
   });
 }
 
@@ -102,7 +125,7 @@ export async function persistLocalAnalysisReport(
   const response = await authenticatedFetch("/api/reports", {
     body: JSON.stringify({
       ...report,
-      projectId: readActiveProject(window.localStorage)?.id,
+      projectId: report.projectId ?? readActiveProject(window.localStorage)?.id,
     }),
     headers: { "Content-Type": "application/json" },
     method: "POST",
@@ -142,6 +165,7 @@ export function saveLocalAnalysisReport({
   sourcePath: string;
 }) {
   const now = new Date().toISOString();
+  const projectId = readActiveProject(window.localStorage)?.id;
   const profileSnapshot = readLocalLoadProfileSnapshot();
   const profile = profileSnapshot?.canonicalProfile;
   const calibration = profile
@@ -160,6 +184,7 @@ export function saveLocalAnalysisReport({
     ...draft,
     id: `${localAnalysisReportIdPrefix}${draft.module}-${Date.now()}`,
     createdAt: now,
+    ...(projectId ? { projectId } : {}),
     sourcePath,
     sourceBillReportId: localBillReportId,
     sourceBill: {

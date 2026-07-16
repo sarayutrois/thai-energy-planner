@@ -83,7 +83,8 @@ export function ProjectLoadProfileSync() {
   }, [loadProfiles]);
 
   async function restoreSelected() {
-    if (!selectedId) return;
+    const projectId = project?.id;
+    if (!selectedId || !projectId) return;
     const current = readLocalLoadProfileSnapshot();
     if (
       current &&
@@ -109,7 +110,7 @@ export function ProjectLoadProfileSync() {
       );
       const serverId = payload.profile?.id;
       if (!parsed.success || !serverId) throw new Error("invalid_profile");
-      hydrateLocalLoadProfileSnapshot(parsed.data, serverId);
+      hydrateLocalLoadProfileSnapshot(parsed.data, serverId, projectId);
       setStatus("success");
       setMessage(
         "นำ Load Profile มาใช้แล้ว ผลวิเคราะห์และรายงานจะอ้างอิงข้อมูลชุดนี้",

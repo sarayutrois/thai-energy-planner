@@ -15,6 +15,7 @@ import {
   deleteLocalAnalysisReport,
   getCurrentAnalysisDataset,
   isLocalAnalysisReportCurrent,
+  localAnalysisReportMatchesProject,
   readLocalAnalysisReports,
   restoreProjectAnalysisReports,
 } from "@/lib/local-analysis-report";
@@ -31,17 +32,20 @@ export function LocalAnalysisReportCards() {
   const [currentReportIds, setCurrentReportIds] = useState<Set<string>>(
     new Set(),
   );
-  const [activeProject, setActiveProjectState] =
-    useState<ActiveProject | null>(null);
+  const [activeProject, setActiveProjectState] = useState<ActiveProject | null>(
+    null,
+  );
   const [cloudStatus, setCloudStatus] = useState<
     "idle" | "loading" | "success" | "error"
   >("idle");
   const [cloudMessage, setCloudMessage] = useState<string | null>(null);
 
-  const refreshReports = useCallback(() => {
+  const refreshReports = useCallback((projectId?: string) => {
     try {
-      const nextReports = readLocalAnalysisReports();
-      const currentDataset = getCurrentAnalysisDataset();
+      const nextReports = readLocalAnalysisReports().filter((report) =>
+        localAnalysisReportMatchesProject(report, projectId),
+      );
+      const currentDataset = getCurrentAnalysisDataset(projectId);
       setReports(nextReports);
       setCurrentReportIds(
         new Set(
@@ -59,9 +63,11 @@ export function LocalAnalysisReportCards() {
   }, []);
 
   useEffect(() => {
-    refreshReports();
-    const refreshProject = () =>
-      setActiveProjectState(readActiveProject(window.localStorage));
+    const refreshProject = () => {
+      const project = readActiveProject(window.localStorage);
+      setActiveProjectState(project);
+      refreshReports(project?.id);
+    };
     refreshProject();
     window.addEventListener(activeProjectChangedEvent, refreshProject);
     return () =>
@@ -85,8 +91,8 @@ export function LocalAnalysisReportCards() {
       return;
     }
     const payload = (await response.json()) as unknown;
-    const result = restoreProjectAnalysisReports(payload);
-    refreshReports();
+    const result = restoreProjectAnalysisReports(payload, activeProject.id);
+    refreshReports(activeProject.id);
     setCloudStatus("success");
     setCloudMessage(
       result.restoredCount > 0
@@ -106,7 +112,9 @@ export function LocalAnalysisReportCards() {
                 ประวัติของโปรเจกต์: {activeProject.name}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                ดึงรายงานที่เคยบันทึกในบัญชีมาเปิดทบทวนจากอุปกรณ์นี้ หากต้องการส่งออกให้ใช้บิลและ Load Profile ชุดเดียวกับตอนสร้างรายงาน
+                ดึงรายงานที่เคยบันทึกในบัญชีมาเปิดทบทวนจากอุปกรณ์นี้
+                หากต้องการส่งออกให้ใช้บิลและ Load Profile
+                ชุดเดียวกับตอนสร้างรายงาน
               </p>
               {cloudMessage ? (
                 <p className="mt-1 text-sm font-medium" aria-live="polite">
@@ -134,101 +142,108 @@ export function LocalAnalysisReportCards() {
       {reports.length === 0 ? null : (
         <div className="grid gap-4 xl:grid-cols-2">
           {reports.map((report) => (
-        <Card
-          key={report.id}
-          className={`flex h-full flex-col ${currentReportIds.has(report.id) ? "border-success/35" : "border-warning/40"}`}
-        >
-          <CardHeader>
-            <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
-              <div>
-                <CardTitle className="flex items-center gap-2">
-                  <FileText
-                    aria-hidden="true"
-                    className="h-5 w-5 text-primary"
+            <Card
+              key={report.id}
+              className={`flex h-full flex-col ${currentReportIds.has(report.id) ? "border-success/35" : "border-warning/40"}`}
+            >
+              <CardHeader>
+                <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                  <div>
+                    <CardTitle className="flex items-center gap-2">
+                      <FileText
+                        aria-hidden="true"
+                        className="h-5 w-5 text-primary"
+                      />
+                      {report.title}
+                    </CardTitle>
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">
+                      {report.summary}
+                    </p>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <Badge
+                      variant={
+                        currentReportIds.has(report.id) ? "success" : "warning"
+                      }
+                    >
+                      {currentReportIds.has(report.id)
+                        ? "ข้อมูลปัจจุบัน"
+                        : "ผลลัพธ์ล้าสมัย"}
+                    </Badge>
+                    <Badge variant="outline">{report.moduleLabel}</Badge>
+                    {report.sourceProfile?.isSample ? (
+                      <Badge variant="warning">ข้อมูลตัวอย่าง</Badge>
+                    ) : null}
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="grid flex-1 gap-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <Metric
+                    label="สร้างเมื่อ"
+                    value={new Date(report.createdAt).toLocaleDateString(
+                      "th-TH",
+                    )}
                   />
-                  {report.title}
-                </CardTitle>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  {report.summary}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge
-                  variant={
-                    currentReportIds.has(report.id) ? "success" : "warning"
-                  }
-                >
-                  {currentReportIds.has(report.id)
-                    ? "ข้อมูลปัจจุบัน"
-                    : "ผลลัพธ์ล้าสมัย"}
-                </Badge>
-                <Badge variant="outline">{report.moduleLabel}</Badge>
-                {report.sourceProfile?.isSample ? (
-                  <Badge variant="warning">ข้อมูลตัวอย่าง</Badge>
+                  <Metric
+                    label="บิลต้นทาง"
+                    value={`${report.sourceBill.monthCount} เดือน`}
+                  />
+                  <Metric
+                    label="คุณภาพข้อมูล"
+                    value={report.sourceBill.dataQualityLabel}
+                  />
+                </div>
+                {report.sourceProfile ? (
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
+                    <p className="font-semibold">
+                      ข้อมูลการใช้ไฟ: {report.sourceProfile.name}
+                    </p>
+                    <p className="mt-1 text-muted-foreground">
+                      {formatProfileSource(report.sourceProfile.sourceKind)} ·{" "}
+                      {report.sourceProfile.intervalCount.toLocaleString(
+                        "th-TH",
+                      )}{" "}
+                      ช่วงข้อมูล ·{" "}
+                      {formatQuality(report.sourceProfile.qualityLevel)}
+                    </p>
+                    {report.billCalibration ? (
+                      <p className="mt-2 text-muted-foreground">
+                        เปรียบเทียบกับบิล{" "}
+                        {report.billCalibration.comparedMonthCount} เดือน,
+                        ส่วนต่าง{" "}
+                        {report.billCalibration.varianceKwh.toLocaleString(
+                          "th-TH",
+                        )}{" "}
+                        kWh
+                      </p>
+                    ) : null}
+                  </div>
                 ) : null}
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="grid flex-1 gap-4">
-            <div className="grid gap-3 md:grid-cols-3">
-              <Metric
-                label="สร้างเมื่อ"
-                value={new Date(report.createdAt).toLocaleDateString("th-TH")}
-              />
-              <Metric
-                label="บิลต้นทาง"
-                value={`${report.sourceBill.monthCount} เดือน`}
-              />
-              <Metric
-                label="คุณภาพข้อมูล"
-                value={report.sourceBill.dataQualityLabel}
-              />
-            </div>
-            {report.sourceProfile ? (
-              <div className="rounded-md border border-primary/30 bg-primary/5 p-4 text-sm">
-                <p className="font-semibold">
-                  ข้อมูลการใช้ไฟ: {report.sourceProfile.name}
-                </p>
-                <p className="mt-1 text-muted-foreground">
-                  {formatProfileSource(report.sourceProfile.sourceKind)} ·{" "}
-                  {report.sourceProfile.intervalCount.toLocaleString("th-TH")}{" "}
-                  ช่วงข้อมูล ·{" "}
-                  {formatQuality(report.sourceProfile.qualityLevel)}
-                </p>
-                {report.billCalibration ? (
-                  <p className="mt-2 text-muted-foreground">
-                    เปรียบเทียบกับบิล{" "}
-                    {report.billCalibration.comparedMonthCount} เดือน, ส่วนต่าง{" "}
-                    {report.billCalibration.varianceKwh.toLocaleString("th-TH")}{" "}
-                    kWh
-                  </p>
-                ) : null}
-              </div>
-            ) : null}
-            <div className="flex flex-wrap gap-2">
-              <a
-                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
-                href={`/analysis/reports/${report.id}`}
-              >
-                เปิดรายงานนี้
-                <ArrowRight aria-hidden="true" className="h-4 w-4" />
-              </a>
-              <button
-                className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
-                onClick={() => {
-                  deleteLocalAnalysisReport(report.id);
-                  setReports((current) =>
-                    current.filter((item) => item.id !== report.id),
-                  );
-                }}
-                type="button"
-              >
-                ลบรายงาน
-                <Trash2 aria-hidden="true" className="h-4 w-4" />
-              </button>
-            </div>
-          </CardContent>
-        </Card>
+                <div className="flex flex-wrap gap-2">
+                  <a
+                    className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground transition hover:-translate-y-0.5 hover:bg-primary/92 focus:outline-none focus:ring-2 focus:ring-ring"
+                    href={`/analysis/reports/${report.id}`}
+                  >
+                    เปิดรายงานนี้
+                    <ArrowRight aria-hidden="true" className="h-4 w-4" />
+                  </a>
+                  <button
+                    className="inline-flex h-10 w-fit items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                    onClick={() => {
+                      deleteLocalAnalysisReport(report.id);
+                      setReports((current) =>
+                        current.filter((item) => item.id !== report.id),
+                      );
+                    }}
+                    type="button"
+                  >
+                    ลบรายงาน
+                    <Trash2 aria-hidden="true" className="h-4 w-4" />
+                  </button>
+                </div>
+              </CardContent>
+            </Card>
           ))}
         </div>
       )}

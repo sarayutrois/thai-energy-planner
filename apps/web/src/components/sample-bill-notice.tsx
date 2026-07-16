@@ -2,7 +2,10 @@
 
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
+import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
 import {
   billReportStorageKey,
   billWorkspaceStorageKey,
@@ -10,13 +13,18 @@ import {
 import {
   clearSampleLocalLoadProfiles,
   isSampleLocalLoadProfile,
+  localLoadProfileMatchesProject,
   readLocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
 import {
   analysisStorageChangedEvent,
   announceAnalysisStorageChanged,
 } from "@/lib/analysis-storage";
-import { solarAnalysisStorageKey } from "@/lib/local-solar-analysis";
+import { clearStoredSolarAnalysis } from "@/lib/local-solar-analysis";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+} from "@/lib/active-project";
 
 export function SampleBillNotice() {
   const [hasSampleBills, setHasSampleBills] = useState(false);
@@ -24,10 +32,16 @@ export function SampleBillNotice() {
 
   const refresh = useCallback(() => {
     try {
+      const projectId = readActiveProject(window.localStorage)?.id;
       const workspace = readStoredBillWorkspace();
-      setHasSampleBills(workspace?.mode === "sample");
+      setHasSampleBills(
+        workspace?.mode === "sample" &&
+          storedBillWorkspaceMatchesProject(workspace, projectId),
+      );
+      const profile = readLocalLoadProfileSnapshot();
       setHasSampleProfile(
-        isSampleLocalLoadProfile(readLocalLoadProfileSnapshot()),
+        localLoadProfileMatchesProject(profile, projectId) &&
+          isSampleLocalLoadProfile(profile),
       );
     } catch {
       setHasSampleBills(false);
@@ -38,8 +52,11 @@ export function SampleBillNotice() {
   useEffect(() => {
     refresh();
     window.addEventListener(analysisStorageChangedEvent, refresh);
-    return () =>
+    window.addEventListener(activeProjectChangedEvent, refresh);
+    return () => {
       window.removeEventListener(analysisStorageChangedEvent, refresh);
+      window.removeEventListener(activeProjectChangedEvent, refresh);
+    };
   }, [refresh]);
 
   if (!hasSampleBills && !hasSampleProfile) return null;
@@ -51,7 +68,10 @@ export function SampleBillNotice() {
     }
     if (hasSampleProfile) {
       clearSampleLocalLoadProfiles();
-      window.localStorage.removeItem(solarAnalysisStorageKey);
+      clearStoredSolarAnalysis(
+        window.localStorage,
+        readActiveProject(window.localStorage)?.id,
+      );
     }
     announceAnalysisStorageChanged();
     refresh();

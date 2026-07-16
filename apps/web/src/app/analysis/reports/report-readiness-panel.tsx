@@ -6,13 +6,24 @@ import { FileWarning } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { type LocalAnalysisReportSnapshot } from "@/lib/local-analysis-snapshot";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
+import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
 import {
   getCurrentAnalysisDataset,
   isLocalAnalysisReportCurrent,
+  localAnalysisReportMatchesProject,
   readLocalAnalysisReports,
 } from "@/lib/local-analysis-report";
-import { readLocalLoadProfileSnapshot } from "@/lib/local-load-profile";
+import {
+  localLoadProfileMatchesProject,
+  readLocalLoadProfileSnapshot,
+} from "@/lib/local-load-profile";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+} from "@/lib/active-project";
 import {
   canExportCurrentReport,
   getReportReadinessStatus,
@@ -53,58 +64,74 @@ export function ReportReadinessPanel() {
   const [selectedReportId, setSelectedReportId] = useState("");
 
   useEffect(() => {
-    try {
-      const workspace = readStoredBillWorkspace();
-      const bills = workspace?.mode === "user" ? (workspace.rows ?? []) : [];
-      const validBills = bills.filter(
-        (bill) =>
-          /^\d{4}-(0[1-9]|1[0-2])$/.test(bill.month) &&
-          Number(bill.energyKwh) > 0 &&
-          Number(bill.totalCostThb) > 0,
-      );
-      const profile = readLocalLoadProfileSnapshot();
-      const reports = readLocalAnalysisReports();
-      const currentDataset = getCurrentAnalysisDataset();
-      const currentReports = reports.filter((report) =>
-        isLocalAnalysisReportCurrent(report, currentDataset),
-      );
-      const staleReports = reports.filter(
-        (report) => !isLocalAnalysisReportCurrent(report, currentDataset),
-      );
-      const hasScenario = currentReports.some(
-        (report) => report.module === "scenario",
-      );
-      const hasSolar = currentReports.some(
-        (report) => report.module === "solar",
-      );
-      const hasVerifiedResult = currentReports.length > 0;
-      setStaleModules([
-        ...new Set(staleReports.map((report) => report.moduleLabel)),
-      ]);
-      const prioritizedReports = [...currentReports].sort((left, right) => {
-        const preferred = goalGuidance.preferredReportModule;
-        if (!preferred) return 0;
-        return (
-          Number(right.module === preferred) - Number(left.module === preferred)
+    const refresh = () => {
+      try {
+        const projectId = readActiveProject(window.localStorage)?.id;
+        const workspace = readStoredBillWorkspace();
+        const bills =
+          workspace?.mode === "user" &&
+          storedBillWorkspaceMatchesProject(workspace, projectId)
+            ? (workspace.rows ?? [])
+            : [];
+        const validBills = bills.filter(
+          (bill) =>
+            /^\d{4}-(0[1-9]|1[0-2])$/.test(bill.month) &&
+            Number(bill.energyKwh) > 0 &&
+            Number(bill.totalCostThb) > 0,
         );
-      });
-      setExportReports(prioritizedReports);
-      setSelectedReportId(prioritizedReports[0]?.id ?? "");
-      setReadiness({
-        hasBills: validBills.length > 0,
-        billMonthCount: validBills.length,
-        hasLoadProfile: Boolean(profile?.canonicalProfile),
-        hasScenario,
-        hasSolar,
-        hasTariffTrace: hasScenario || hasSolar,
-        hasVerifiedResult,
-      });
-    } catch {
-      setReadiness(emptyReadiness);
-      setStaleModules([]);
-      setExportReports([]);
-      setSelectedReportId("");
-    }
+        const localProfile = readLocalLoadProfileSnapshot();
+        const profile = localLoadProfileMatchesProject(localProfile, projectId)
+          ? localProfile
+          : null;
+        const reports = readLocalAnalysisReports().filter((report) =>
+          localAnalysisReportMatchesProject(report, projectId),
+        );
+        const currentDataset = getCurrentAnalysisDataset(projectId);
+        const currentReports = reports.filter((report) =>
+          isLocalAnalysisReportCurrent(report, currentDataset),
+        );
+        const staleReports = reports.filter(
+          (report) => !isLocalAnalysisReportCurrent(report, currentDataset),
+        );
+        const hasScenario = currentReports.some(
+          (report) => report.module === "scenario",
+        );
+        const hasSolar = currentReports.some(
+          (report) => report.module === "solar",
+        );
+        const hasVerifiedResult = currentReports.length > 0;
+        setStaleModules([
+          ...new Set(staleReports.map((report) => report.moduleLabel)),
+        ]);
+        const prioritizedReports = [...currentReports].sort((left, right) => {
+          const preferred = goalGuidance.preferredReportModule;
+          if (!preferred) return 0;
+          return (
+            Number(right.module === preferred) -
+            Number(left.module === preferred)
+          );
+        });
+        setExportReports(prioritizedReports);
+        setSelectedReportId(prioritizedReports[0]?.id ?? "");
+        setReadiness({
+          hasBills: validBills.length > 0,
+          billMonthCount: validBills.length,
+          hasLoadProfile: Boolean(profile?.canonicalProfile),
+          hasScenario,
+          hasSolar,
+          hasTariffTrace: hasScenario || hasSolar,
+          hasVerifiedResult,
+        });
+      } catch {
+        setReadiness(emptyReadiness);
+        setStaleModules([]);
+        setExportReports([]);
+        setSelectedReportId("");
+      }
+    };
+    refresh();
+    window.addEventListener(activeProjectChangedEvent, refresh);
+    return () => window.removeEventListener(activeProjectChangedEvent, refresh);
   }, [goalGuidance.preferredReportModule]);
 
   const status = useMemo(

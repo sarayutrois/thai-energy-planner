@@ -19,6 +19,8 @@ const analysisStorageKeys = [
   analysisReportsKey,
   "thai-energy-planner.solar-assumptions.v1",
   "thai-energy-planner.solar-analysis.v1",
+  "thai-energy-planner.solar-assumptions-by-project.v1",
+  "thai-energy-planner.solar-analysis-by-project.v1",
   "thai-energy-planner.battery-mvp.v1",
   "thai-energy-planner.ev-mvp.v1",
   "thai-energy-planner.ecosystem-mvp.v1",
@@ -1128,6 +1130,108 @@ test("project Load Profile can be restored to another device", async ({
   await expect(
     page.getByRole("button", { name: "นำมาใช้ในอุปกรณ์นี้" }),
   ).toBeVisible();
+
+  await page.evaluate((key) => {
+    window.localStorage.setItem(
+      key,
+      JSON.stringify({
+        id: "project-other",
+        name: "บ้านอีกหลัง",
+        updatedAt: "2026-07-17T00:00:00.000Z",
+      }),
+    );
+    window.dispatchEvent(
+      new Event("thai-energy-planner:active-project-changed"),
+    );
+  }, activeProjectKey);
+  await page.goto("/analysis/solar");
+  await expect(
+    page.getByRole("heading", {
+      name: "เลือก Load Profile ของโปรเจกต์ “บ้านอีกหลัง”",
+    }),
+  ).toBeVisible();
+});
+
+test("Solar assumptions stay isolated when switching projects", async ({
+  page,
+}) => {
+  const setProject = async (id: string, name: string) => {
+    await page.evaluate(
+      ({ key, resumeKey, project }) => {
+        window.localStorage.setItem(key, JSON.stringify(project));
+        window.sessionStorage.setItem(resumeKey, "continue");
+        window.dispatchEvent(
+          new Event("thai-energy-planner:active-project-changed"),
+        );
+      },
+      {
+        key: activeProjectKey,
+        resumeKey: analysisResumeKey,
+        project: {
+          id,
+          name,
+          updatedAt: "2026-07-17T00:00:00.000Z",
+        },
+      },
+    );
+  };
+
+  await setProject("project-alpha", "บ้าน A");
+  await page.goto("/analysis/solar/config");
+  await expect(
+    page.getByText("โปรเจกต์ บ้าน A", { exact: true }),
+  ).toBeVisible();
+  await page.getByLabel("Solar size (kWp)").fill("5.5");
+  await page
+    .getByRole("button", {
+      name: "บันทึกสมมติฐานและกลับไปตรวจข้อมูล",
+    })
+    .click();
+  await page.waitForURL("**/analysis/solar");
+
+  await setProject("project-bravo", "บ้าน B");
+  await page.goto("/analysis/solar/config");
+  await expect(
+    page.getByText("โปรเจกต์ บ้าน B", { exact: true }),
+  ).toBeVisible();
+  await expect(page.getByLabel("Solar size (kWp)")).not.toHaveValue("5.5");
+  await page.getByLabel("Solar size (kWp)").fill("8.5");
+  await page
+    .getByRole("button", {
+      name: "บันทึกสมมติฐานและกลับไปตรวจข้อมูล",
+    })
+    .click();
+  await page.waitForURL("**/analysis/solar");
+
+  const storedSizes = await page.evaluate(() => {
+    const raw = window.localStorage.getItem(
+      "thai-energy-planner.solar-assumptions-by-project.v1",
+    );
+    const parsed = JSON.parse(raw ?? "null") as {
+      entries?: Record<string, { settings?: { systemSizeKwp?: number } }>;
+    } | null;
+    return {
+      alpha: parsed?.entries?.["project-alpha"]?.settings?.systemSizeKwp,
+      bravo: parsed?.entries?.["project-bravo"]?.settings?.systemSizeKwp,
+      personal: window.localStorage.getItem(
+        "thai-energy-planner.solar-assumptions.v1",
+      ),
+    };
+  });
+  expect(storedSizes).toEqual({ alpha: 5.5, bravo: 8.5, personal: null });
+
+  await setProject("project-alpha", "บ้าน A");
+  await page.goto("/analysis/solar/config");
+  await expect(page.getByLabel("Solar size (kWp)")).toHaveValue("5.5");
+  await page.setViewportSize({ width: 390, height: 844 });
+  await expect(
+    page.getByText("โปรเจกต์ บ้าน A", { exact: true }),
+  ).toBeVisible();
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth <= window.innerWidth,
+    ),
+  ).toBe(true);
 });
 
 test("Solar web-vital endpoint accepts only anonymous allow-listed metrics", async ({

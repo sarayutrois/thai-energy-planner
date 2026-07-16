@@ -38,6 +38,15 @@ export function parseProjectAnalysisReports(
   return restored.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
 
+export function localAnalysisReportMatchesProject(
+  report: LocalAnalysisReportSnapshot,
+  projectId?: string,
+) {
+  return projectId
+    ? report.projectId === projectId
+    : report.projectId === undefined;
+}
+
 export function isLocalAnalysisReportSnapshot(
   value: unknown,
 ): value is LocalAnalysisReportSnapshot {
@@ -49,6 +58,8 @@ export function isLocalAnalysisReportSnapshot(
     report.id.startsWith(localAnalysisReportIdPrefix) &&
     typeof report.createdAt === "string" &&
     Number.isFinite(Date.parse(report.createdAt)) &&
+    (report.projectId === undefined ||
+      /^[a-z0-9_-]{8,160}$/i.test(report.projectId)) &&
     ["scenario", "solar", "battery", "ev", "ecosystem"].includes(
       report.module ?? "",
     ) &&

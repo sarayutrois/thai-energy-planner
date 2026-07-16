@@ -11,10 +11,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
+  localLoadProfileMatchesProject,
   readLocalLoadProfileSnapshot,
   type LocalLoadProfileSnapshot,
 } from "@/lib/local-load-profile";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
+import {
+  readStoredBillWorkspace,
+  storedBillWorkspaceMatchesProject,
+} from "@/lib/local-bill-workspace";
 import type { SolarAssumptionSettings } from "@/lib/solar-assumptions";
 import {
   compactSolarCalculationSuccess,
@@ -35,6 +39,11 @@ import {
   buildSolarSystemRecommendation,
   type SolarSystemRecommendation,
 } from "@/lib/solar-system-recommendation";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+  type ActiveProject,
+} from "@/lib/active-project";
 
 type SolarAnalyzeResponse =
   | SolarCalculationSuccess
@@ -63,6 +72,9 @@ export function SolarApiRuntimePanel({
   const [storageError, setStorageError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [activeProject, setActiveProject] = useState<ActiveProject | null>(
+    null,
+  );
 
   const runAnalysis = useCallback(
     async (profileSnapshot: LocalLoadProfileSnapshot) => {
@@ -74,8 +86,8 @@ export function SolarApiRuntimePanel({
         solarApiTimeoutMs,
       );
       try {
-        const monthlyBills = readSavedBills();
-        const billAuthority = readSavedBillAuthority();
+        const monthlyBills = readSavedBills(activeProject?.id);
+        const billAuthority = readSavedBillAuthority(activeProject?.id);
         const response = await fetch("/api/solar/analyze", {
           method: "POST",
           signal: controller.signal,
@@ -132,11 +144,15 @@ export function SolarApiRuntimePanel({
         if (!response.ok || !result.ok)
           throw new Error(result.ok ? "" : result.error);
         setCalculatedResult(result);
-        const persisted = persistSolarAnalysis(window.localStorage, {
-          profileSnapshotId: profileSnapshot.id,
-          settingsFingerprint: solarSettingsFingerprint(activeSettings),
-          result: compactSolarCalculationSuccess(result),
-        });
+        const persisted = persistSolarAnalysis(
+          window.localStorage,
+          {
+            profileSnapshotId: profileSnapshot.id,
+            settingsFingerprint: solarSettingsFingerprint(activeSettings),
+            result: compactSolarCalculationSuccess(result),
+          },
+          activeProject?.id,
+        );
         setStorageError(
           persisted
             ? null
@@ -156,29 +172,52 @@ export function SolarApiRuntimePanel({
         setIsLoading(false);
       }
     },
-    [activeSettings],
+    [activeProject?.id, activeSettings],
   );
 
   useEffect(() => {
-    const restoredSettings = preferInitialSettings
-      ? settings
-      : (readStoredSolarAssumptions(window.localStorage) ?? settings);
-    const restoredSnapshot = readLocalLoadProfileSnapshot();
-    const storedResult = readStoredSolarAnalysis(window.localStorage);
-    setActiveSettings(restoredSettings);
-    setSnapshot(restoredSnapshot);
-    setCalculatedResult(
-      restoredSnapshot &&
-        storedResult &&
-        storedSolarAnalysisMatches(
-          storedResult,
-          restoredSnapshot.id,
-          restoredSettings,
-        )
-        ? storedResult.result
-        : null,
-    );
-    setIsHydrated(true);
+    const restoreProjectState = () => {
+      const project = readActiveProject(window.localStorage);
+      const restoredSettings = preferInitialSettings
+        ? settings
+        : (readStoredSolarAssumptions(window.localStorage, project?.id) ??
+          settings);
+      const localSnapshot = readLocalLoadProfileSnapshot();
+      const restoredSnapshot = localLoadProfileMatchesProject(
+        localSnapshot,
+        project?.id,
+      )
+        ? localSnapshot
+        : null;
+      const storedResult = readStoredSolarAnalysis(
+        window.localStorage,
+        project?.id,
+      );
+      setActiveProject(project);
+      setActiveSettings(restoredSettings);
+      setSnapshot(restoredSnapshot);
+      setCalculatedResult(
+        restoredSnapshot &&
+          storedResult &&
+          storedSolarAnalysisMatches(
+            storedResult,
+            restoredSnapshot.id,
+            restoredSettings,
+          )
+          ? storedResult.result
+          : null,
+      );
+      setError(null);
+      setStorageError(null);
+      setIsHydrated(true);
+    };
+    restoreProjectState();
+    window.addEventListener(activeProjectChangedEvent, restoreProjectState);
+    return () =>
+      window.removeEventListener(
+        activeProjectChangedEvent,
+        restoreProjectState,
+      );
   }, [preferInitialSettings, settings]);
 
   if (!isHydrated)
@@ -214,7 +253,13 @@ export function SolarApiRuntimePanel({
       ),
     };
     setActiveSettings(nextSettings);
-    if (!persistSolarAssumptions(window.localStorage, nextSettings))
+    if (
+      !persistSolarAssumptions(
+        window.localStorage,
+        nextSettings,
+        activeProject?.id,
+      )
+    )
       setStorageError(
         "บันทึกคำตอบเรื่องไฟสำรองในอุปกรณ์นี้ไม่ได้ กรุณาลองอีกครั้ง",
       );
@@ -227,21 +272,27 @@ export function SolarApiRuntimePanel({
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileUp className="h-5 w-5 text-primary" />
-            เพิ่มข้อมูลก่อนเริ่มประเมิน Solar
+            {activeProject
+              ? `เลือก Load Profile ของโปรเจกต์ “${activeProject.name}”`
+              : "เพิ่มข้อมูลก่อนเริ่มประเมิน Solar"}
           </CardTitle>
         </CardHeader>
         <CardContent className="flex flex-col gap-3 text-sm leading-6 text-muted-foreground">
           <p>
-            ระบบจะไม่สร้างผลลัพธ์จากค่าตัวอย่างให้โดยอัตโนมัติ
-            กรุณาสร้างหรือนำเข้า Load Profile ก่อน
-            แล้วกลับมาตรวจข้อมูลและกดเริ่มประเมินด้วยตัวเอง
+            {activeProject
+              ? "Load Profile ที่อยู่ในอุปกรณ์นี้ไม่ได้ผูกกับโปรเจกต์ที่กำลังใช้ กรุณาดึงข้อมูลของโปรเจกต์มาก่อนเพื่อป้องกันการคำนวณข้ามโปรเจกต์"
+              : "ระบบจะไม่สร้างผลลัพธ์จากค่าตัวอย่างให้โดยอัตโนมัติ กรุณาสร้างหรือนำเข้า Load Profile ก่อน แล้วกลับมาตรวจข้อมูลและกดเริ่มประเมินด้วยตัวเอง"}
           </p>
           <div className="flex flex-wrap gap-2">
             <a
               className="inline-flex h-10 items-center rounded-md bg-primary px-4 font-medium text-primary-foreground hover:bg-primary/90"
-              href="/analysis/load-data/appliances"
+              href={
+                activeProject
+                  ? "/analysis/load-data/dashboard"
+                  : "/analysis/load-data/appliances"
+              }
             >
-              สร้าง Load Profile
+              {activeProject ? "เลือกข้อมูลของโปรเจกต์" : "สร้าง Load Profile"}
             </a>
             <a
               className="inline-flex h-10 items-center rounded-md border border-border bg-card px-4 font-medium text-foreground hover:bg-muted"
@@ -254,7 +305,7 @@ export function SolarApiRuntimePanel({
       </Card>
     );
 
-  const hasBills = readSavedBills().length > 0;
+  const hasBills = readSavedBills(activeProject?.id).length > 0;
   const dataStatus = getSolarDataStatus(snapshot, hasBills);
   const systemRecommendation = calculatedResult
     ? buildSolarSystemRecommendation({
@@ -293,6 +344,11 @@ export function SolarApiRuntimePanel({
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
+            {activeProject ? (
+              <Badge variant="information">โปรเจกต์ {activeProject.name}</Badge>
+            ) : (
+              <Badge variant="outline">วิเคราะห์ส่วนตัว</Badge>
+            )}
             <Badge variant={status === "calculated" ? "success" : "outline"}>
               {solarStatusLabel(status)}
             </Badge>
@@ -865,9 +921,13 @@ function getSolarDataStatus(
   if (hasBills) return { label: "ข้อมูลประมาณการจากบิล", warning: true };
   return { label: "ข้อมูลยังไม่เพียงพอ", warning: true };
 }
-function readSavedBills() {
+function readSavedBills(projectId?: string) {
   const workspace = readStoredBillWorkspace();
-  if (workspace?.mode !== "user") return [];
+  if (
+    workspace?.mode !== "user" ||
+    !storedBillWorkspaceMatchesProject(workspace, projectId)
+  )
+    return [];
   return workspace.rows
     .map((row) => ({ month: row.month, billThb: Number(row.totalCostThb) }))
     .filter(
@@ -878,15 +938,20 @@ function readSavedBills() {
     )
     .slice(0, 12);
 }
-function readSavedBillAuthority(): "PEA" | "MEA" | undefined {
+function readSavedBillAuthority(projectId?: string): "PEA" | "MEA" | undefined {
   const workspace = readStoredBillWorkspace();
-  if (workspace?.mode !== "user") return undefined;
+  if (
+    workspace?.mode !== "user" ||
+    !storedBillWorkspaceMatchesProject(workspace, projectId)
+  )
+    return undefined;
   const authorities = workspace.rows.map((row) => row.authority);
   return authorities.length > 0 &&
     authorities.every((authority) => authority === authorities[0])
     ? authorities[0]
     : undefined;
 }
+
 function sourceStatus(status: "demo" | "draft" | "verified" | "published") {
   return status === "published" || status === "verified"
     ? "ข้อมูลอ้างอิง"

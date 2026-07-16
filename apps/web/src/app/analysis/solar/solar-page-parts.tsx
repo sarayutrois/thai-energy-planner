@@ -35,6 +35,11 @@ import {
 } from "@/lib/solar-readiness-copy";
 import { PageHeader } from "@/components/ui/page-layout";
 import { DecisionStory } from "@/components/decision-story";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+  type ActiveProject,
+} from "@/lib/active-project";
 
 type SavedBillContext = {
   audience?: string | undefined;
@@ -131,18 +136,36 @@ export function SolarControls({
   >(preferInitialSettings ? "explicit" : "system");
   const [storageError, setStorageError] = useState<string | null>(null);
   const [isHydrated, setIsHydrated] = useState(false);
+  const [activeProject, setActiveProject] = useState<ActiveProject | null>(
+    null,
+  );
 
   useEffect(() => {
-    if (preferInitialSettings) {
-      setFormSettings(settings);
-      setSettingsSource("explicit");
+    const restoreProjectSettings = () => {
+      const project = readActiveProject(window.localStorage);
+      setActiveProject(project);
+      if (preferInitialSettings) {
+        setFormSettings(settings);
+        setSettingsSource("explicit");
+        setIsHydrated(true);
+        return;
+      }
+      const stored = readStoredSolarAssumptions(
+        window.localStorage,
+        project?.id,
+      );
+      setFormSettings(stored ?? settings);
+      setSettingsSource(stored ? "stored" : "system");
+      setStorageError(null);
       setIsHydrated(true);
-      return;
-    }
-    const stored = readStoredSolarAssumptions(window.localStorage);
-    setFormSettings(stored ?? settings);
-    setSettingsSource(stored ? "stored" : "system");
-    setIsHydrated(true);
+    };
+    restoreProjectSettings();
+    window.addEventListener(activeProjectChangedEvent, restoreProjectSettings);
+    return () =>
+      window.removeEventListener(
+        activeProjectChangedEvent,
+        restoreProjectSettings,
+      );
   }, [preferInitialSettings, settings]);
 
   function submitAssumptions(event: FormEvent<HTMLFormElement>) {
@@ -154,7 +177,13 @@ export function SolarControls({
       ),
     );
     const nextSettings = getSolarAssumptionDraft(params).settings;
-    if (!persistSolarAssumptions(window.localStorage, nextSettings)) {
+    if (
+      !persistSolarAssumptions(
+        window.localStorage,
+        nextSettings,
+        activeProject?.id,
+      )
+    ) {
       setStorageError(
         "บันทึกสมมติฐานในอุปกรณ์นี้ไม่ได้ กรุณาตรวจพื้นที่จัดเก็บหรือการตั้งค่าความเป็นส่วนตัวแล้วลองใหม่",
       );
@@ -171,7 +200,7 @@ export function SolarControls({
   }
 
   function restoreSystemDefaults() {
-    clearStoredSolarAssumptions(window.localStorage);
+    clearStoredSolarAssumptions(window.localStorage, activeProject?.id);
     setFormSettings(getSolarAssumptionDraft({}).settings);
     setSettingsSource("system");
     setStorageError(null);
@@ -192,6 +221,11 @@ export function SolarControls({
         <div className="mb-4 rounded-md border border-information/40 bg-information/10 p-3 text-sm leading-6">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="information">ค่าเริ่มต้นของระบบ</Badge>
+            {activeProject ? (
+              <Badge variant="outline">โปรเจกต์ {activeProject.name}</Badge>
+            ) : (
+              <Badge variant="outline">วิเคราะห์ส่วนตัว</Badge>
+            )}
             <span className="font-medium">
               สมมติฐาน Solar แยกจากข้อมูลการใช้ไฟของคุณ
             </span>
@@ -274,8 +308,8 @@ export function SolarControls({
           <div className="rounded-md border border-primary/30 bg-primary/5 p-3 text-sm leading-6 md:col-span-2 xl:col-span-4">
             <p className="font-semibold">ต้องการไฟสำรองหรือไม่</p>
             <p className="text-muted-foreground">
-              คำตอบนี้ใช้เลือกระหว่าง On-grid กับ Hybrid
-              โดยไม่เอาความคุ้มค่าของ Solar ไปปนกับมูลค่าไฟสำรอง
+              คำตอบนี้ใช้เลือกระหว่าง On-grid กับ Hybrid โดยไม่เอาความคุ้มค่าของ
+              Solar ไปปนกับมูลค่าไฟสำรอง
             </p>
           </div>
           <Field label="เป้าหมายไฟสำรอง">
