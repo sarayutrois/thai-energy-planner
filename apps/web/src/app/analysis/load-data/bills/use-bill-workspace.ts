@@ -14,7 +14,19 @@ import {
   getStoredWorkspaceMode,
   sampleHomeBills,
 } from "./bill-workspace-state";
-import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
+import {
+  parseStoredBillWorkspace,
+  readStoredBillWorkspace,
+} from "@/lib/local-bill-workspace";
+import { authenticatedFetch } from "@/lib/auth-fetch";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+  type ActiveProject,
+} from "@/lib/active-project";
+
+const billWorkspaceRestoreBackupKey =
+  "thai-energy-planner.bill-workspace.before-cloud-restore.v1";
 
 function useDebouncedEffect(
   callback: () => void,
@@ -69,6 +81,12 @@ export function useBillWorkspace(
     createInitialWorkspace(initialBills),
   );
   const [hasHydrated, setHasHydrated] = useState(false);
+  const [activeProject, setActiveProjectState] =
+    useState<ActiveProject | null>(null);
+  const [cloudStatus, setCloudStatus] = useState<
+    "idle" | "syncing" | "restoring" | "success" | "error"
+  >("idle");
+  const [cloudMessage, setCloudMessage] = useState<string | null>(null);
   const { mode, rows } = workspace;
   const [saveStatus, setSaveStatus] = useState("บันทึกในเครื่องอัตโนมัติ");
 
@@ -76,6 +94,14 @@ export function useBillWorkspace(
     setWorkspace(loadStoredWorkspace(initialBills, audience));
     setHasHydrated(true);
   }, [audience, initialBills]);
+
+  useEffect(() => {
+    const refresh = () =>
+      setActiveProjectState(readActiveProject(window.localStorage));
+    refresh();
+    window.addEventListener(activeProjectChangedEvent, refresh);
+    return () => window.removeEventListener(activeProjectChangedEvent, refresh);
+  }, []);
 
   useDebouncedEffect(
     () => {
@@ -280,6 +306,79 @@ export function useBillWorkspace(
     }
   }
 
+  async function syncToProject() {
+    if (!activeProject || mode !== "user" || rows.length === 0) return;
+    setCloudStatus("syncing");
+    setCloudMessage(null);
+    const response = await authenticatedFetch(
+      `/api/projects/${activeProject.id}/bills`,
+      {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          audience,
+          mode,
+          rows,
+          updatedAt: new Date().toISOString(),
+        }),
+      },
+    ).catch(() => null);
+    if (!response?.ok) {
+      setCloudStatus("error");
+      setCloudMessage(
+        response?.status === 400
+          ? "ตรวจข้อมูลบิลให้ครบก่อนซิงก์เข้าบัญชี"
+          : "ซิงก์บิลไม่สำเร็จ กรุณาลองใหม่",
+      );
+      return;
+    }
+    setCloudStatus("success");
+    setCloudMessage(`ซิงก์บิลเข้าโปรเจกต์ “${activeProject.name}” แล้ว`);
+  }
+
+  async function restoreFromProject() {
+    if (!activeProject) return;
+    setCloudStatus("restoring");
+    setCloudMessage(null);
+    const response = await authenticatedFetch(
+      `/api/projects/${activeProject.id}/bills`,
+    ).catch(() => null);
+    if (!response?.ok) {
+      setCloudStatus("error");
+      setCloudMessage("ดึงบิลจากโปรเจกต์ไม่สำเร็จ กรุณาลองใหม่");
+      return;
+    }
+    const payload = (await response.json()) as { workspace?: unknown };
+    if (payload.workspace === null) {
+      setCloudStatus("idle");
+      setCloudMessage("โปรเจกต์นี้ยังไม่มีบิลที่ซิงก์ไว้");
+      return;
+    }
+    const restored = parseStoredBillWorkspace(payload.workspace);
+    if (!restored) {
+      setCloudStatus("error");
+      setCloudMessage("ข้อมูลบิลในบัญชีไม่อยู่ในรูปแบบที่รองรับ");
+      return;
+    }
+    if (
+      rows.length > 0 &&
+      !window.confirm(
+        "นำบิลจากโปรเจกต์มาแทนข้อมูลในเครื่องตอนนี้หรือไม่? ระบบจะเก็บสำเนาข้อมูลเดิมไว้ในเครื่องก่อน",
+      )
+    ) {
+      setCloudStatus("idle");
+      return;
+    }
+    const current = window.localStorage.getItem(billWorkspaceStorageKey);
+    if (current) {
+      window.localStorage.setItem(billWorkspaceRestoreBackupKey, current);
+    }
+    persistWorkspace(restored.audience, "user", restored.rows);
+    setWorkspace({ mode: "user", rows: restored.rows });
+    setCloudStatus("success");
+    setCloudMessage(`นำบิลจากโปรเจกต์ “${activeProject.name}” มาใช้แล้ว`);
+  }
+
   return {
     rows,
     mode,
@@ -294,6 +393,11 @@ export function useBillWorkspace(
     exportWorkspaceCsv,
     importWorkspace,
     upsertRow,
+    activeProject,
+    cloudStatus,
+    cloudMessage,
+    syncToProject,
+    restoreFromProject,
   };
 }
 

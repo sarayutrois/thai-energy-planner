@@ -875,6 +875,33 @@ test("project workspaces require a signed-in owner", async ({
   });
   expect([401, 503]).toContain(createResponse.status());
 
+  const projectBillsResponse = await request.get(
+    "/api/projects/project-owner-check/bills",
+  );
+  expect([401, 503]).toContain(projectBillsResponse.status());
+
+  const saveProjectBillsResponse = await request.put(
+    "/api/projects/project-owner-check/bills",
+    {
+      data: {
+        audience: "home",
+        mode: "user",
+        updatedAt: "2026-07-17T00:00:00.000Z",
+        rows: [
+          {
+            id: "bill-1",
+            month: "2026-06",
+            energyKwh: "450",
+            totalCostThb: "1900",
+            authority: "PEA",
+            meterMode: "normal",
+          },
+        ],
+      },
+    },
+  );
+  expect([401, 503]).toContain(saveProjectBillsResponse.status());
+
   await page.route("**/api/projects", (route) =>
     route.fulfill({
       status: 401,

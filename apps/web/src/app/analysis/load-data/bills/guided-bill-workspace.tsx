@@ -3,10 +3,13 @@
 import {
   AlertTriangle,
   ArrowRight,
+  Cloud,
   Download,
   FileText,
+  LoaderCircle,
   Plus,
   ReceiptText,
+  RefreshCw,
   RotateCcw,
   Trash2,
   Upload,
@@ -84,6 +87,11 @@ export function GuidedBillWorkspace({
     exportWorkspaceCsv,
     importWorkspace,
     upsertRow,
+    activeProject,
+    cloudStatus,
+    cloudMessage,
+    syncToProject,
+    restoreFromProject,
   } = useBillWorkspace(initialBills, audience);
   const router = useRouter();
   const goal = useAnalysisGoal();
@@ -302,6 +310,63 @@ export function GuidedBillWorkspace({
           </div>
         </CardHeader>
         <CardContent className="grid gap-4">
+          {activeProject ? (
+            <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-primary/5 p-4 sm:flex-row sm:items-center sm:justify-between">
+              <div className="min-w-0">
+                <p className="flex items-center gap-2 text-sm font-semibold">
+                  <Cloud aria-hidden="true" className="h-4 w-4 text-primary" />
+                  โปรเจกต์: {activeProject.name}
+                </p>
+                <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                  {mode === "sample"
+                    ? "ข้อมูลตัวอย่างจะไม่ถูกซิงก์ เปลี่ยนเป็นบิลของคุณก่อนบันทึกเข้าบัญชี"
+                    : "ซิงก์บิลไว้ในบัญชีเพื่อเปิดต่อจากอุปกรณ์อื่น หรือดึงสำเนาล่าสุดกลับมาใช้เครื่องนี้"}
+                </p>
+                {cloudMessage ? (
+                  <p className="mt-1 text-xs font-medium" aria-live="polite">
+                    {cloudMessage}
+                  </p>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  className="inline-flex h-9 items-center gap-2 rounded-lg border border-border bg-card px-3 text-sm font-medium hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={cloudStatus === "restoring" || cloudStatus === "syncing"}
+                  onClick={() => void restoreFromProject()}
+                  type="button"
+                >
+                  {cloudStatus === "restoring" ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <RefreshCw className="h-4 w-4" />
+                  )}
+                  ดึงจากบัญชี
+                </button>
+                <button
+                  className="inline-flex h-9 items-center gap-2 rounded-lg bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 disabled:cursor-not-allowed disabled:opacity-50"
+                  disabled={
+                    rows.length === 0 ||
+                    mode !== "user" ||
+                    cloudStatus === "restoring" ||
+                    cloudStatus === "syncing"
+                  }
+                  onClick={() => void syncToProject()}
+                  type="button"
+                >
+                  {cloudStatus === "syncing" ? (
+                    <LoaderCircle className="h-4 w-4 animate-spin" />
+                  ) : (
+                    <Cloud className="h-4 w-4" />
+                  )}
+                  ซิงก์บิลเข้าบัญชี
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed p-3 text-sm text-muted-foreground">
+              ต้องการเปิดข้อมูลจากหลายอุปกรณ์? เลือกโปรเจกต์ในหน้า “โปรเจกต์ของฉัน” แล้วกลับมาซิงก์บิลได้
+            </div>
+          )}
           <div className="overflow-x-auto rounded-md border border-border">
             <table className="w-full min-w-[900px] border-collapse text-left text-sm">
               <thead className="bg-muted text-muted-foreground">
