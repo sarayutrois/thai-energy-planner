@@ -106,7 +106,7 @@ export function LocalAnalysisReportCards() {
                 ประวัติของโปรเจกต์: {activeProject.name}
               </p>
               <p className="mt-1 text-sm leading-6 text-muted-foreground">
-                ดึงรายงานที่เคยบันทึกในบัญชีมาเปิดหรือส่งออกจากอุปกรณ์นี้
+                ดึงรายงานที่เคยบันทึกในบัญชีมาเปิดทบทวนจากอุปกรณ์นี้ หากต้องการส่งออกให้ใช้บิลและ Load Profile ชุดเดียวกับตอนสร้างรายงาน
               </p>
               {cloudMessage ? (
                 <p className="mt-1 text-sm font-medium" aria-live="polite">
