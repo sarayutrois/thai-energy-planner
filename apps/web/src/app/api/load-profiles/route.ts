@@ -8,6 +8,11 @@ import { requireAuthenticatedUser } from "@/lib/supabase-server";
 
 const requestSchema = z.object({
   profile: CanonicalLoadProfileSchema,
+  projectId: z
+    .string()
+    .trim()
+    .regex(/^[a-z0-9_-]{8,160}$/i)
+    .optional(),
 });
 
 const sourceByKind = {
@@ -24,8 +29,12 @@ export async function GET(request: Request) {
   if (auth.response) return auth.response;
 
   try {
+    const projectId = new URL(request.url).searchParams.get("projectId");
     const profiles = await prisma.loadProfile.findMany({
-      where: { userId: auth.user.id },
+      where: {
+        userId: auth.user.id,
+        ...(projectId ? { meter: { is: { siteId: projectId } } } : {}),
+      },
       orderBy: { updatedAt: "desc" },
       take: 50,
       select: {
@@ -87,6 +96,36 @@ export async function POST(request: Request) {
     );
   }
   try {
+    let meterId: string | undefined;
+    if (parsed.data.projectId) {
+      const project = await prisma.site.findFirst({
+        where: {
+          id: parsed.data.projectId,
+          organization: { is: { ownerId: auth.user.id } },
+        },
+        select: { id: true, authority: true },
+      });
+      if (!project) {
+        return NextResponse.json(
+          { ok: false, error: "Project not found." },
+          { status: 404 },
+        );
+      }
+      const meter = await prisma.meter.upsert({
+        where: {
+          siteId_name: { siteId: project.id, name: "มิเตอร์หลัก" },
+        },
+        create: {
+          siteId: project.id,
+          name: "มิเตอร์หลัก",
+          authority: project.authority ?? "PEA",
+          mode: "NORMAL",
+        },
+        update: {},
+        select: { id: true },
+      });
+      meterId = meter.id;
+    }
     const validationSummary = JSON.parse(
       JSON.stringify({
         schemaVersion: profile.schemaVersion,
@@ -99,6 +138,7 @@ export async function POST(request: Request) {
     const saved = await prisma.loadProfile.create({
       data: {
         userId: auth.user.id,
+        ...(meterId ? { meterId } : {}),
         name: profile.name,
         source: sourceByKind[profile.source.kind],
         intervalMinutes: profile.intervalMinutes,

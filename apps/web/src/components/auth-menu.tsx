@@ -44,11 +44,15 @@ export function AuthMenu() {
           ? "สร้างบัญชีแล้ว กรุณายืนยันอีเมลก่อนเข้าสู่ระบบ"
           : "เข้าสู่ระบบแล้ว",
     );
-    if (!result.error && mode === "signIn") setOpen(false);
+    if (!result.error && mode === "signIn") {
+      setOpen(false);
+      window.dispatchEvent(new Event("thai-energy-planner:auth-changed"));
+    }
   }
 
   async function signOut() {
     await getSupabaseBrowserClient()?.auth.signOut();
+    window.dispatchEvent(new Event("thai-energy-planner:auth-changed"));
     setOpen(false);
   }
 

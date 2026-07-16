@@ -16,6 +16,7 @@ import {
   type AnalysisDatasetFingerprint,
 } from "@/lib/local-analysis-dataset";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
+import { readActiveProject } from "@/lib/active-project";
 
 const maxStoredReports = 12;
 
@@ -77,7 +78,10 @@ export async function persistLocalAnalysisReport(
   if (report.serverGeneratedReportId) return report;
 
   const response = await authenticatedFetch("/api/reports", {
-    body: JSON.stringify(report),
+    body: JSON.stringify({
+      ...report,
+      projectId: readActiveProject(window.localStorage)?.id,
+    }),
     headers: { "Content-Type": "application/json" },
     method: "POST",
   });

@@ -863,6 +863,35 @@ test("experimental server APIs stay behind the unavailable boundary", async ({
   }
 });
 
+test("project workspaces require a signed-in owner", async ({
+  page,
+  request,
+}) => {
+  const listResponse = await request.get("/api/projects");
+  expect([401, 503]).toContain(listResponse.status());
+
+  const createResponse = await request.post("/api/projects", {
+    data: { name: "บ้านของฉัน", customerSegment: "RESIDENTIAL" },
+  });
+  expect([401, 503]).toContain(createResponse.status());
+
+  await page.route("**/api/projects", (route) =>
+    route.fulfill({
+      status: 401,
+      contentType: "application/json",
+      body: JSON.stringify({ ok: false, error: "Authentication required." }),
+    }),
+  );
+  await page.goto("/analysis/projects");
+  await expect(
+    page.getByRole("heading", { name: "จัดการโปรเจกต์พลังงาน" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "เข้าสู่ระบบก่อนสร้างหลายโปรเจกต์" }),
+  ).toBeVisible();
+  await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
+});
+
 test("Solar web-vital endpoint accepts only anonymous allow-listed metrics", async ({
   request,
 }) => {

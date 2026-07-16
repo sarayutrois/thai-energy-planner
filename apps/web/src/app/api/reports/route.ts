@@ -47,6 +47,11 @@ const localReportPayloadSchema = z
     limitations: z.array(jsonValueSchema).max(50).optional(),
     references: z.array(jsonValueSchema).max(50).optional(),
     reportAccessToken: z.string().uuid(),
+    projectId: z
+      .string()
+      .trim()
+      .regex(/^[a-z0-9_-]{8,160}$/i)
+      .optional(),
   })
   .strict();
 
@@ -110,12 +115,28 @@ export async function POST(request: Request) {
   const payload: LocalReportPayload = parsed.data;
 
   try {
+    if (payload.projectId) {
+      const project = await prisma.site.findFirst({
+        where: {
+          id: payload.projectId,
+          organization: { is: { ownerId: auth.user.id } },
+        },
+        select: { id: true },
+      });
+      if (!project) {
+        return NextResponse.json(
+          { ok: false, error: "Project not found." },
+          { status: 404 },
+        );
+      }
+    }
     const jsonPayload = JSON.parse(
       JSON.stringify(payload),
     ) as Prisma.InputJsonObject;
     const analysisRun = await prisma.analysisRun.create({
       data: {
         userId: auth.user.id,
+        ...(payload.projectId ? { siteId: payload.projectId } : {}),
         name: payload.title,
         engineVersion: "0.1.0",
         tariffSnapshot: {

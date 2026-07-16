@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import {
   BatteryCharging,
+  Building2,
   Calculator,
   CarFront,
   ChevronRight,
@@ -23,6 +24,8 @@ import {
   StartNewAnalysisButton,
 } from "@/components/analysis-session-dialog";
 import { SampleBillNotice } from "@/components/sample-bill-notice";
+import { AuthMenu } from "@/components/auth-menu";
+import { ActiveProjectIndicator } from "@/components/active-project-indicator";
 
 type NavigationItem = {
   label: string;
@@ -38,6 +41,11 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
   {
     label: "ข้อมูลของฉัน",
     items: [
+      {
+        label: "โปรเจกต์ของฉัน",
+        href: "/analysis/projects",
+        icon: Building2,
+      },
       {
         label: "บิลและรูปแบบการใช้ไฟ",
         href: "/analysis/load-data",
@@ -74,6 +82,7 @@ const navigationGroups: Array<{ label: string; items: NavigationItem[] }> = [
 ];
 
 const breadcrumbLabels: Array<{ href: string; label: string }> = [
+  { href: "/analysis/projects", label: "โปรเจกต์ของฉัน" },
   { href: "/analysis/load-data/appliances", label: "สร้างรูปแบบการใช้ไฟ" },
   { href: "/analysis/load-data/dashboard", label: "ตรวจสอบข้อมูล" },
   { href: "/analysis/load-data/bills", label: "บิลค่าไฟ" },
@@ -223,9 +232,13 @@ export function AppHeader() {
           </nav>
           <div className="flex items-center gap-2">
             {pathname.startsWith("/analysis") ? (
+              <ActiveProjectIndicator />
+            ) : null}
+            {pathname.startsWith("/analysis") ? (
               <StartNewAnalysisButton />
             ) : null}
             <ThemeToggle />
+            <AuthMenu />
             <Link
               className="hidden h-9 items-center justify-center rounded-full bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-sm transition hover:-translate-y-0.5 hover:bg-primary/90 hover:shadow-md sm:inline-flex"
               href="/analysis/new"

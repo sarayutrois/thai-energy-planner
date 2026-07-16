@@ -9,6 +9,7 @@ import {
   type LoadProfileSourceKind,
 } from "@thai-energy-planner/shared-types";
 import { authenticatedFetch } from "./auth-fetch";
+import { readActiveProject } from "./active-project";
 
 export const localLoadProfileStorageKey = "thai-energy-planner.load-profile.v1";
 export const localLoadProfilesStorageKey =
@@ -105,7 +106,10 @@ export async function persistLocalLoadProfile(
   const response = await authenticatedFetch("/api/load-profiles", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ profile: snapshot.canonicalProfile }),
+    body: JSON.stringify({
+      profile: snapshot.canonicalProfile,
+      projectId: readActiveProject(window.localStorage)?.id,
+    }),
   }).catch(() => null);
   if (!response?.ok) {
     return {
