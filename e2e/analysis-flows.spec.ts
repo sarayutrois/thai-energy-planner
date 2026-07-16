@@ -275,11 +275,10 @@ test("home hero uses the Solar footage with an accessible playback control", asy
 });
 
 test.describe("home hero reduced motion", () => {
-  test.use({ reducedMotion: "reduce" });
-
   test("keeps the Solar poster and manual playback available", async ({
     page,
   }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/");
     const video = page.getByTestId("solar-hero-video");
     await expect(video).toBeVisible();
