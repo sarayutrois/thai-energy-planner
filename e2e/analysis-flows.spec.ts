@@ -6,6 +6,8 @@ const billWorkspaceKey = "thai-energy-planner.bill-workspace.v1";
 const applianceWorkspaceKey = "thai-energy-planner.appliance-workspace.v3";
 const analysisGoalKey = "thai-energy-planner.analysis-goal.v1";
 const analysisResumeKey = "thai-energy-planner.analysis-resume-choice.v1";
+const activeProjectKey = "thai-energy-planner.active-project.v1";
+const analysisReportsKey = "thai-energy-planner.analysis-reports.v1";
 const analysisStorageKeys = [
   analysisGoalKey,
   billWorkspaceKey,
@@ -14,7 +16,7 @@ const analysisStorageKeys = [
   "thai-energy-planner.load-profile.v1",
   "thai-energy-planner.load-profiles.v1",
   "thai-energy-planner.active-load-profile.v1",
-  "thai-energy-planner.analysis-reports.v1",
+  analysisReportsKey,
   "thai-energy-planner.solar-assumptions.v1",
   "thai-energy-planner.solar-analysis.v1",
   "thai-energy-planner.battery-mvp.v1",
@@ -25,11 +27,16 @@ const analysisStorageKeys = [
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await page.evaluate(
-    ({ keys, resumeKey }) => {
+    ({ keys, resumeKey, projectKey }) => {
       keys.forEach((key) => window.localStorage.removeItem(key));
+      window.localStorage.removeItem(projectKey);
       window.sessionStorage.removeItem(resumeKey);
     },
-    { keys: analysisStorageKeys, resumeKey: analysisResumeKey },
+    {
+      keys: analysisStorageKeys,
+      resumeKey: analysisResumeKey,
+      projectKey: activeProjectKey,
+    },
   );
   await page.reload();
 });
@@ -880,6 +887,11 @@ test("project workspaces require a signed-in owner", async ({
   );
   expect([401, 503]).toContain(projectBillsResponse.status());
 
+  const projectReportsResponse = await request.get(
+    "/api/projects/project-owner-check/reports",
+  );
+  expect([401, 503]).toContain(projectReportsResponse.status());
+
   const saveProjectBillsResponse = await request.put(
     "/api/projects/project-owner-check/bills",
     {
@@ -917,6 +929,75 @@ test("project workspaces require a signed-in owner", async ({
     page.getByRole("heading", { name: "เข้าสู่ระบบก่อนสร้างหลายโปรเจกต์" }),
   ).toBeVisible();
   await expect(page.getByRole("button", { name: "เข้าสู่ระบบ" })).toBeVisible();
+});
+
+test("project report history can be restored to another device", async ({
+  page,
+}) => {
+  await page.route("**/api/projects/project-test/reports", (route) =>
+    route.fulfill({
+      status: 200,
+      contentType: "application/json",
+      body: JSON.stringify({
+        ok: true,
+        reports: [
+          {
+            id: "generated-report-1",
+            analysisRunId: "analysis-run-1",
+            generatedAt: "2026-07-17T00:00:00.000Z",
+            metadata: {
+              id: "local-analysis-solar-remote",
+              createdAt: "2026-07-17T00:00:00.000Z",
+              module: "solar",
+              moduleLabel: "Solar",
+              title: "รายงาน Solar จากโปรเจกต์",
+              summary: "ผลวิเคราะห์ที่บันทึกไว้ในบัญชี",
+              metrics: [],
+              assumptions: [],
+              resultRows: [],
+              recommendations: [],
+              sourcePath: "/analysis/solar",
+              sourceBillReportId: "local-bill-summary",
+              sourceBill: {
+                audience: "home",
+                monthCount: 12,
+                totalKwh: 6000,
+                averageMonthlyCostThb: 2000,
+                dataQualityLabel: "ดี",
+              },
+            },
+          },
+        ],
+      }),
+    }),
+  );
+  await page.evaluate(
+    ({ key, project }) =>
+      window.localStorage.setItem(key, JSON.stringify(project)),
+    {
+      key: activeProjectKey,
+      project: {
+        id: "project-test",
+        name: "บ้านทดสอบ",
+        updatedAt: "2026-07-17T00:00:00.000Z",
+      },
+    },
+  );
+  await page.goto("/analysis/reports");
+  await page.getByRole("button", { name: "โหลดประวัติรายงาน" }).click();
+  await expect(
+    page.getByRole("heading", { name: "รายงาน Solar จากโปรเจกต์" }),
+  ).toBeVisible();
+  await expect
+    .poll(() =>
+      page.evaluate((key) => {
+        const reports = JSON.parse(
+          window.localStorage.getItem(key) ?? "[]",
+        ) as Array<{ serverGeneratedReportId?: string }>;
+        return reports[0]?.serverGeneratedReportId;
+      }, analysisReportsKey),
+    )
+    .toBe("generated-report-1");
 });
 
 test("Solar web-vital endpoint accepts only anonymous allow-listed metrics", async ({

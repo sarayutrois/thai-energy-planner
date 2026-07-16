@@ -1,7 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ArrowRight, FileText, Trash2 } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+import {
+  ArrowRight,
+  Cloud,
+  FileText,
+  LoaderCircle,
+  RefreshCw,
+  Trash2,
+} from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -9,16 +16,29 @@ import {
   getCurrentAnalysisDataset,
   isLocalAnalysisReportCurrent,
   readLocalAnalysisReports,
+  restoreProjectAnalysisReports,
 } from "@/lib/local-analysis-report";
 import type { LocalAnalysisReportSnapshot } from "@/lib/local-analysis-snapshot";
+import { authenticatedFetch } from "@/lib/auth-fetch";
+import {
+  activeProjectChangedEvent,
+  readActiveProject,
+  type ActiveProject,
+} from "@/lib/active-project";
 
 export function LocalAnalysisReportCards() {
   const [reports, setReports] = useState<LocalAnalysisReportSnapshot[]>([]);
   const [currentReportIds, setCurrentReportIds] = useState<Set<string>>(
     new Set(),
   );
+  const [activeProject, setActiveProjectState] =
+    useState<ActiveProject | null>(null);
+  const [cloudStatus, setCloudStatus] = useState<
+    "idle" | "loading" | "success" | "error"
+  >("idle");
+  const [cloudMessage, setCloudMessage] = useState<string | null>(null);
 
-  useEffect(() => {
+  const refreshReports = useCallback(() => {
     try {
       const nextReports = readLocalAnalysisReports();
       const currentDataset = getCurrentAnalysisDataset();
@@ -38,11 +58,82 @@ export function LocalAnalysisReportCards() {
     }
   }, []);
 
-  if (reports.length === 0) return null;
+  useEffect(() => {
+    refreshReports();
+    const refreshProject = () =>
+      setActiveProjectState(readActiveProject(window.localStorage));
+    refreshProject();
+    window.addEventListener(activeProjectChangedEvent, refreshProject);
+    return () =>
+      window.removeEventListener(activeProjectChangedEvent, refreshProject);
+  }, [refreshReports]);
+
+  async function restoreFromProject() {
+    if (!activeProject) return;
+    setCloudStatus("loading");
+    setCloudMessage(null);
+    const response = await authenticatedFetch(
+      `/api/projects/${activeProject.id}/reports`,
+    ).catch(() => null);
+    if (!response?.ok) {
+      setCloudStatus("error");
+      setCloudMessage(
+        response?.status === 401
+          ? "เข้าสู่ระบบอีกครั้งเพื่อดูรายงานของโปรเจกต์"
+          : "โหลดประวัติรายงานไม่สำเร็จ กรุณาลองใหม่",
+      );
+      return;
+    }
+    const payload = (await response.json()) as unknown;
+    const result = restoreProjectAnalysisReports(payload);
+    refreshReports();
+    setCloudStatus("success");
+    setCloudMessage(
+      result.restoredCount > 0
+        ? `นำรายงาน ${result.restoredCount} รายการจาก “${activeProject.name}” มาไว้ในเครื่องแล้ว`
+        : `โปรเจกต์ “${activeProject.name}” ยังไม่มีรายงานที่บันทึกในบัญชี`,
+    );
+  }
 
   return (
-    <div className="grid gap-4 xl:grid-cols-2">
-      {reports.map((report) => (
+    <div className="grid gap-4">
+      {activeProject ? (
+        <Card className="border-primary/30 bg-primary/5">
+          <CardContent className="flex flex-col gap-3 pt-6 sm:flex-row sm:items-center sm:justify-between">
+            <div>
+              <p className="flex items-center gap-2 font-semibold">
+                <Cloud aria-hidden="true" className="h-4 w-4 text-primary" />
+                ประวัติของโปรเจกต์: {activeProject.name}
+              </p>
+              <p className="mt-1 text-sm leading-6 text-muted-foreground">
+                ดึงรายงานที่เคยบันทึกในบัญชีมาเปิดหรือส่งออกจากอุปกรณ์นี้
+              </p>
+              {cloudMessage ? (
+                <p className="mt-1 text-sm font-medium" aria-live="polite">
+                  {cloudMessage}
+                </p>
+              ) : null}
+            </div>
+            <button
+              className="inline-flex h-10 shrink-0 items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 text-sm font-medium transition hover:bg-muted disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={cloudStatus === "loading"}
+              onClick={() => void restoreFromProject()}
+              type="button"
+            >
+              {cloudStatus === "loading" ? (
+                <LoaderCircle className="h-4 w-4 animate-spin" />
+              ) : (
+                <RefreshCw className="h-4 w-4" />
+              )}
+              โหลดประวัติรายงาน
+            </button>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {reports.length === 0 ? null : (
+        <div className="grid gap-4 xl:grid-cols-2">
+          {reports.map((report) => (
         <Card
           key={report.id}
           className={`flex h-full flex-col ${currentReportIds.has(report.id) ? "border-success/35" : "border-warning/40"}`}
@@ -138,7 +229,9 @@ export function LocalAnalysisReportCards() {
             </div>
           </CardContent>
         </Card>
-      ))}
+          ))}
+        </div>
+      )}
     </div>
   );
 }

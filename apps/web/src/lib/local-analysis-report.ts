@@ -17,6 +17,12 @@ import {
 } from "@/lib/local-analysis-dataset";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
 import { readActiveProject } from "@/lib/active-project";
+import {
+  isLocalAnalysisReportSnapshot,
+  parseProjectAnalysisReports,
+} from "./project-analysis-reports";
+
+export { parseProjectAnalysisReports } from "./project-analysis-reports";
 
 const maxStoredReports = 12;
 
@@ -38,6 +44,22 @@ export function readLocalAnalysisReport(
   id: string,
 ): LocalAnalysisReportSnapshot | null {
   return readLocalAnalysisReports().find((report) => report.id === id) ?? null;
+}
+
+export function restoreProjectAnalysisReports(value: unknown) {
+  const remoteReports = parseProjectAnalysisReports(value);
+  const remoteIds = new Set(remoteReports.map((report) => report.id));
+  const nextReports = [
+    ...remoteReports,
+    ...readLocalAnalysisReports().filter(
+      (report) => !remoteIds.has(report.id),
+    ),
+  ].slice(0, maxStoredReports);
+  window.localStorage.setItem(
+    localAnalysisReportsStorageKey,
+    JSON.stringify(nextReports),
+  );
+  return { restoredCount: remoteReports.length, reports: nextReports };
 }
 
 export function getCurrentAnalysisDataset(): AnalysisDatasetFingerprint | null {
@@ -184,23 +206,6 @@ export function saveLocalAnalysisReport({
     JSON.stringify(nextReports),
   );
   return report;
-}
-
-function isLocalAnalysisReportSnapshot(
-  value: unknown,
-): value is LocalAnalysisReportSnapshot {
-  if (!value || typeof value !== "object") return false;
-  const report = value as Partial<LocalAnalysisReportSnapshot>;
-  return (
-    typeof report.id === "string" &&
-    report.id.startsWith(localAnalysisReportIdPrefix) &&
-    typeof report.createdAt === "string" &&
-    typeof report.title === "string" &&
-    Array.isArray(report.metrics) &&
-    Array.isArray(report.assumptions) &&
-    Array.isArray(report.resultRows) &&
-    Array.isArray(report.recommendations)
-  );
 }
 
 async function persistUserSubmission(report: LocalAnalysisReportSnapshot) {

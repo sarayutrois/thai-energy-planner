@@ -1,0 +1,102 @@
+import {
+  localAnalysisReportIdPrefix,
+  type LocalAnalysisReportSnapshot,
+} from "./local-analysis-snapshot";
+
+const maxProjectReports = 12;
+
+type ProjectReportRecord = {
+  id: string;
+  analysisRunId: string;
+  metadata: LocalAnalysisReportSnapshot;
+};
+
+export function parseProjectAnalysisReports(
+  value: unknown,
+): LocalAnalysisReportSnapshot[] {
+  if (!value || typeof value !== "object") return [];
+  const records = (value as { reports?: unknown }).reports;
+  if (!Array.isArray(records)) return [];
+
+  const restored: LocalAnalysisReportSnapshot[] = [];
+  for (const value of records.slice(0, maxProjectReports)) {
+    if (!value || typeof value !== "object") continue;
+    const record = value as Partial<ProjectReportRecord>;
+    if (
+      typeof record.id !== "string" ||
+      typeof record.analysisRunId !== "string" ||
+      !isLocalAnalysisReportSnapshot(record.metadata)
+    ) {
+      continue;
+    }
+    restored.push({
+      ...record.metadata,
+      serverGeneratedReportId: record.id,
+      serverAnalysisRunId: record.analysisRunId,
+    });
+  }
+  return restored.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+}
+
+export function isLocalAnalysisReportSnapshot(
+  value: unknown,
+): value is LocalAnalysisReportSnapshot {
+  if (!value || typeof value !== "object") return false;
+  const report = value as Partial<LocalAnalysisReportSnapshot>;
+  const sourceBill = report.sourceBill;
+  return (
+    typeof report.id === "string" &&
+    report.id.startsWith(localAnalysisReportIdPrefix) &&
+    typeof report.createdAt === "string" &&
+    Number.isFinite(Date.parse(report.createdAt)) &&
+    ["scenario", "solar", "battery", "ev", "ecosystem"].includes(
+      report.module ?? "",
+    ) &&
+    typeof report.moduleLabel === "string" &&
+    typeof report.title === "string" &&
+    typeof report.summary === "string" &&
+    typeof report.sourcePath === "string" &&
+    report.sourceBillReportId === "local-bill-summary" &&
+    isSourceBill(sourceBill) &&
+    isMetricArray(report.metrics) &&
+    isMetricArray(report.assumptions) &&
+    Array.isArray(report.resultRows) &&
+    report.resultRows.every(isRecord) &&
+    Array.isArray(report.recommendations) &&
+    report.recommendations.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.title === "string" &&
+        typeof item.description === "string",
+    )
+  );
+}
+
+function isSourceBill(
+  value: LocalAnalysisReportSnapshot["sourceBill"] | undefined,
+) {
+  return (
+    isRecord(value) &&
+    ["home", "shop", "business"].includes(String(value.audience)) &&
+    typeof value.monthCount === "number" &&
+    typeof value.totalKwh === "number" &&
+    typeof value.averageMonthlyCostThb === "number" &&
+    typeof value.dataQualityLabel === "string"
+  );
+}
+
+function isMetricArray(value: unknown) {
+  return (
+    Array.isArray(value) &&
+    value.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.label === "string" &&
+        typeof item.value === "string",
+    )
+  );
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
