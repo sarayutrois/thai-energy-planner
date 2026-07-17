@@ -158,9 +158,9 @@ export function AnalysisProgress() {
   return (
     <aside
       aria-label="ความคืบหน้าการวิเคราะห์"
-      className="border-b border-border bg-background"
+      className="overflow-x-hidden border-b border-border bg-background"
     >
-      <div className="mx-auto w-full max-w-7xl px-4 py-3 md:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-7xl px-4 py-3 md:px-6">
         <div className="flex items-center justify-between gap-4">
           <p className="shrink-0 text-xs font-semibold text-foreground">
             แผนวิเคราะห์ของคุณ
@@ -170,7 +170,7 @@ export function AnalysisProgress() {
           </p>
         </div>
         <ol
-          className="mt-3 grid grid-flow-col auto-cols-[minmax(9rem,1fr)] gap-2 overflow-x-auto pb-1"
+          className="mt-3 grid min-w-0 max-w-full grid-flow-col auto-cols-[minmax(9rem,1fr)] gap-2 overflow-x-auto pb-1"
           aria-label="ขั้นตอนการวิเคราะห์"
         >
           {steps.map((step, index) => {

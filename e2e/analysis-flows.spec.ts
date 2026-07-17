@@ -786,6 +786,49 @@ test("the guided journey creates a load profile before collecting bills", async 
   );
 });
 
+test("appliance schedules stay compact and expand one item at a time", async ({
+  page,
+}) => {
+  await page.goto("/analysis/load-data/appliances");
+  await page
+    .getByRole("button", {
+      name: "บ้านเล็ก 1 ห้องนอน แอร์ 1 เครื่อง ตู้เย็น ทีวี ไฟ และเครื่องครัวพื้นฐาน",
+    })
+    .click();
+
+  await expect(
+    page.getByRole("button", {
+      name: "ซ่อนเวลาใช้งานของ เครื่องปรับอากาศ Inverter 12,000 BTU",
+    }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(
+    page.getByRole("button", { name: "แก้เวลาใช้งานของ ตู้เย็น" }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByText("ทุกวัน · ตลอดวัน", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /^จ: กำลังใช้งาน/ }),
+  ).toHaveCount(1);
+
+  await page.getByRole("button", { name: "แก้เวลาใช้งานของ ตู้เย็น" }).click();
+  await expect(
+    page.getByRole("button", {
+      name: "แก้เวลาใช้งานของ เครื่องปรับอากาศ Inverter 12,000 BTU",
+    }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await expect(
+    page.getByRole("button", { name: "ซ่อนเวลาใช้งานของ ตู้เย็น" }),
+  ).toHaveAttribute("aria-expanded", "true");
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    ),
+  ).toBe(false);
+});
+
 test("each analysis goal prioritizes a distinct recommendation and destination", async ({
   page,
 }) => {

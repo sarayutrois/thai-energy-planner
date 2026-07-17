@@ -6,6 +6,8 @@ import {
   ArrowLeft,
   ArrowRight,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock3,
   Gauge,
   Plus,
@@ -394,6 +396,23 @@ function scheduleForDay(
   return sourceSchedules.find((schedule) => schedule.daysOfWeek.includes(day));
 }
 
+function scheduleSummary(item: ApplianceInput) {
+  const schedules = createDailySchedules(item);
+  if (!schedules.length) return "ยังไม่ได้เลือกวันใช้งาน";
+  const ranges = Array.from(
+    new Set(
+      schedules.map((schedule) => `${schedule.startTime}–${schedule.endTime}`),
+    ),
+  );
+  const dayLabel =
+    schedules.length === 7 ? "ทุกวัน" : `${schedules.length} วัน/สัปดาห์`;
+  if (ranges.length === 1) {
+    const rangeLabel = ranges[0] === "00:00–00:00" ? "ตลอดวัน" : ranges[0];
+    return `${dayLabel} · ${rangeLabel}`;
+  }
+  return `${dayLabel} · ${ranges.length} ช่วงเวลา`;
+}
+
 function applianceFromSeed(seed: ApplianceSeed): ApplianceInput {
   const isAirConditioner = seed.coolingCapacityBtu !== undefined;
   return {
@@ -446,6 +465,9 @@ export function ApplianceLoadBuilder({
   const [saveStatus, setSaveStatus] = useState<
     "idle" | "saving" | "saved" | "local_only"
   >("idle");
+  const [expandedScheduleIndex, setExpandedScheduleIndex] = useState<
+    number | null
+  >(initialAppliances.length ? 0 : null);
   const hasUserEditedBeforeHydration = useRef(false);
 
   useEffect(() => {
@@ -458,6 +480,9 @@ export function ApplianceLoadBuilder({
             draft.appliances.length,
           );
           setAppliances(storedMode === "empty" ? [] : draft.appliances);
+          setExpandedScheduleIndex(
+            storedMode === "empty" || draft.appliances.length === 0 ? null : 0,
+          );
           setMode(storedMode);
           setIntervalMinutes(draft.intervalMinutes);
           setStartDate(draft.startDate);
@@ -618,6 +643,7 @@ export function ApplianceLoadBuilder({
     const preset = allPresets.find((item) => item.name === presetName);
     if (!preset) return;
     hasUserEditedBeforeHydration.current = true;
+    setExpandedScheduleIndex(appliances.length);
     setAppliances((current) => [...current, applianceFromSeed(preset)]);
     setMode("user");
   }
@@ -632,12 +658,14 @@ export function ApplianceLoadBuilder({
     )
       return;
     setAppliances(starterSet.items.map(applianceFromSeed));
+    setExpandedScheduleIndex(0);
     setMode("sample");
     setSaveStatus("idle");
   }
 
   function addCustom() {
     hasUserEditedBeforeHydration.current = true;
+    setExpandedScheduleIndex(appliances.length);
     setAppliances((current) => [
       ...current,
       {
@@ -725,6 +753,7 @@ export function ApplianceLoadBuilder({
 
   function clearAll() {
     setAppliances([]);
+    setExpandedScheduleIndex(null);
     setMode("empty");
     setSaveStatus("idle");
   }
@@ -734,7 +763,7 @@ export function ApplianceLoadBuilder({
   }
 
   return (
-    <div className="grid gap-6">
+    <div className="grid min-w-0 grid-cols-1 gap-6">
       <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/35 p-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">
@@ -780,7 +809,7 @@ export function ApplianceLoadBuilder({
             <label className="grid gap-1 text-xs font-medium">
               รายการสำเร็จรูป
               <select
-                className="h-10 min-w-64 rounded-md border border-input bg-background px-3 text-sm"
+                className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm sm:min-w-64"
                 defaultValue=""
                 disabled={!hydrated}
                 onChange={(event) => {
@@ -840,13 +869,13 @@ export function ApplianceLoadBuilder({
             </p>
           </div>
         ) : (
-          <div className="mt-5 grid gap-4">
+          <div className="mt-5 grid min-w-0 grid-cols-1 gap-4">
             {appliances.map((item, index) => (
               <div
                 key={`${index}-${item.category}`}
-                className="rounded-lg border border-border p-4"
+                className="min-w-0 rounded-lg border border-border p-4"
               >
-                <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_.7fr_auto]">
+                <div className="grid min-w-0 grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-[1.5fr_1fr_.7fr_auto]">
                   <TextField
                     label="ชื่อเครื่องใช้ไฟฟ้า"
                     value={item.name}
@@ -887,6 +916,12 @@ export function ApplianceLoadBuilder({
                         (_, itemIndex) => itemIndex !== index,
                       );
                       setAppliances(next);
+                      setExpandedScheduleIndex((current) => {
+                        if (current === index) return null;
+                        if (current !== null && current > index)
+                          return current - 1;
+                        return current;
+                      });
                       setMode(next.length ? "user" : "empty");
                     }}
                   >
@@ -948,85 +983,121 @@ export function ApplianceLoadBuilder({
                     <div>
                       <p className="text-sm font-semibold">ตั้งเวลาแยกตามวัน</p>
                       <p className="text-xs text-muted-foreground">
-                        กด “เปิดใช้” ที่วันนั้นก่อน จึงแก้เวลาเริ่ม–หยุดได้
+                        {scheduleSummary(item)}
                       </p>
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <Button
-                        className="h-8 px-3 text-xs"
-                        variant="outline"
-                        onClick={() => copyDaySchedule(index, 1, [6, 0])}
-                      >
-                        คัดลอก จ.–ศ. ไป ส.–อา.
-                      </Button>
-                      <Button
-                        className="h-8 px-3 text-xs"
-                        variant="outline"
-                        onClick={() =>
-                          copyDaySchedule(
-                            index,
-                            1,
-                            days.map((day) => day.value),
-                          )
-                        }
-                      >
-                        เปิดใช้ทุกวัน
-                      </Button>
-                    </div>
+                    <Button
+                      aria-expanded={expandedScheduleIndex === index}
+                      className="h-9 justify-between gap-2 px-3 text-xs sm:justify-center"
+                      variant="outline"
+                      onClick={() =>
+                        setExpandedScheduleIndex((current) =>
+                          current === index ? null : index,
+                        )
+                      }
+                    >
+                      {expandedScheduleIndex === index ? (
+                        <>
+                          ซ่อนเวลาใช้งานของ {item.name}
+                          <ChevronUp className="h-4 w-4" />
+                        </>
+                      ) : (
+                        <>
+                          แก้เวลาใช้งานของ {item.name}
+                          <ChevronDown className="h-4 w-4" />
+                        </>
+                      )}
+                    </Button>
                   </div>
-                  <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-                    {days.map((day) => {
-                      const schedule = scheduleForDay(item, day.value);
-                      const active = Boolean(schedule);
-                      return (
-                        <div
-                          key={day.value}
-                          className={`grid grid-cols-[auto_1fr_1fr] items-end gap-2 rounded-md border p-2 ${active ? "border-primary/40 bg-background" : "border-border bg-muted/40"}`}
+                  {expandedScheduleIndex === index ? (
+                    <>
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        กด “เปิดใช้” ที่วันนั้นก่อน จึงแก้เวลาเริ่ม–หยุดได้
+                      </p>
+                      <div className="mt-3 flex flex-wrap gap-2 sm:justify-end">
+                        <Button
+                          className="h-8 px-3 text-xs"
+                          variant="outline"
+                          onClick={() => copyDaySchedule(index, 1, [6, 0])}
                         >
-                          <button
-                            aria-label={`${day.label}: ${active ? "กำลังใช้งาน กดเพื่อปิด" : "ปิดอยู่ กดเพื่อเปิดใช้งาน"}`}
-                            aria-pressed={active}
-                            className={`flex h-10 min-w-12 flex-col items-center justify-center rounded-md px-2 text-xs font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
-                            onClick={() =>
-                              updateDaySchedule(
-                                index,
-                                day.value,
-                                active ? null : {},
-                              )
-                            }
-                            type="button"
-                          >
-                            <span>{day.label}</span>
-                            <span className="text-[10px] font-normal">
-                              {active ? "ใช้งาน" : "เปิดใช้"}
-                            </span>
-                          </button>
-                          <TimeField
-                            label="เริ่ม"
-                            value={
-                              schedule?.startTime ?? item.schedule.startTime
-                            }
-                            disabled={!active}
-                            onChange={(startTime) =>
-                              updateDaySchedule(index, day.value, { startTime })
-                            }
-                          />
-                          <TimeField
-                            label="หยุด"
-                            value={schedule?.endTime ?? item.schedule.endTime}
-                            disabled={!active}
-                            onChange={(endTime) =>
-                              updateDaySchedule(index, day.value, { endTime })
-                            }
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <p className="mt-3 text-xs text-muted-foreground">
-                    หากเวลาหยุดน้อยกว่าเวลาเริ่ม
-                    ระบบจะคิดว่าใช้งานต่อเนื่องข้ามเที่ยงคืน เช่น 18:00–06:00
-                  </p>
+                          คัดลอก จ.–ศ. ไป ส.–อา.
+                        </Button>
+                        <Button
+                          className="h-8 px-3 text-xs"
+                          variant="outline"
+                          onClick={() =>
+                            copyDaySchedule(
+                              index,
+                              1,
+                              days.map((day) => day.value),
+                            )
+                          }
+                        >
+                          เปิดใช้ทุกวัน
+                        </Button>
+                      </div>
+                      <div className="mt-3 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+                        {days.map((day) => {
+                          const schedule = scheduleForDay(item, day.value);
+                          const active = Boolean(schedule);
+                          return (
+                            <div
+                              key={day.value}
+                              className={`grid grid-cols-[auto_1fr_1fr] items-end gap-2 rounded-md border p-2 ${active ? "border-primary/40 bg-background" : "border-border bg-muted/40"}`}
+                            >
+                              <button
+                                aria-label={`${day.label}: ${active ? "กำลังใช้งาน กดเพื่อปิด" : "ปิดอยู่ กดเพื่อเปิดใช้งาน"}`}
+                                aria-pressed={active}
+                                className={`flex h-10 min-w-12 flex-col items-center justify-center rounded-md px-2 text-xs font-semibold ${active ? "bg-primary text-primary-foreground" : "bg-background text-muted-foreground"}`}
+                                onClick={() =>
+                                  updateDaySchedule(
+                                    index,
+                                    day.value,
+                                    active ? null : {},
+                                  )
+                                }
+                                type="button"
+                              >
+                                <span>{day.label}</span>
+                                <span className="text-[10px] font-normal">
+                                  {active ? "ใช้งาน" : "เปิดใช้"}
+                                </span>
+                              </button>
+                              <TimeField
+                                label="เริ่ม"
+                                value={
+                                  schedule?.startTime ?? item.schedule.startTime
+                                }
+                                disabled={!active}
+                                onChange={(startTime) =>
+                                  updateDaySchedule(index, day.value, {
+                                    startTime,
+                                  })
+                                }
+                              />
+                              <TimeField
+                                label="หยุด"
+                                value={
+                                  schedule?.endTime ?? item.schedule.endTime
+                                }
+                                disabled={!active}
+                                onChange={(endTime) =>
+                                  updateDaySchedule(index, day.value, {
+                                    endTime,
+                                  })
+                                }
+                              />
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <p className="mt-3 text-xs text-muted-foreground">
+                        หากเวลาหยุดน้อยกว่าเวลาเริ่ม
+                        ระบบจะคิดว่าใช้งานต่อเนื่องข้ามเที่ยงคืน เช่น
+                        18:00–06:00
+                      </p>
+                    </>
+                  ) : null}
                 </div>
                 <p className="mt-3 text-right text-xs text-muted-foreground">
                   ตัวคูณการทำงาน {Math.round(item.dutyCycle * 100)}%
@@ -1129,16 +1200,19 @@ export function ApplianceLoadBuilder({
         </div>
       ) : null}
 
-      <div className="sticky bottom-3 z-10 flex flex-col gap-3 rounded-2xl border border-border bg-background/90 p-4 shadow-float backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between">
+      <div className="sticky bottom-3 z-10 flex flex-col gap-2 rounded-2xl border border-border bg-background/90 p-3 shadow-float backdrop-blur-xl sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:p-4">
         <a
-          className="inline-flex h-10 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium hover:bg-muted"
+          className="hidden h-10 items-center justify-center gap-2 rounded-md border border-border px-4 text-sm font-medium hover:bg-muted sm:inline-flex"
           href="/analysis/load-data"
         >
           <ArrowLeft className="h-4 w-4" />
           ย้อนกลับ
         </a>
-        <div className="flex flex-col items-stretch gap-2 sm:flex-row sm:items-center">
-          <span className="text-xs text-muted-foreground" aria-live="polite">
+        <div className="grid grid-cols-2 items-stretch gap-2 sm:flex sm:items-center">
+          <span
+            className="col-span-2 text-xs text-muted-foreground sm:col-auto"
+            aria-live="polite"
+          >
             {saveStatus === "saving"
               ? "กำลังบันทึก..."
               : saveStatus === "saved"
@@ -1148,6 +1222,7 @@ export function ApplianceLoadBuilder({
                   : "พร้อมบันทึกเมื่อข้อมูลครบ"}
           </span>
           <Button
+            className="w-full sm:w-auto"
             variant="outline"
             disabled={
               !simulation ||
@@ -1156,9 +1231,11 @@ export function ApplianceLoadBuilder({
             }
             onClick={() => void saveLoadProfile()}
           >
-            บันทึก Load Profile
+            <span className="sm:hidden">บันทึกอย่างเดียว</span>
+            <span className="hidden sm:inline">บันทึก Load Profile</span>
           </Button>
           <Button
+            className="w-full sm:w-auto"
             disabled={
               !simulation ||
               validationIssues.length > 0 ||
@@ -1166,7 +1243,8 @@ export function ApplianceLoadBuilder({
             }
             onClick={() => void saveLoadProfile(true)}
           >
-            บันทึกแล้วกรอกบิล
+            <span className="sm:hidden">บันทึกและกรอกบิล</span>
+            <span className="hidden sm:inline">บันทึกแล้วกรอกบิล</span>
             <ArrowRight className="h-4 w-4" />
           </Button>
         </div>
@@ -1210,11 +1288,11 @@ function TextField({
   onChange: (value: string) => void;
 }) {
   return (
-    <label className="grid gap-1 text-xs font-medium">
+    <label className="grid min-w-0 gap-1 text-xs font-medium">
       {label}
       <input
         aria-label={label}
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm"
         value={value}
         onChange={(event) => onChange(event.target.value)}
       />
@@ -1234,12 +1312,12 @@ function TimeField({
 }) {
   return (
     <label
-      className={`grid gap-1 text-xs font-medium ${disabled ? "text-muted-foreground" : ""}`}
+      className={`grid min-w-0 gap-1 text-xs font-medium ${disabled ? "text-muted-foreground" : ""}`}
     >
       {label}
       <input
         aria-label={label}
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
+        className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm disabled:cursor-not-allowed disabled:opacity-50"
         type="time"
         value={value}
         disabled={disabled}
@@ -1262,11 +1340,11 @@ function NumberField({
   step?: number;
 }) {
   return (
-    <label className="grid gap-1 text-xs font-medium">
+    <label className="grid min-w-0 gap-1 text-xs font-medium">
       {label}
       <input
         aria-label={label}
-        className="h-10 rounded-md border border-input bg-background px-3 text-sm"
+        className="h-10 w-full min-w-0 rounded-md border border-input bg-background px-3 text-sm"
         inputMode="decimal"
         type="number"
         value={value}
