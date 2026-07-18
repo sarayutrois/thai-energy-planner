@@ -508,6 +508,7 @@ function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
             value={`${formatMoney(decision.npvThb)} บาท`}
           />
         </div>
+        <BatteryOptimizationComparison decision={decision} />
         <details className="group rounded-md border border-border">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
             <span>ดูเหตุผล ข้อจำกัด และแหล่งคำนวณทั้งหมด</span>
@@ -549,6 +550,108 @@ function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
         </details>
       </CardContent>
     </Card>
+  );
+}
+
+function BatteryOptimizationComparison({
+  decision,
+}: {
+  decision: BatteryMvpDecision;
+}) {
+  const visibleCandidates = decision.optimization.candidates.slice(0, 5);
+  return (
+    <section
+      aria-labelledby="battery-optimization-heading"
+      className="rounded-xl border border-border bg-card"
+    >
+      <div className="flex flex-col gap-2 border-b border-border p-4 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="font-semibold" id="battery-optimization-heading">
+            เปรียบเทียบขนาดและกลยุทธ์
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            ทดลอง {decision.optimization.evaluatedCandidateCount} ทางเลือกจาก{" "}
+            {decision.optimization.evaluatedCapacitiesKwh.length} ขนาด และ{" "}
+            {decision.optimization.evaluatedStrategies.length} กลยุทธ์
+            โดยเรียงทางเลือกที่เหมาะกับเป้าหมายไว้ก่อน
+          </p>
+        </div>
+        <Badge variant="information">
+          แสดง {visibleCandidates.length} อันดับแรก
+        </Badge>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[760px] text-left text-sm">
+          <thead className="bg-muted/45 text-xs text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3 font-medium" scope="col">
+                อันดับ
+              </th>
+              <th className="px-4 py-3 font-medium" scope="col">
+                ระบบ
+              </th>
+              <th className="px-4 py-3 text-right font-medium" scope="col">
+                งบประมาณ
+              </th>
+              <th className="px-4 py-3 text-right font-medium" scope="col">
+                ประหยัด/ปี
+              </th>
+              <th className="px-4 py-3 text-right font-medium" scope="col">
+                คืนทุน
+              </th>
+              <th className="px-4 py-3 text-right font-medium" scope="col">
+                NPV
+              </th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-border">
+            {visibleCandidates.map((candidate) => (
+              <tr
+                className={candidate.selected ? "bg-primary/[0.06]" : ""}
+                key={`${candidate.capacityKwh}-${candidate.strategy}`}
+              >
+                <td className="px-4 py-3 align-top">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold">{candidate.rank}</span>
+                    {candidate.selected ? (
+                      <Badge variant="success">เลือก</Badge>
+                    ) : null}
+                  </div>
+                </td>
+                <th className="px-4 py-3 align-top font-normal" scope="row">
+                  <p className="font-semibold">
+                    {formatNumber(candidate.capacityKwh)} kWh
+                  </p>
+                  <p className="mt-1 max-w-xs text-xs leading-5 text-muted-foreground">
+                    {candidate.strategyLabel}
+                  </p>
+                </th>
+                <td className="px-4 py-3 text-right align-top tabular-nums">
+                  {formatMoney(candidate.capexThb)} บาท
+                </td>
+                <td className="px-4 py-3 text-right align-top tabular-nums">
+                  {formatMoney(candidate.annualSavingsThb)} บาท
+                </td>
+                <td className="px-4 py-3 text-right align-top tabular-nums">
+                  {candidate.simplePaybackYears === null
+                    ? "ไม่คืนทุน"
+                    : `${formatNumber(candidate.simplePaybackYears)} ปี`}
+                </td>
+                <td
+                  className={`px-4 py-3 text-right align-top font-medium tabular-nums ${candidate.npvThb >= 0 ? "text-success" : "text-muted-foreground"}`}
+                >
+                  {formatMoney(candidate.npvThb)} บาท
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p className="border-t border-border px-4 py-3 text-xs leading-5 text-muted-foreground">
+        อันดับเป็นผลคัดกรองจาก Load Profile และสมมติฐานที่กรอก
+        ไม่ใช่การรับรองรุ่นอุปกรณ์หรือใบเสนอราคา
+      </p>
+    </section>
   );
 }
 
@@ -677,6 +780,10 @@ function buildBatteryReportDraft(
       { label: "รูปแบบระบบ", value: decision.strategyLabel },
       { label: "แหล่งชาร์จ", value: decision.sourceLabel },
       { label: "ความมั่นใจ", value: decision.confidenceLabel },
+      {
+        label: "Optimizer",
+        value: `${decision.optimization.evaluatedCandidateCount} ทางเลือก · ${decision.optimization.evaluatedCapacitiesKwh.length} ขนาด · ${decision.optimization.evaluatedStrategies.length} กลยุทธ์`,
+      },
     ],
     resultRows: [
       {
@@ -691,6 +798,18 @@ function buildBatteryReportDraft(
         gridImportKwh: roundReportNumber(decision.gridImportAfterKwh),
         peakDemandKw: roundReportNumber(decision.peakDemandAfterKw),
       },
+      ...decision.optimization.candidates.slice(0, 5).map((candidate) => ({
+        case: `ตัวเลือกอันดับ ${candidate.rank}`,
+        capacityKwh: roundReportNumber(candidate.capacityKwh),
+        strategy: candidate.strategyLabel,
+        capexThb: roundReportNumber(candidate.capexThb),
+        annualSavingsThb: roundReportNumber(candidate.annualSavingsThb),
+        paybackYears:
+          candidate.simplePaybackYears === null
+            ? null
+            : roundReportNumber(candidate.simplePaybackYears),
+        npvThb: roundReportNumber(candidate.npvThb),
+      })),
     ],
     recommendations: [
       {
@@ -711,7 +830,7 @@ function buildBatteryReportDraft(
 }
 
 type StoredBatteryMvp = {
-  schemaVersion: 1;
+  schemaVersion: 2;
   profileSnapshotId: string;
   settingsFingerprint: string;
   settings: BatteryMvpSettings;
@@ -725,7 +844,7 @@ function persistBatteryMvp(input: {
 }) {
   try {
     const stored: StoredBatteryMvp = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       profileSnapshotId: input.profileSnapshotId,
       settingsFingerprint: settingsFingerprint(input.settings),
       settings: input.settings,
@@ -743,7 +862,7 @@ function readStoredBatteryMvp(): StoredBatteryMvp | null {
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<StoredBatteryMvp>;
     if (
-      value.schemaVersion !== 1 ||
+      value.schemaVersion !== 2 ||
       typeof value.profileSnapshotId !== "string" ||
       typeof value.settingsFingerprint !== "string" ||
       !value.settings ||

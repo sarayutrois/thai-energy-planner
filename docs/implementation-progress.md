@@ -1,5 +1,14 @@
 # ความคืบหน้าการปรับปรุง Thai Energy Planner
 
+## Battery Production Phase 1 — Multi-strategy optimizer
+
+- สถานะ: เสร็จแล้ว
+- ขยายการประเมิน Battery จากหลายขนาดในกลยุทธ์เดียวเป็น optimizer ที่เทียบขนาดมาตรฐาน 2.5, 5, 10, 15 และ 20 kWh ร่วมกับกลยุทธ์ตามเป้าหมาย ได้แก่ TOU Arbitrage / Peak Shaving และ Solar Self-consumption / Hybrid
+- เพิ่ม domain validation, deterministic ranking, candidate comparison contract และ engine version `0.7.0-battery-optimizer`; Peak Shaving สามารถชาร์จซ้ำช่วง Off-Peak เพื่อให้ dispatch ทำงานต่อเนื่องได้
+- เพิ่มตารางเปรียบเทียบ 5 อันดับแรกบนหน้า Battery พร้อม selected state, งบ, ผลประหยัด, payback และ NPV โดยยังรักษาคำเตือนว่าเป็นผลคัดกรอง ไม่ใช่ใบเสนอราคา
+- ส่งรายละเอียด optimizer เข้า Battery report และยอมรับ storage schema รุ่นใหม่ใน Ecosystem โดย invalidate ผล Battery รุ่นเก่าที่ไม่มี comparison contract
+- การทดสอบ: lint, typecheck และ build ผ่าน; unit tests ผ่าน 291 tests; E2E ผ่าน 32 tests รวม backup 1 candidate, bill-savings 10 candidates, report และ Ecosystem; ตรวจ local mobile viewport 390px แล้วไม่มี horizontal page overflow
+
 ## Maintenance Phase 1 — Experimental surface cleanup
 
 - สถานะ: เสร็จแล้ว

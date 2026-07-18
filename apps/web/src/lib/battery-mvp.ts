@@ -63,6 +63,30 @@ export type BatteryMvpDecision = {
   engineVersion: string;
   tariffVersionIds: string[];
   calculatedAt: string;
+  optimization: BatteryOptimizationResult;
+};
+
+export type BatteryCandidateComparison = {
+  rank: number;
+  capacityKwh: number;
+  strategy: BatteryDispatchStrategy;
+  strategyLabel: string;
+  capexThb: number;
+  annualSavingsThb: number;
+  simplePaybackYears: number | null;
+  npvThb: number;
+  estimatedBackupHours: number | null;
+  peakDemandAfterKw: number;
+  gridImportAfterKwh: number;
+  financiallyViable: boolean;
+  selected: boolean;
+};
+
+export type BatteryOptimizationResult = {
+  evaluatedCandidateCount: number;
+  evaluatedCapacitiesKwh: number[];
+  evaluatedStrategies: BatteryDispatchStrategy[];
+  candidates: BatteryCandidateComparison[];
 };
 
 export type BatteryMvpInput = {
@@ -94,6 +118,7 @@ export function defaultBatteryMvpSettings(): BatteryMvpSettings {
 
 export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
   const { profile, settings } = input;
+  validateBatteryMvpSettings(settings);
   const monthlyEnergyKwh = estimateMonthlyEnergy(profile);
   const billDate = profile.period.startInclusive.slice(0, 10);
   const tariffs = getOfficialThaiTariffPair({
@@ -103,7 +128,6 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
     monthlyEnergyKwh,
     voltageLevel: "low_voltage",
   });
-  const strategy = strategyForGoal(settings.goal);
   const solarIntervals = buildSolarIntervals(profile, settings);
   const capacities =
     settings.goal === "backup"
@@ -113,23 +137,28 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
           ),
         ]
       : candidateCapacitiesKwh;
-  const evaluations = capacities.map((capacityKwh) => {
-    const config = buildBatteryConfig(capacityKwh, settings, strategy);
-    const analysis = runBatteryAnalysis(
-      createBatteryAnalysisInputFromCanonicalLoadProfile({
-        profile,
-        solarIntervals,
-        normalTariff: tariffs.normalTariff,
-        touTariff: tariffs.touTariff,
-        config,
-        financialAssumptions: buildFinancialAssumptions(config),
-        meterMode:
-          settings.goal === "bill_savings" ? "tou" : settings.meterMode,
-      }),
-    );
-    return { config, analysis };
-  });
-  const selected = selectEvaluation(evaluations, settings.goal);
+  const strategies = strategiesForGoal(settings.goal);
+  const evaluations = capacities.flatMap((capacityKwh) =>
+    strategies.map((strategy) => {
+      const config = buildBatteryConfig(capacityKwh, settings, strategy);
+      const analysis = runBatteryAnalysis(
+        createBatteryAnalysisInputFromCanonicalLoadProfile({
+          profile,
+          solarIntervals,
+          normalTariff: tariffs.normalTariff,
+          touTariff: tariffs.touTariff,
+          config,
+          financialAssumptions: buildFinancialAssumptions(config),
+          meterMode:
+            settings.goal === "bill_savings" ? "tou" : settings.meterMode,
+        }),
+      );
+      return { config, analysis };
+    }),
+  );
+  const ranked = rankEvaluations(evaluations, settings.goal);
+  const selected = ranked[0]!;
+  const strategy = selected.config.dispatchStrategy;
   const confidence = decisionConfidence(input);
   const financiallyViable =
     selected.analysis.financial.npvThb > 0 &&
@@ -197,7 +226,35 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
       selected.analysis.billAfterBattery.tariffVersionId,
     ],
     calculatedAt: new Date().toISOString(),
+    optimization: {
+      evaluatedCandidateCount: ranked.length,
+      evaluatedCapacitiesKwh: [...new Set(capacities)],
+      evaluatedStrategies: [...new Set(strategies)],
+      candidates: ranked.map((candidate, index) =>
+        summarizeCandidate(candidate, index, selected),
+      ),
+    },
   };
+}
+
+export function validateBatteryMvpSettings(settings: BatteryMvpSettings) {
+  const errors: string[] = [];
+  if (
+    !Number.isFinite(settings.batteryCostPerKwhThb) ||
+    settings.batteryCostPerKwhThb <= 0
+  )
+    errors.push("ต้นทุน Battery ต้องมากกว่า 0 บาท/kWh");
+  if (!Number.isFinite(settings.criticalLoadKw) || settings.criticalLoadKw <= 0)
+    errors.push("โหลดจำเป็นต้องมากกว่า 0 kW");
+  if (!Number.isFinite(settings.backupHours) || settings.backupHours <= 0)
+    errors.push("ระยะเวลาสำรองต้องมากกว่า 0 ชั่วโมง");
+  if (
+    (settings.goal === "solar_storage" || settings.useSolarForBackup) &&
+    (!Number.isFinite(settings.solarSystemSizeKwp) ||
+      settings.solarSystemSizeKwp <= 0)
+  )
+    errors.push("ขนาด Solar ต้องมากกว่า 0 kWp");
+  if (errors.length > 0) throw new Error(errors.join(" · "));
 }
 
 export function selectBatteryCapacity(requiredCapacityKwh: number) {
@@ -233,14 +290,11 @@ function buildBatteryConfig(
     replacementCostThb: capexThb * 0.5,
     replacementYear: 10,
     backupReservePercent:
-      settings.goal === "backup"
-        ? 80
-        : settings.goal === "solar_storage"
-          ? 20
-          : 0,
+      strategy === "BACKUP_RESERVE" ? 80 : strategy === "HYBRID" ? 20 : 0,
     dispatchStrategy: strategy,
     peakShavingThresholdKw: Math.max(1, powerKw * 0.5),
-    allowGridCharging: settings.goal === "bill_savings",
+    allowGridCharging:
+      strategy === "TOU_ARBITRAGE" || strategy === "PEAK_SHAVING",
     criticalLoadKw: settings.criticalLoadKw,
     costSource: {
       status: "draft",
@@ -315,26 +369,64 @@ function buildSolarIntervals(
   }).intervals;
 }
 
-function selectEvaluation(
+type BatteryEvaluation = {
+  config: BatteryConfigInput;
+  analysis: BatteryAnalysisResult;
+};
+
+function rankEvaluations(
   evaluations: Array<{
     config: BatteryConfigInput;
     analysis: BatteryAnalysisResult;
   }>,
   goal: BatteryGoal,
 ) {
-  if (goal === "backup") return evaluations[0]!;
-  const viable = evaluations
-    .filter(
-      (item) =>
-        item.analysis.financial.npvThb > 0 &&
-        item.analysis.financial.simplePaybackYears !== null &&
-        item.analysis.financial.simplePaybackYears <= 15,
-    )
-    .sort((a, b) => b.analysis.financial.npvThb - a.analysis.financial.npvThb);
-  if (viable[0]) return viable[0];
-  return [...evaluations].sort(
-    (a, b) => b.analysis.financial.npvThb - a.analysis.financial.npvThb,
-  )[0]!;
+  if (goal === "backup")
+    return [...evaluations].sort(
+      (a, b) =>
+        (b.analysis.dispatch.estimatedBackupHours ?? 0) -
+          (a.analysis.dispatch.estimatedBackupHours ?? 0) ||
+        a.config.capexThb - b.config.capexThb,
+    );
+  return [...evaluations].sort((a, b) => {
+    const viableDifference =
+      Number(isFinanciallyViable(b)) - Number(isFinanciallyViable(a));
+    if (viableDifference !== 0) return viableDifference;
+    const npvDifference =
+      b.analysis.financial.npvThb - a.analysis.financial.npvThb;
+    if (Math.abs(npvDifference) > 0.01) return npvDifference;
+    return a.config.capexThb - b.config.capexThb;
+  });
+}
+
+function isFinanciallyViable(evaluation: BatteryEvaluation) {
+  return (
+    evaluation.analysis.financial.npvThb > 0 &&
+    evaluation.analysis.financial.simplePaybackYears !== null &&
+    evaluation.analysis.financial.simplePaybackYears <= 15
+  );
+}
+
+function summarizeCandidate(
+  evaluation: BatteryEvaluation,
+  index: number,
+  selected: BatteryEvaluation,
+): BatteryCandidateComparison {
+  return {
+    rank: index + 1,
+    capacityKwh: evaluation.config.capacityKwh,
+    strategy: evaluation.config.dispatchStrategy,
+    strategyLabel: strategyLabel(evaluation.config.dispatchStrategy),
+    capexThb: evaluation.config.capexThb,
+    annualSavingsThb: evaluation.analysis.financial.annualBillSavingsThb,
+    simplePaybackYears: evaluation.analysis.financial.simplePaybackYears,
+    npvThb: evaluation.analysis.financial.npvThb,
+    estimatedBackupHours: evaluation.analysis.dispatch.estimatedBackupHours,
+    peakDemandAfterKw: evaluation.analysis.dispatch.peakDemandAfterKw,
+    gridImportAfterKwh: evaluation.analysis.dispatch.gridImportAfterKwh,
+    financiallyViable: isFinanciallyViable(evaluation),
+    selected: evaluation === selected,
+  };
 }
 
 function resolveVerdict(input: {
@@ -347,15 +439,18 @@ function resolveVerdict(input: {
   return input.confidence === "high" ? "recommend" : "consider";
 }
 
-function strategyForGoal(goal: BatteryGoal): BatteryDispatchStrategy {
-  if (goal === "backup") return "BACKUP_RESERVE";
-  if (goal === "solar_storage") return "HYBRID";
-  return "TOU_ARBITRAGE";
+function strategiesForGoal(goal: BatteryGoal): BatteryDispatchStrategy[] {
+  if (goal === "backup") return ["BACKUP_RESERVE"];
+  if (goal === "solar_storage") return ["SOLAR_SELF_CONSUMPTION", "HYBRID"];
+  return ["TOU_ARBITRAGE", "PEAK_SHAVING"];
 }
 
 function strategyLabel(strategy: BatteryDispatchStrategy) {
   if (strategy === "BACKUP_RESERVE") return "Backup — กันพลังงานไว้เวลาไฟดับ";
   if (strategy === "HYBRID") return "Solar + Battery — เก็บไฟส่วนเกินไว้ใช้";
+  if (strategy === "SOLAR_SELF_CONSUMPTION")
+    return "Solar Self-consumption — เก็บไฟกลางวันไว้ใช้ภายหลัง";
+  if (strategy === "PEAK_SHAVING") return "Peak Shaving — ลดกำลังไฟสูงสุด";
   return "TOU Arbitrage — ชาร์จ Off-Peak และใช้ช่วง Peak";
 }
 
@@ -395,10 +490,13 @@ function buildReasons(input: {
       "ระบบกันพลังงานสำรองไว้ 80% จึงไม่ได้ตั้งเป้าคายประจุเพื่อลดค่าไฟทุกวัน",
     );
   } else {
-    if (input.settings.goal === "bill_savings")
+    if (input.settings.goal === "bill_savings") {
       reasons.push(
-        "กรณีลดค่าไฟจำลอง Battery บนมิเตอร์ TOU เพื่อใช้ส่วนต่างราคา Off-Peak และ Peak",
+        input.config.dispatchStrategy === "PEAK_SHAVING"
+          ? "กรณีลดค่าไฟนี้ชาร์จ Battery ช่วง Off-Peak แล้วคายประจุเฉพาะโหลดที่สูงกว่าเกณฑ์ Peak Shaving"
+          : "กรณีลดค่าไฟจำลอง Battery บนมิเตอร์ TOU เพื่อใช้ส่วนต่างราคา Off-Peak และ Peak",
       );
+    }
     reasons.push(
       `คาดว่าค่าไฟเปลี่ยนจาก ${formatMoney(input.analysis.financial.billBeforeBatteryThb)} เป็น ${formatMoney(input.analysis.financial.billAfterBatteryThb)} บาท/เดือน`,
     );
@@ -409,7 +507,7 @@ function buildReasons(input: {
     );
   }
   reasons.push(
-    `ระบบประเมินขนาดมาตรฐาน ${candidateCapacitiesKwh.join(", ")} kWh แล้วเลือกคำตอบตามเป้าหมาย`,
+    `ระบบเปรียบเทียบขนาดและกลยุทธ์ที่เข้ากับเป้าหมาย แล้วจัดอันดับจากความคุ้มค่าและข้อกำหนดสำรองไฟ`,
   );
   return reasons;
 }

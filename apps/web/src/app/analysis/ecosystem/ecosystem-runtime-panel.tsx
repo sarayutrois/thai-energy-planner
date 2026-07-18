@@ -526,7 +526,7 @@ function readStoredDecision<T>(
       decision?: unknown;
     };
     if (
-      value.schemaVersion !== 1 ||
+      (value.schemaVersion !== 1 && value.schemaVersion !== 2) ||
       typeof value.profileSnapshotId !== "string" ||
       !value.decision ||
       typeof value.decision !== "object"

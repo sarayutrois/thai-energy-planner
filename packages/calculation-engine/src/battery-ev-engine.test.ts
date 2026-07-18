@@ -221,6 +221,34 @@ describe("phase 6 battery dispatch engine", () => {
     expect(result.intervals[0]?.dischargeKwh).toBe(2);
   });
 
+  it("can recharge a peak-shaving battery off-peak for repeatable dispatch", () => {
+    const result = simulateBatteryDispatch({
+      loadIntervals: Array.from({ length: 16 }, (_, index) => {
+        const hour = index + 3;
+        const energyKwh = hour === 18 ? 5 : 0.5;
+        return {
+          timestamp: bangkokIso(0, hour),
+          energyKwh,
+          powerKw: energyKwh,
+        };
+      }),
+      touTariff: demoTouTariff,
+      config: {
+        ...batteryConfig,
+        dispatchStrategy: "PEAK_SHAVING",
+        peakShavingThresholdKw: 3,
+        initialSocPercent: 10,
+        allowGridCharging: true,
+      },
+    });
+
+    expect(result.intervals[0]?.periodType).toBe("off_peak");
+    expect(result.intervals[0]?.chargeFromGridKwh).toBeGreaterThan(0);
+    expect(result.intervals[15]?.periodType).toBe("peak");
+    expect(result.intervals[15]?.dischargeToLoadKwh).toBe(2);
+    expect(result.peakDemandAfterKw).toBe(3);
+  });
+
   it("uses tariff-engine period classification for TOU arbitrage and holidays", () => {
     const holiday = simulateBatteryDispatch({
       loadIntervals: [

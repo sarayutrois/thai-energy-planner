@@ -31,6 +31,8 @@ describe("Battery MVP decision", () => {
     expect(decision.capacityKwh).toBe(5);
     expect(decision.estimatedBackupHours).toBe(4);
     expect(decision.limitations.join(" ")).toContain("ไฟดับ");
+    expect(decision.optimization.evaluatedCandidateCount).toBe(1);
+    expect(decision.optimization.candidates[0]?.selected).toBe(true);
   });
 
   it("does not recommend an expensive battery only for bill savings", () => {
@@ -50,6 +52,59 @@ describe("Battery MVP decision", () => {
     expect(decision.headline).toContain("ยังไม่ควรติด");
     expect(decision.strategy).toBe("TOU_ARBITRAGE");
     expect(decision.limitations.join(" ")).toContain("เปลี่ยนมิเตอร์");
+    expect(decision.optimization.evaluatedCandidateCount).toBe(10);
+    expect(decision.optimization.evaluatedStrategies).toEqual([
+      "TOU_ARBITRAGE",
+      "PEAK_SHAVING",
+    ]);
+    expect(
+      decision.optimization.candidates.filter(
+        (candidate) => candidate.selected,
+      ),
+    ).toHaveLength(1);
+    expect(decision.optimization.candidates[0]?.rank).toBe(1);
+  });
+
+  it("compares Solar self-consumption and hybrid strategies across standard sizes", () => {
+    const decision = evaluateBatteryMvp({
+      profile: buildProfile(),
+      settings: {
+        ...defaultBatteryMvpSettings(),
+        goal: "solar_storage",
+        solarSystemSizeKwp: 8,
+      },
+      hasBills: true,
+      hasCalibratedBills: true,
+      isSample: false,
+    });
+
+    expect(decision.optimization.evaluatedCapacitiesKwh).toEqual([
+      2.5, 5, 10, 15, 20,
+    ]);
+    expect(decision.optimization.evaluatedStrategies).toEqual([
+      "SOLAR_SELF_CONSUMPTION",
+      "HYBRID",
+    ]);
+    expect(decision.optimization.evaluatedCandidateCount).toBe(10);
+    expect(decision.optimization.candidates[0]).toMatchObject({
+      rank: 1,
+      selected: true,
+    });
+  });
+
+  it("rejects invalid screening assumptions before running the optimizer", () => {
+    expect(() =>
+      evaluateBatteryMvp({
+        profile: buildProfile(),
+        settings: {
+          ...defaultBatteryMvpSettings(),
+          batteryCostPerKwhThb: 0,
+        },
+        hasBills: false,
+        hasCalibratedBills: false,
+        isSample: false,
+      }),
+    ).toThrow("ต้นทุน Battery ต้องมากกว่า 0");
   });
 });
 

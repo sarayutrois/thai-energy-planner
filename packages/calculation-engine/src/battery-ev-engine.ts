@@ -25,7 +25,7 @@ import {
   type SolarSelfConsumptionResult,
 } from "./solar-engine.js";
 
-export const batteryEvEngineVersion = "0.6.0-battery-ev";
+export const batteryEvEngineVersion = "0.7.0-battery-optimizer";
 
 export type Phase6SourceMetadata = {
   status: "demo" | "draft" | "verified" | "published";
@@ -1490,7 +1490,7 @@ function supportsSolarCharging(strategy: BatteryDispatchStrategy) {
 }
 
 function supportsGridCharging(strategy: BatteryDispatchStrategy) {
-  return strategy === "TOU_ARBITRAGE";
+  return strategy === "TOU_ARBITRAGE" || strategy === "PEAK_SHAVING";
 }
 
 function rankEvCandidates(input: {

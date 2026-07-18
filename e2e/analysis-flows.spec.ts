@@ -538,11 +538,27 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("heading", { name: "ระบบที่กำลังประเมิน" }),
   ).toBeVisible();
+  const batteryComparison = page.getByRole("region", {
+    name: "เปรียบเทียบขนาดและกลยุทธ์",
+  });
+  await expect(batteryComparison).toBeVisible();
+  await expect(batteryComparison).toContainText("ทดลอง 1 ทางเลือก");
+  await expect(
+    batteryComparison.getByText("เลือก", { exact: true }),
+  ).toHaveCount(1);
   await expect(
     batteryAnswer.getByRole("link", { name: "รวมเป็นแผนพลังงาน" }),
   ).toHaveAttribute("href", "/analysis/ecosystem");
   await expect(page.getByRole("main")).not.toContainText("NaN");
   await page.getByRole("button", { name: "บันทึกเป็นรายงาน" }).click();
+
+  await page.getByRole("button", { name: /ลดค่าไฟ/ }).click();
+  await page.getByRole("button", { name: "เริ่มประเมิน Battery" }).click();
+  await expect(batteryComparison).toContainText("ทดลอง 10 ทางเลือก");
+  await expect(batteryComparison.getByRole("row")).toHaveCount(6);
+  await expect(
+    batteryComparison.getByText("เลือก", { exact: true }),
+  ).toHaveCount(1);
 
   await page.goto("/analysis/ev");
   await expect(
