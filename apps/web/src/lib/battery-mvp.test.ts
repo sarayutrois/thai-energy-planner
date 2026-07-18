@@ -169,6 +169,61 @@ describe("Battery MVP decision", () => {
     });
   });
 
+  it("summarizes the selected dispatch trace into a typical operating day", () => {
+    const decision = evaluateBatteryMvp({
+      profile: buildProfile(),
+      settings: {
+        ...defaultBatteryMvpSettings(),
+        goal: "bill_savings",
+        meterMode: "tou",
+      },
+      hasBills: true,
+      hasCalibratedBills: true,
+      isSample: false,
+    });
+
+    expect(decision.operation.typicalDay).toHaveLength(24);
+    expect(decision.operation.intervalCount).toBe(24 * 7);
+    expect(decision.operation.profileDayCount).toBeGreaterThan(0);
+    expect(decision.operation.chargingHours.length).toBeGreaterThan(0);
+    expect(decision.operation.dischargingHours.length).toBeGreaterThan(0);
+    expect(decision.operation.totalChargedKwh).toBeGreaterThan(0);
+    expect(decision.operation.totalDischargedKwh).toBeGreaterThan(0);
+    expect(decision.operation.minimumSocPercent).toBeGreaterThanOrEqual(0);
+    expect(decision.operation.maximumSocPercent).toBeLessThanOrEqual(100);
+  });
+
+  it("stress-tests outage coverage at overnight, midday, and evening SOC", () => {
+    const decision = evaluateBatteryMvp({
+      profile: buildProfile(),
+      settings: {
+        ...defaultBatteryMvpSettings(),
+        goal: "backup",
+        criticalLoadKw: 1,
+        backupHours: 4,
+      },
+      hasBills: true,
+      hasCalibratedBills: true,
+      isSample: false,
+    });
+
+    expect(
+      decision.resilience.scenarios.map((scenario) => scenario.id),
+    ).toEqual(["overnight", "midday", "evening"]);
+    expect(
+      decision.resilience.scenarios.every(
+        (scenario) =>
+          scenario.powerSufficient &&
+          scenario.startSocPercent >= 0 &&
+          scenario.startSocPercent <= 100,
+      ),
+    ).toBe(true);
+    expect(decision.resilience.bestCoverageHours).toBeGreaterThanOrEqual(
+      decision.resilience.worstCoverageHours,
+    );
+    expect(decision.resilience.targetHours).toBe(4);
+  });
+
   it("rejects invalid screening assumptions before running the optimizer", () => {
     expect(() =>
       evaluateBatteryMvp({

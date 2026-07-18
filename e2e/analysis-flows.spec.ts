@@ -557,6 +557,17 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     page.getByRole("heading", { name: "สมมติฐานปัจจุบัน" }),
   ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Battery ทำงานเมื่อไร" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "Stress test เมื่อไฟดับ" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("img", {
+      name: "กราฟการทำงานเฉลี่ย 24 ชั่วโมง แสดงโหลด ไฟจากโครงข่าย กำลังชาร์จหรือคายประจุ และระดับพลังงาน Battery",
+    }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   const phaseTwoBounds = await page
     .locator('section[aria-labelledby="battery-sensitivity-heading"]')
@@ -571,6 +582,20 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   expect(phaseTwoBounds.left).toBeGreaterThanOrEqual(0);
   expect(phaseTwoBounds.right).toBeLessThanOrEqual(
     phaseTwoBounds.viewportWidth + 1,
+  );
+  const phaseThreeBounds = await page
+    .locator('section[aria-labelledby="battery-operation-heading"]')
+    .evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+  expect(phaseThreeBounds.left).toBeGreaterThanOrEqual(0);
+  expect(phaseThreeBounds.right).toBeLessThanOrEqual(
+    phaseThreeBounds.viewportWidth + 1,
   );
   expect(
     await page.evaluate(

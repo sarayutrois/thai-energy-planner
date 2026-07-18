@@ -354,9 +354,19 @@
 
 ## Battery Phase 2 — Lifecycle, degradation and sensitivity
 
-- สถานะ: อยู่ระหว่างตรวจสอบใน local; ยังไม่ commit, push หรือ deploy
+- สถานะ: เสร็จและ deploy production แล้วใน commit `6b5eb8a`
 - เพิ่มสมมติฐานอายุโครงการ อัตราเสื่อม Discount rate อัตราค่าไฟเพิ่ม ปีที่เปลี่ยน Battery และต้นทุนเปลี่ยน ให้ผู้ใช้ปรับได้โดยไม่เปลี่ยน flow การเลือกเป้าหมายเดิม
 - สร้างประมาณการความจุคงเหลือ กระแสเงินสดสุทธิ และกระแสเงินสดคิดลดรายปี พร้อม reset ความจุในปีที่เปลี่ยน Battery
 - เพิ่ม sensitivity 3 กรณี (ระมัดระวัง ฐาน และเชิงบวก) โดยใช้ calculation engine การเงินชุดเดียวกับคำตอบหลัก เพื่อเปรียบเทียบ NPV ระยะคืนทุน ราคา ผลประหยัด การเสื่อม และ Discount rate
 - แสดงผล Lifecycle และ Sensitivity ต่อจากตาราง optimizer พร้อม semantic headings, progress labels และ layout ที่รองรับมือถือ/Dark mode
 - ส่งต่อสมมติฐานและผล Phase 2 ไปยังรายงานและ Ecosystem ผ่าน Battery storage schema version 3
+
+## Battery Phase 3 — Operational dispatch and resilience
+
+- สถานะ: เสร็จและตรวจสอบใน local; ยังไม่ commit, push หรือ deploy
+- ย่อ dispatch trace ของตัวเลือกที่ optimizer เลือกเป็นรูปแบบการทำงานเฉลี่ย 24 ชั่วโมง แสดงโหลด ไฟจากโครงข่าย กำลังชาร์จ/คายประจุ และ SOC โดยไม่จำลองสูตรซ้ำจาก calculation engine
+- เพิ่มตัวชี้วัดพลังงานชาร์จและคายประจุ แหล่งชาร์จ Equivalent cycles ช่วง SOC และผลต่อ Peak พร้อมเตือนอย่างตรงไปตรงมาเมื่อกลยุทธ์ชาร์จทำให้ Peak เพิ่ม
+- เพิ่ม stress test ไฟดับกลางคืน กลางวัน และช่วงเย็นจาก SOC ณ เวลาเริ่มเหตุการณ์ เทียบโหลดจำเป็น กำลังจ่าย และเป้าหมายชั่วโมงสำรอง
+- ส่ง operational profile และ outage scenarios ไปยังรายงานและ Ecosystem ผ่าน Battery storage schema version 4
+- เพิ่ม accessible chart summary, semantic headings, progress labels และ regression ตรวจขอบเขตการ์ด Phase 3 บน viewport 390 px
+- ผลการทดสอบ: lint/typecheck ผ่าน, unit/integration 296 tests ผ่าน, full E2E 32/32 ผ่าน, production build 53 routes ผ่าน และ visual QA ทั้ง Mobile/Dark mode ไม่พบ horizontal overflow หรือ console error

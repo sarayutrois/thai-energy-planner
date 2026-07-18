@@ -528,7 +528,8 @@ function readStoredDecision<T>(
     if (
       (value.schemaVersion !== 1 &&
         value.schemaVersion !== 2 &&
-        value.schemaVersion !== 3) ||
+        value.schemaVersion !== 3 &&
+        value.schemaVersion !== 4) ||
       typeof value.profileSnapshotId !== "string" ||
       !value.decision ||
       typeof value.decision !== "object"

@@ -6,6 +6,7 @@ import {
   runBatteryAnalysis,
   type BatteryAnalysisResult,
   type BatteryConfigInput,
+  type BatteryDispatchResult,
   type BatteryDispatchStrategy,
   type FinancialAssumptions,
   type FinancialResult,
@@ -74,6 +75,59 @@ export type BatteryMvpDecision = {
   optimization: BatteryOptimizationResult;
   lifecycle: BatteryLifecycleResult;
   sensitivity: BatterySensitivityResult;
+  operation: BatteryOperationResult;
+  resilience: BatteryResilienceResult;
+};
+
+export type BatteryOperationHour = {
+  hour: number;
+  label: string;
+  loadKw: number;
+  solarKw: number;
+  gridBeforeKw: number;
+  gridAfterKw: number;
+  chargeKw: number;
+  dischargeKw: number;
+  socPercent: number;
+  periodType: "peak" | "off_peak" | "unknown";
+};
+
+export type BatteryOperationResult = {
+  intervalMinutes: number;
+  intervalCount: number;
+  profileDayCount: number;
+  totalChargedKwh: number;
+  totalDischargedKwh: number;
+  chargedFromSolarKwh: number;
+  chargedFromGridKwh: number;
+  equivalentCycles: number;
+  minimumSocPercent: number;
+  maximumSocPercent: number;
+  peakChangeKw: number;
+  chargingHours: string[];
+  dischargingHours: string[];
+  typicalDay: BatteryOperationHour[];
+};
+
+export type BatteryOutageScenario = {
+  id: "overnight" | "midday" | "evening";
+  label: string;
+  startHour: number;
+  startSocPercent: number;
+  availableEnergyKwh: number;
+  estimatedCoverageHours: number;
+  powerSufficient: boolean;
+  targetMet: boolean;
+};
+
+export type BatteryResilienceResult = {
+  criticalLoadKw: number;
+  targetHours: number;
+  rating: "low" | "medium" | "high";
+  ratingLabel: string;
+  worstCoverageHours: number;
+  bestCoverageHours: number;
+  scenarios: BatteryOutageScenario[];
 };
 
 export type BatteryLifecycleYear = {
@@ -238,6 +292,15 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
     financial: selected.analysis.financial.financialTrace,
     annualBillSavingsThb: selected.analysis.financial.annualBillSavingsThb,
   });
+  const operation = buildBatteryOperation({
+    config: selected.config,
+    dispatch: selected.analysis.dispatch,
+  });
+  const resilience = buildBatteryResilience({
+    config: selected.config,
+    operation,
+    settings,
+  });
 
   return {
     verdict,
@@ -301,6 +364,8 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
     },
     lifecycle,
     sensitivity,
+    operation,
+    resilience,
   };
 }
 
@@ -551,6 +616,184 @@ function buildBatterySensitivity(input: {
     staysViableInDownside:
       downside.npvThb > 0 && downside.simplePaybackYears !== null,
   };
+}
+
+function buildBatteryOperation(input: {
+  config: BatteryConfigInput;
+  dispatch: BatteryDispatchResult;
+}): BatteryOperationResult {
+  const intervalHours = input.dispatch.intervalMinutes / 60;
+  const groups = new Map<
+    number,
+    {
+      count: number;
+      loadKwh: number;
+      solarKwh: number;
+      gridBeforeKwh: number;
+      gridAfterKwh: number;
+      chargeKwh: number;
+      dischargeKwh: number;
+      socKwh: number;
+      periods: Record<"peak" | "off_peak" | "unknown", number>;
+    }
+  >();
+  for (const interval of input.dispatch.intervals) {
+    const hour = bangkokHour(interval.timestamp);
+    const current = groups.get(hour) ?? {
+      count: 0,
+      loadKwh: 0,
+      solarKwh: 0,
+      gridBeforeKwh: 0,
+      gridAfterKwh: 0,
+      chargeKwh: 0,
+      dischargeKwh: 0,
+      socKwh: 0,
+      periods: { peak: 0, off_peak: 0, unknown: 0 },
+    };
+    current.count += 1;
+    current.loadKwh += interval.loadKwh;
+    current.solarKwh += interval.solarKwh;
+    current.gridBeforeKwh += interval.gridImportBeforeKwh;
+    current.gridAfterKwh += interval.gridImportAfterKwh;
+    current.chargeKwh += interval.chargeKwh;
+    current.dischargeKwh += interval.dischargeKwh;
+    current.socKwh += interval.socAfterKwh;
+    current.periods[interval.periodType] += 1;
+    groups.set(hour, current);
+  }
+  const typicalDay = Array.from({ length: 24 }, (_, hour) => {
+    const group = groups.get(hour);
+    const divisor = Math.max(1, (group?.count ?? 0) * intervalHours);
+    const periodType = group
+      ? (Object.entries(group.periods).sort((a, b) => b[1] - a[1])[0]?.[0] as
+          "peak" | "off_peak" | "unknown")
+      : "unknown";
+    return {
+      hour,
+      label: `${String(hour).padStart(2, "0")}:00`,
+      loadKw: roundOperational((group?.loadKwh ?? 0) / divisor),
+      solarKw: roundOperational((group?.solarKwh ?? 0) / divisor),
+      gridBeforeKw: roundOperational((group?.gridBeforeKwh ?? 0) / divisor),
+      gridAfterKw: roundOperational((group?.gridAfterKwh ?? 0) / divisor),
+      chargeKw: roundOperational((group?.chargeKwh ?? 0) / divisor),
+      dischargeKw: roundOperational((group?.dischargeKwh ?? 0) / divisor),
+      socPercent: roundOperational(
+        group && input.config.capacityKwh > 0
+          ? (group.socKwh / group.count / input.config.capacityKwh) * 100
+          : 0,
+      ),
+      periodType,
+    };
+  });
+  const socValues = input.dispatch.intervals.map(
+    (interval) => (interval.socAfterKwh / input.config.capacityKwh) * 100,
+  );
+  return {
+    intervalMinutes: input.dispatch.intervalMinutes,
+    intervalCount: input.dispatch.intervals.length,
+    profileDayCount: roundOperational(
+      (input.dispatch.intervals.length * intervalHours) / 24,
+    ),
+    totalChargedKwh: input.dispatch.totalChargedKwh,
+    totalDischargedKwh: input.dispatch.totalDischargedKwh,
+    chargedFromSolarKwh: input.dispatch.chargedFromSolarKwh,
+    chargedFromGridKwh: input.dispatch.chargedFromGridKwh,
+    equivalentCycles: roundOperational(
+      input.config.usableCapacityKwh > 0
+        ? input.dispatch.totalDischargedKwh / input.config.usableCapacityKwh
+        : 0,
+    ),
+    minimumSocPercent: roundOperational(
+      socValues.length > 0 ? Math.min(...socValues) : 0,
+    ),
+    maximumSocPercent: roundOperational(Math.max(...socValues, 0)),
+    peakChangeKw: roundOperational(
+      input.dispatch.peakDemandAfterKw - input.dispatch.peakDemandBeforeKw,
+    ),
+    chargingHours: typicalDay
+      .filter((item) => item.chargeKw > 0.01)
+      .map((item) => item.label),
+    dischargingHours: typicalDay
+      .filter((item) => item.dischargeKw > 0.01)
+      .map((item) => item.label),
+    typicalDay,
+  };
+}
+
+function buildBatteryResilience(input: {
+  config: BatteryConfigInput;
+  operation: BatteryOperationResult;
+  settings: BatteryMvpSettings;
+}): BatteryResilienceResult {
+  const definitions: Array<
+    Pick<BatteryOutageScenario, "id" | "label" | "startHour">
+  > = [
+    { id: "overnight", label: "ไฟดับกลางคืน", startHour: 2 },
+    { id: "midday", label: "ไฟดับกลางวัน", startHour: 12 },
+    { id: "evening", label: "ไฟดับช่วงเย็น", startHour: 18 },
+  ];
+  const minimumSocKwh =
+    input.config.capacityKwh * (input.config.minSocPercent / 100);
+  const criticalLoadKw = input.settings.criticalLoadKw;
+  const powerSufficient = input.config.dischargePowerKw >= criticalLoadKw;
+  const scenarios = definitions.map((definition) => {
+    const hour = input.operation.typicalDay[definition.startHour]!;
+    const storedEnergyKwh = input.config.capacityKwh * (hour.socPercent / 100);
+    const availableEnergyKwh = Math.max(
+      0,
+      (storedEnergyKwh - minimumSocKwh) * input.config.dischargeEfficiency,
+    );
+    const estimatedCoverageHours =
+      powerSufficient && criticalLoadKw > 0
+        ? availableEnergyKwh / criticalLoadKw
+        : 0;
+    return {
+      ...definition,
+      startSocPercent: hour.socPercent,
+      availableEnergyKwh: roundOperational(availableEnergyKwh),
+      estimatedCoverageHours: roundOperational(estimatedCoverageHours),
+      powerSufficient,
+      targetMet: estimatedCoverageHours >= input.settings.backupHours,
+    };
+  });
+  const coverage = scenarios.map((scenario) => scenario.estimatedCoverageHours);
+  const targetMetCount = scenarios.filter(
+    (scenario) => scenario.targetMet,
+  ).length;
+  const rating =
+    targetMetCount === scenarios.length
+      ? "high"
+      : targetMetCount > 0
+        ? "medium"
+        : "low";
+  return {
+    criticalLoadKw,
+    targetHours: input.settings.backupHours,
+    rating,
+    ratingLabel:
+      rating === "high"
+        ? "พร้อมรับไฟดับตามเป้าหมาย"
+        : rating === "medium"
+          ? "พร้อมบางช่วงเวลา"
+          : "พลังงานสำรองยังไม่ถึงเป้าหมาย",
+    worstCoverageHours: Math.min(...coverage),
+    bestCoverageHours: Math.max(...coverage),
+    scenarios,
+  };
+}
+
+const bangkokHourFormatter = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Bangkok",
+  hour: "2-digit",
+  hourCycle: "h23",
+});
+
+function bangkokHour(timestamp: string) {
+  return Number(bangkokHourFormatter.format(new Date(timestamp))) % 24;
+}
+
+function roundOperational(value: number) {
+  return Math.round(value * 1_000) / 1_000;
 }
 
 function buildSolarIntervals(

@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
 import {
+  Activity,
   ArrowRight,
   BatteryCharging,
   CheckCircle2,
@@ -34,6 +36,25 @@ import {
 } from "@/lib/local-load-profile";
 import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
 import { batteryMvpStorageKey } from "@/lib/analysis-storage";
+
+const BatteryOperationChart = dynamic(
+  () =>
+    import("@/components/battery-operation-chart").then(
+      (module) => module.BatteryOperationChart,
+    ),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        aria-label="กำลังเตรียมกราฟการทำงานของ Battery"
+        className="flex h-[300px] items-center justify-center text-sm text-muted-foreground"
+        role="status"
+      >
+        กำลังเตรียมกราฟ…
+      </div>
+    ),
+  },
+);
 
 const goals: Array<{
   value: BatteryGoal;
@@ -355,6 +376,43 @@ export function BatteryRuntimePanel() {
             ) : null}
           </div>
 
+          {settings.goal !== "backup" ? (
+            <details className="group rounded-xl border border-border bg-card">
+              <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
+                <span>สมมติฐาน Stress test ไฟดับ</span>
+                <span className="text-xs font-normal text-muted-foreground group-open:hidden">
+                  โหลด {formatNumber(settings.criticalLoadKw)} kW · เป้าหมาย{" "}
+                  {formatNumber(settings.backupHours)} ชม.
+                </span>
+                <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">
+                  ซ่อนรายละเอียด
+                </span>
+              </summary>
+              <div className="grid gap-4 border-t border-border p-4 md:grid-cols-2">
+                <NumberField
+                  label="โหลดจำเป็นเมื่อไฟดับ (kW)"
+                  min={0.1}
+                  step={0.1}
+                  value={settings.criticalLoadKw}
+                  onChange={(value) =>
+                    updateSettings({ criticalLoadKw: value })
+                  }
+                />
+                <NumberField
+                  label="เป้าหมายไฟสำรอง (ชั่วโมง)"
+                  min={0.5}
+                  step={0.5}
+                  value={settings.backupHours}
+                  onChange={(value) => updateSettings({ backupHours: value })}
+                />
+                <p className="text-xs leading-5 text-muted-foreground md:col-span-2">
+                  ค่านี้ใช้กับ outage stress test เท่านั้น ไม่เปลี่ยนลำดับ
+                  optimizer ของเป้าหมายลดค่าไฟหรือเก็บ Solar
+                </p>
+              </div>
+            </details>
+          ) : null}
+
           <details className="group rounded-xl border border-border bg-card">
             <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
               <span>สมมติฐานอายุระบบและการเงิน</span>
@@ -591,6 +649,8 @@ function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
           />
         </div>
         <BatteryOptimizationComparison decision={decision} />
+        <BatteryOperationPanel decision={decision} />
+        <BatteryResiliencePanel decision={decision} />
         <BatteryLifecyclePanel decision={decision} />
         <BatterySensitivityPanel decision={decision} />
         <details className="group rounded-md border border-border">
@@ -635,6 +695,209 @@ function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
       </CardContent>
     </Card>
   );
+}
+
+function BatteryOperationPanel({ decision }: { decision: BatteryMvpDecision }) {
+  const peakChange = decision.operation.peakChangeKw;
+  return (
+    <section
+      aria-labelledby="battery-operation-heading"
+      className="rounded-xl border border-border bg-card p-4"
+    >
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3
+            className="flex items-center gap-2 font-semibold"
+            id="battery-operation-heading"
+          >
+            <Activity aria-hidden="true" className="h-5 w-5 text-primary" />
+            Battery ทำงานเมื่อไร
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            สรุป dispatch trace ของตัวเลือกที่ระบบเลือกเป็นรูปแบบเฉลี่ย 24
+            ชั่วโมง เพื่อดูช่วงชาร์จ คายประจุ SOC และผลต่อไฟจากโครงข่าย
+          </p>
+        </div>
+        <Badge variant="information">
+          {decision.operation.intervalCount} ช่วง ·{" "}
+          {decision.operation.profileDayCount} วัน
+        </Badge>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <DetailMetric
+          label="ชาร์จ / คายประจุ"
+          value={`${formatNumber(decision.operation.totalChargedKwh)} / ${formatNumber(decision.operation.totalDischargedKwh)} kWh`}
+        />
+        <DetailMetric
+          label="Equivalent cycles"
+          value={`${formatNumber(decision.operation.equivalentCycles)} รอบในช่วงข้อมูล`}
+        />
+        <DetailMetric
+          label="ช่วง SOC ที่จำลองได้"
+          value={`${formatNumber(decision.operation.minimumSocPercent)}–${formatNumber(decision.operation.maximumSocPercent)}%`}
+        />
+        <DetailMetric
+          label="ผลต่อ Peak"
+          value={
+            Math.abs(peakChange) < 0.01
+              ? "Peak ใกล้เคียงเดิม"
+              : `${peakChange < 0 ? "ลด" : "เพิ่ม"} ${formatNumber(Math.abs(peakChange))} kW`
+          }
+        />
+      </div>
+      <div className="mt-4 rounded-xl border border-border/70 bg-muted/15 p-2 sm:p-4">
+        <BatteryOperationChart operation={decision.operation} />
+      </div>
+      <dl className="mt-3 grid gap-3 text-sm md:grid-cols-3">
+        <OperationWindow
+          label="ช่วงชาร์จเฉลี่ย"
+          value={formatHourWindows(decision.operation.chargingHours)}
+        />
+        <OperationWindow
+          label="ช่วงคายประจุเฉลี่ย"
+          value={formatHourWindows(decision.operation.dischargingHours)}
+        />
+        <OperationWindow
+          label="แหล่งพลังงานที่ใช้ชาร์จ"
+          value={`Solar ${formatNumber(decision.operation.chargedFromSolarKwh)} kWh · โครงข่าย ${formatNumber(decision.operation.chargedFromGridKwh)} kWh`}
+        />
+      </dl>
+      {peakChange > 0.01 ? (
+        <p className="mt-3 rounded-lg border border-warning/40 bg-warning/10 p-3 text-xs leading-5 text-warning-foreground">
+          กลยุทธ์ที่เลือกทำให้ Peak จำลองเพิ่มขึ้น {formatNumber(peakChange)} kW
+          จากการชาร์จ Battery ระบบจึงแสดงผลนี้เป็นข้อควรระวังแทนการอ้างว่าลด
+          Peak ได้เสมอ
+        </p>
+      ) : null}
+    </section>
+  );
+}
+
+function BatteryResiliencePanel({
+  decision,
+}: {
+  decision: BatteryMvpDecision;
+}) {
+  return (
+    <section
+      aria-labelledby="battery-resilience-heading"
+      className="rounded-xl border border-border bg-card p-4"
+    >
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="font-semibold" id="battery-resilience-heading">
+            Stress test เมื่อไฟดับ
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            ประเมินไฟสำรองจาก SOC เฉลี่ย ณ เวลาเริ่มไฟดับ เทียบโหลดจำเป็น{" "}
+            {formatNumber(decision.resilience.criticalLoadKw)} kW และเป้าหมาย{" "}
+            {formatNumber(decision.resilience.targetHours)} ชั่วโมง
+          </p>
+        </div>
+        <Badge
+          variant={
+            decision.resilience.rating === "high"
+              ? "success"
+              : decision.resilience.rating === "medium"
+                ? "information"
+                : "warning"
+          }
+        >
+          {decision.resilience.ratingLabel}
+        </Badge>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        {decision.resilience.scenarios.map((scenario) => {
+          const targetProgress =
+            decision.resilience.targetHours > 0
+              ? (scenario.estimatedCoverageHours /
+                  decision.resilience.targetHours) *
+                100
+              : 0;
+          return (
+            <article
+              className="rounded-xl border border-border bg-muted/20 p-4"
+              key={scenario.id}
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <h4 className="font-semibold">{scenario.label}</h4>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    เริ่ม {String(scenario.startHour).padStart(2, "0")}:00 · SOC{" "}
+                    {formatNumber(scenario.startSocPercent)}%
+                  </p>
+                </div>
+                <Badge variant={scenario.targetMet ? "success" : "warning"}>
+                  {scenario.targetMet ? "ถึงเป้าหมาย" : "ต่ำกว่าเป้าหมาย"}
+                </Badge>
+              </div>
+              <p className="mt-4 text-2xl font-semibold tabular-nums">
+                {formatNumber(scenario.estimatedCoverageHours)} ชั่วโมง
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                พลังงานใช้ได้ {formatNumber(scenario.availableEnergyKwh)} kWh
+              </p>
+              <div
+                aria-label={`รองรับเป้าหมายไฟสำรอง ${formatNumber(Math.min(100, targetProgress))}%`}
+                className="mt-3 h-2 overflow-hidden rounded-full bg-muted"
+                role="img"
+              >
+                <div
+                  className={`h-full rounded-full ${scenario.targetMet ? "bg-success" : "bg-warning"}`}
+                  style={{
+                    width: `${Math.max(0, Math.min(100, targetProgress))}%`,
+                  }}
+                />
+              </div>
+              {!scenario.powerSufficient ? (
+                <p className="mt-3 text-xs font-medium text-destructive">
+                  กำลังจ่ายของ Battery ต่ำกว่าโหลดจำเป็น
+                </p>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+      <p className="mt-3 text-xs leading-5 text-muted-foreground">
+        ผลนี้เป็น stress test จากรูปแบบ SOC เฉลี่ย ไม่ใช่การรับรองระบบสำรองไฟ
+        ต้องตรวจโหลดกระชาก การแยกวงจร และการทำงานแบบ islanding กับผู้ติดตั้ง
+      </p>
+    </section>
+  );
+}
+
+function OperationWindow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg border border-border/70 p-3">
+      <dt className="text-xs text-muted-foreground">{label}</dt>
+      <dd className="mt-1 font-medium">{value}</dd>
+    </div>
+  );
+}
+
+function formatHourWindows(labels: string[]) {
+  if (labels.length === 0) return "ไม่มีในรูปแบบเฉลี่ย";
+  const hours = labels.map((label) => Number(label.slice(0, 2)));
+  const ranges: Array<[number, number]> = [];
+  let start = hours[0]!;
+  let previous = start;
+  for (const hour of hours.slice(1)) {
+    if (hour === previous + 1) {
+      previous = hour;
+      continue;
+    }
+    ranges.push([start, previous]);
+    start = hour;
+    previous = hour;
+  }
+  ranges.push([start, previous]);
+  return ranges
+    .map(([first, last]) =>
+      first === last
+        ? `${String(first).padStart(2, "0")}:00`
+        : `${String(first).padStart(2, "0")}:00–${String(last + 1).padStart(2, "0")}:00`,
+    )
+    .join(", ");
 }
 
 function BatteryLifecyclePanel({ decision }: { decision: BatteryMvpDecision }) {
@@ -1061,6 +1324,10 @@ function buildBatteryReportDraft(
         value: `ปีที่ ${decision.lifecycle.replacementYear} · ${formatMoney(decision.lifecycle.replacementCostThb)} บาท`,
       },
       {
+        label: "เป้าหมายไฟสำรอง",
+        value: `${formatNumber(decision.resilience.criticalLoadKw)} kW · ${formatNumber(decision.resilience.targetHours)} ชั่วโมง`,
+      },
+      {
         label: "Optimizer",
         value: `${decision.optimization.evaluatedCandidateCount} ทางเลือก · ${decision.optimization.evaluatedCapacitiesKwh.length} ขนาด · ${decision.optimization.evaluatedStrategies.length} กลยุทธ์`,
       },
@@ -1126,6 +1393,28 @@ function buildBatteryReportDraft(
             item.cumulativeDiscountedCashFlowThb,
           ),
         })),
+      ...decision.operation.typicalDay.map((item) => ({
+        case: `Operation ${item.label}`,
+        loadKw: roundReportNumber(item.loadKw),
+        solarKw: roundReportNumber(item.solarKw),
+        gridBeforeKw: roundReportNumber(item.gridBeforeKw),
+        gridAfterKw: roundReportNumber(item.gridAfterKw),
+        batteryChargeKw: roundReportNumber(item.chargeKw),
+        batteryDischargeKw: roundReportNumber(item.dischargeKw),
+        socPercent: roundReportNumber(item.socPercent),
+        periodType: item.periodType,
+      })),
+      ...decision.resilience.scenarios.map((scenario) => ({
+        case: `Outage stress: ${scenario.label}`,
+        startHour: scenario.startHour,
+        startSocPercent: roundReportNumber(scenario.startSocPercent),
+        availableEnergyKwh: roundReportNumber(scenario.availableEnergyKwh),
+        estimatedCoverageHours: roundReportNumber(
+          scenario.estimatedCoverageHours,
+        ),
+        targetResult: scenario.targetMet ? "ถึงเป้าหมาย" : "ต่ำกว่าเป้าหมาย",
+        powerResult: scenario.powerSufficient ? "กำลังเพียงพอ" : "กำลังไม่พอ",
+      })),
     ],
     recommendations: [
       {
@@ -1145,12 +1434,16 @@ function buildBatteryReportDraft(
         label: "Sensitivity NPV range",
         value: `${formatMoney(decision.sensitivity.npvLowThb)}–${formatMoney(decision.sensitivity.npvHighThb)} บาท`,
       },
+      {
+        label: "Operational dispatch trace",
+        value: `${decision.operation.intervalCount} ช่วง · ${decision.operation.profileDayCount} วัน · ${formatNumber(decision.operation.equivalentCycles)} equivalent cycles`,
+      },
     ],
   };
 }
 
 type StoredBatteryMvp = {
-  schemaVersion: 3;
+  schemaVersion: 4;
   profileSnapshotId: string;
   settingsFingerprint: string;
   settings: BatteryMvpSettings;
@@ -1164,7 +1457,7 @@ function persistBatteryMvp(input: {
 }) {
   try {
     const stored: StoredBatteryMvp = {
-      schemaVersion: 3,
+      schemaVersion: 4,
       profileSnapshotId: input.profileSnapshotId,
       settingsFingerprint: settingsFingerprint(input.settings),
       settings: input.settings,
@@ -1182,7 +1475,7 @@ function readStoredBatteryMvp(): StoredBatteryMvp | null {
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<StoredBatteryMvp>;
     if (
-      value.schemaVersion !== 3 ||
+      value.schemaVersion !== 4 ||
       typeof value.profileSnapshotId !== "string" ||
       typeof value.settingsFingerprint !== "string" ||
       !value.settings ||
