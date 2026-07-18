@@ -547,6 +547,38 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
     batteryComparison.getByText("เลือก", { exact: true }),
   ).toHaveCount(1);
   await expect(
+    page.getByRole("heading", {
+      name: "อายุการใช้งานและการเสื่อมของ Battery",
+    }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "ความไวต่อราคาและผลประหยัด" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("heading", { name: "สมมติฐานปัจจุบัน" }),
+  ).toBeVisible();
+  await page.setViewportSize({ width: 390, height: 844 });
+  const phaseTwoBounds = await page
+    .locator('section[aria-labelledby="battery-sensitivity-heading"]')
+    .evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+  expect(phaseTwoBounds.left).toBeGreaterThanOrEqual(0);
+  expect(phaseTwoBounds.right).toBeLessThanOrEqual(
+    phaseTwoBounds.viewportWidth + 1,
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth > window.innerWidth + 1,
+    ),
+  ).toBe(false);
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await expect(
     batteryAnswer.getByRole("link", { name: "รวมเป็นแผนพลังงาน" }),
   ).toHaveAttribute("href", "/analysis/ecosystem");
   await expect(page.getByRole("main")).not.toContainText("NaN");
@@ -559,6 +591,7 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(
     batteryComparison.getByText("เลือก", { exact: true }),
   ).toHaveCount(1);
+  await expect(page.getByText("ช่วง NPV จาก sensitivity")).toBeVisible();
 
   await page.goto("/analysis/ev");
   await expect(

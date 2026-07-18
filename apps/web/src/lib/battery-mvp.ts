@@ -1,5 +1,6 @@
 import {
   batteryEvEngineVersion,
+  calculateFinancials,
   createBatteryAnalysisInputFromCanonicalLoadProfile,
   generateApproxSolarProfile,
   runBatteryAnalysis,
@@ -7,6 +8,7 @@ import {
   type BatteryConfigInput,
   type BatteryDispatchStrategy,
   type FinancialAssumptions,
+  type FinancialResult,
   type SolarGenerationIntervalInput,
 } from "@thai-energy-planner/calculation-engine";
 import { getOfficialThaiTariffPair } from "@thai-energy-planner/tariff-engine";
@@ -29,6 +31,12 @@ export type BatteryMvpSettings = {
   batteryCostPerKwhThb: number;
   solarSystemSizeKwp: number;
   useSolarForBackup: boolean;
+  projectLifeYears: number;
+  degradationPercentPerYear: number;
+  discountRatePercent: number;
+  electricityEscalationRatePercent: number;
+  replacementYear: number;
+  replacementCostPercent: number;
 };
 
 export type BatteryMvpDecision = {
@@ -64,6 +72,48 @@ export type BatteryMvpDecision = {
   tariffVersionIds: string[];
   calculatedAt: string;
   optimization: BatteryOptimizationResult;
+  lifecycle: BatteryLifecycleResult;
+  sensitivity: BatterySensitivityResult;
+};
+
+export type BatteryLifecycleYear = {
+  year: number;
+  remainingCapacityKwh: number;
+  remainingCapacityPercent: number;
+  netCashFlowThb: number;
+  cumulativeDiscountedCashFlowThb: number;
+  replacementCostThb: number;
+  replacement: boolean;
+};
+
+export type BatteryLifecycleResult = {
+  projectLifeYears: number;
+  degradationPercentPerYear: number;
+  replacementYear: number;
+  replacementCostThb: number;
+  endOfProjectCapacityKwh: number;
+  endOfProjectCapacityPercent: number;
+  years: BatteryLifecycleYear[];
+};
+
+export type BatterySensitivityCase = {
+  id: "downside" | "base" | "upside";
+  label: string;
+  capexMultiplier: number;
+  savingsMultiplier: number;
+  degradationPercentPerYear: number;
+  discountRatePercent: number;
+  npvThb: number;
+  simplePaybackYears: number | null;
+  annualNetBenefitYear1: number;
+};
+
+export type BatterySensitivityResult = {
+  cases: BatterySensitivityCase[];
+  npvLowThb: number;
+  npvHighThb: number;
+  breakEvenCapexThb: number | null;
+  staysViableInDownside: boolean;
 };
 
 export type BatteryCandidateComparison = {
@@ -113,6 +163,12 @@ export function defaultBatteryMvpSettings(): BatteryMvpSettings {
     batteryCostPerKwhThb: 35_000,
     solarSystemSizeKwp: 5,
     useSolarForBackup: false,
+    projectLifeYears: 15,
+    degradationPercentPerYear: 2,
+    discountRatePercent: 6,
+    electricityEscalationRatePercent: 2,
+    replacementYear: 10,
+    replacementCostPercent: 50,
   };
 }
 
@@ -148,7 +204,7 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
           normalTariff: tariffs.normalTariff,
           touTariff: tariffs.touTariff,
           config,
-          financialAssumptions: buildFinancialAssumptions(config),
+          financialAssumptions: buildFinancialAssumptions(config, settings),
           meterMode:
             settings.goal === "bill_savings" ? "tou" : settings.meterMode,
         }),
@@ -173,6 +229,15 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
     selected.analysis.financial.annualBillSavingsThb / 12;
   const budgetLowThb = roundMoney(selected.config.capexThb * 0.9);
   const budgetHighThb = roundMoney(selected.config.capexThb * 1.15);
+  const lifecycle = buildBatteryLifecycle({
+    config: selected.config,
+    financial: selected.analysis.financial.financialTrace,
+  });
+  const sensitivity = buildBatterySensitivity({
+    config: selected.config,
+    financial: selected.analysis.financial.financialTrace,
+    annualBillSavingsThb: selected.analysis.financial.annualBillSavingsThb,
+  });
 
   return {
     verdict,
@@ -234,6 +299,8 @@ export function evaluateBatteryMvp(input: BatteryMvpInput): BatteryMvpDecision {
         summarizeCandidate(candidate, index, selected),
       ),
     },
+    lifecycle,
+    sensitivity,
   };
 }
 
@@ -254,6 +321,42 @@ export function validateBatteryMvpSettings(settings: BatteryMvpSettings) {
       settings.solarSystemSizeKwp <= 0)
   )
     errors.push("ขนาด Solar ต้องมากกว่า 0 kWp");
+  if (
+    !Number.isInteger(settings.projectLifeYears) ||
+    settings.projectLifeYears < 5 ||
+    settings.projectLifeYears > 25
+  )
+    errors.push("อายุโครงการต้องเป็นจำนวนเต็มระหว่าง 5–25 ปี");
+  if (
+    !Number.isFinite(settings.degradationPercentPerYear) ||
+    settings.degradationPercentPerYear < 0 ||
+    settings.degradationPercentPerYear > 10
+  )
+    errors.push("อัตราเสื่อมต้องอยู่ระหว่าง 0–10% ต่อปี");
+  if (
+    !Number.isFinite(settings.discountRatePercent) ||
+    settings.discountRatePercent < 0 ||
+    settings.discountRatePercent > 20
+  )
+    errors.push("Discount rate ต้องอยู่ระหว่าง 0–20%");
+  if (
+    !Number.isFinite(settings.electricityEscalationRatePercent) ||
+    settings.electricityEscalationRatePercent < 0 ||
+    settings.electricityEscalationRatePercent > 10
+  )
+    errors.push("อัตราค่าไฟเพิ่มต้องอยู่ระหว่าง 0–10% ต่อปี");
+  if (
+    !Number.isInteger(settings.replacementYear) ||
+    settings.replacementYear < 1 ||
+    settings.replacementYear > settings.projectLifeYears
+  )
+    errors.push("ปีเปลี่ยน Battery ต้องอยู่ภายในอายุโครงการ");
+  if (
+    !Number.isFinite(settings.replacementCostPercent) ||
+    settings.replacementCostPercent < 0 ||
+    settings.replacementCostPercent > 100
+  )
+    errors.push("ค่าเปลี่ยน Battery ต้องอยู่ระหว่าง 0–100% ของ CAPEX");
   if (errors.length > 0) throw new Error(errors.join(" · "));
 }
 
@@ -283,12 +386,12 @@ function buildBatteryConfig(
     chargeEfficiency: 0.95,
     dischargeEfficiency: 0.95,
     roundTripEfficiency: 0.9025,
-    degradationPercentPerYear: 2,
+    degradationPercentPerYear: settings.degradationPercentPerYear,
     cycleLife: 5_000,
     capexThb,
     oAndMCostPerYear: capexThb * 0.01,
-    replacementCostThb: capexThb * 0.5,
-    replacementYear: 10,
+    replacementCostThb: capexThb * (settings.replacementCostPercent / 100),
+    replacementYear: settings.replacementYear,
     backupReservePercent:
       strategy === "BACKUP_RESERVE" ? 80 : strategy === "HYBRID" ? 20 : 0,
     dispatchStrategy: strategy,
@@ -308,11 +411,12 @@ function buildBatteryConfig(
 
 function buildFinancialAssumptions(
   config: BatteryConfigInput,
+  settings: BatteryMvpSettings,
 ): FinancialAssumptions {
   return {
-    projectLifeYears: 15,
-    discountRatePercent: 6,
-    electricityEscalationRatePercent: 2,
+    projectLifeYears: settings.projectLifeYears,
+    discountRatePercent: settings.discountRatePercent,
+    electricityEscalationRatePercent: settings.electricityEscalationRatePercent,
     inflationRatePercent: 2,
     oAndMEscalationRatePercent: 2,
     degradationRatePercent: config.degradationPercentPerYear,
@@ -323,6 +427,129 @@ function buildFinancialAssumptions(
     subsidyAmountThb: 0,
     meterChangeCostThb: 0,
     otherInitialCostThb: 0,
+  };
+}
+
+function buildBatteryLifecycle(input: {
+  config: BatteryConfigInput;
+  financial: FinancialResult;
+}): BatteryLifecycleResult {
+  const degradationRate = input.config.degradationPercentPerYear / 100;
+  const replacementYear = input.config.replacementYear ?? 0;
+  const years = input.financial.cashFlows.map((cashFlow) => {
+    const batteryAge =
+      replacementYear > 0 && cashFlow.year >= replacementYear
+        ? cashFlow.year - replacementYear
+        : cashFlow.year;
+    const remainingCapacityPercent =
+      Math.pow(1 - degradationRate, batteryAge) * 100;
+    return {
+      year: cashFlow.year,
+      remainingCapacityKwh:
+        input.config.capacityKwh * (remainingCapacityPercent / 100),
+      remainingCapacityPercent,
+      netCashFlowThb: cashFlow.netCashFlowThb,
+      cumulativeDiscountedCashFlowThb: cashFlow.cumulativeDiscountedCashFlowThb,
+      replacementCostThb: cashFlow.replacementCostThb,
+      replacement: replacementYear > 0 && cashFlow.year === replacementYear,
+    };
+  });
+  const finalYear = years.at(-1)!;
+  return {
+    projectLifeYears: input.financial.assumptionsSnapshot.projectLifeYears,
+    degradationPercentPerYear: input.config.degradationPercentPerYear,
+    replacementYear,
+    replacementCostThb: input.config.replacementCostThb,
+    endOfProjectCapacityKwh: finalYear.remainingCapacityKwh,
+    endOfProjectCapacityPercent: finalYear.remainingCapacityPercent,
+    years,
+  };
+}
+
+function buildBatterySensitivity(input: {
+  config: BatteryConfigInput;
+  financial: FinancialResult;
+  annualBillSavingsThb: number;
+}): BatterySensitivityResult {
+  const assumptions = input.financial.assumptionsSnapshot;
+  const yearOneGenerationKwh = input.financial.cashFlows[1]?.generationKwh ?? 0;
+  const definitions: Array<
+    Pick<
+      BatterySensitivityCase,
+      | "id"
+      | "label"
+      | "capexMultiplier"
+      | "savingsMultiplier"
+      | "degradationPercentPerYear"
+      | "discountRatePercent"
+    >
+  > = [
+    {
+      id: "downside",
+      label: "กรณีระมัดระวัง",
+      capexMultiplier: 1.2,
+      savingsMultiplier: 0.85,
+      degradationPercentPerYear: Math.min(
+        10,
+        input.config.degradationPercentPerYear + 1,
+      ),
+      discountRatePercent: Math.min(20, assumptions.discountRatePercent + 2),
+    },
+    {
+      id: "base",
+      label: "สมมติฐานปัจจุบัน",
+      capexMultiplier: 1,
+      savingsMultiplier: 1,
+      degradationPercentPerYear: input.config.degradationPercentPerYear,
+      discountRatePercent: assumptions.discountRatePercent,
+    },
+    {
+      id: "upside",
+      label: "กรณีเป็นผลดี",
+      capexMultiplier: 0.9,
+      savingsMultiplier: 1.1,
+      degradationPercentPerYear: Math.max(
+        0,
+        input.config.degradationPercentPerYear - 0.5,
+      ),
+      discountRatePercent: Math.max(0, assumptions.discountRatePercent - 1),
+    },
+  ];
+  const cases = definitions.map((definition) => {
+    const capexThb = assumptions.capexThb * definition.capexMultiplier;
+    const financial = calculateFinancials({
+      annualBillSavingsThb:
+        input.annualBillSavingsThb * definition.savingsMultiplier,
+      annualExportRevenueThb: 0,
+      annualGenerationKwh: yearOneGenerationKwh * definition.savingsMultiplier,
+      assumptions: {
+        ...assumptions,
+        capexThb,
+        discountRatePercent: definition.discountRatePercent,
+        degradationRatePercent: definition.degradationPercentPerYear,
+        oAndMCostPerYear:
+          assumptions.oAndMCostPerYear * definition.capexMultiplier,
+        inverterReplacementCostThb:
+          assumptions.inverterReplacementCostThb * definition.capexMultiplier,
+      },
+    });
+    return {
+      ...definition,
+      npvThb: financial.npvThb,
+      simplePaybackYears: financial.simplePaybackYears,
+      annualNetBenefitYear1: financial.annualNetBenefitYear1,
+    };
+  });
+  const npvs = cases.map((item) => item.npvThb);
+  const downside = cases.find((item) => item.id === "downside")!;
+  const breakEvenCapex = assumptions.capexThb + input.financial.npvThb;
+  return {
+    cases,
+    npvLowThb: Math.min(...npvs),
+    npvHighThb: Math.max(...npvs),
+    breakEvenCapexThb: breakEvenCapex >= 0 ? breakEvenCapex : null,
+    staysViableInDownside:
+      downside.npvThb > 0 && downside.simplePaybackYears !== null,
   };
 }
 

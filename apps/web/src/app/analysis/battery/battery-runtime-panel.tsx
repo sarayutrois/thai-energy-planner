@@ -355,6 +355,88 @@ export function BatteryRuntimePanel() {
             ) : null}
           </div>
 
+          <details className="group rounded-xl border border-border bg-card">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
+              <span>สมมติฐานอายุระบบและการเงิน</span>
+              <span className="text-xs font-normal text-muted-foreground group-open:hidden">
+                อายุ {settings.projectLifeYears} ปี · เสื่อม{" "}
+                {formatNumber(settings.degradationPercentPerYear)}%/ปี
+              </span>
+              <span className="hidden text-xs font-normal text-muted-foreground group-open:inline">
+                ซ่อนรายละเอียด
+              </span>
+            </summary>
+            <div className="grid gap-4 border-t border-border p-4 md:grid-cols-2 lg:grid-cols-3">
+              <NumberField
+                label="อายุโครงการ (ปี)"
+                min={5}
+                max={25}
+                step={1}
+                value={settings.projectLifeYears}
+                onChange={(value) =>
+                  updateSettings({ projectLifeYears: Math.round(value) })
+                }
+              />
+              <NumberField
+                label="Battery เสื่อมต่อปี (%)"
+                min={0}
+                max={10}
+                step={0.5}
+                value={settings.degradationPercentPerYear}
+                onChange={(value) =>
+                  updateSettings({ degradationPercentPerYear: value })
+                }
+              />
+              <NumberField
+                label="Discount rate (%)"
+                min={0}
+                max={20}
+                step={0.5}
+                value={settings.discountRatePercent}
+                onChange={(value) =>
+                  updateSettings({ discountRatePercent: value })
+                }
+              />
+              <NumberField
+                label="ค่าไฟเพิ่มต่อปี (%)"
+                min={0}
+                max={10}
+                step={0.5}
+                value={settings.electricityEscalationRatePercent}
+                onChange={(value) =>
+                  updateSettings({
+                    electricityEscalationRatePercent: value,
+                  })
+                }
+              />
+              <NumberField
+                label="เปลี่ยน Battery ในปีที่"
+                min={1}
+                max={settings.projectLifeYears}
+                step={1}
+                value={settings.replacementYear}
+                onChange={(value) =>
+                  updateSettings({ replacementYear: Math.round(value) })
+                }
+              />
+              <NumberField
+                label="ค่าเปลี่ยนเทียบ CAPEX (%)"
+                min={0}
+                max={100}
+                step={5}
+                value={settings.replacementCostPercent}
+                onChange={(value) =>
+                  updateSettings({ replacementCostPercent: value })
+                }
+              />
+              <p className="text-xs leading-5 text-muted-foreground md:col-span-2 lg:col-span-3">
+                ระบบใช้สมมติฐานเหล่านี้กับทุก candidate และแสดงผลกระทบทั้ง
+                lifecycle, replacement cash flow และ NPV
+                เพื่อให้เปรียบเทียบด้วยฐานเดียวกัน
+              </p>
+            </div>
+          </details>
+
           <div className="rounded-md border border-warning/40 bg-warning/10 p-3 text-xs leading-5 text-warning-foreground">
             ราคาตั้งต้นเป็นสมมติฐานสำหรับคัดกรอง ไม่ใช่ราคาตลาดหรือใบเสนอราคา
             กรุณาแก้ให้ตรงกับราคาที่ได้รับก่อนใช้ตัดสินใจ
@@ -463,14 +545,14 @@ export function BatteryRuntimePanel() {
 
 function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
   return (
-    <Card>
+    <Card className="min-w-0">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
           <PlugZap aria-hidden="true" className="h-5 w-5 text-primary" />
           ระบบที่กำลังประเมิน
         </CardTitle>
       </CardHeader>
-      <CardContent className="grid gap-5">
+      <CardContent className="min-w-0 grid gap-5 [&>*]:min-w-0">
         <div className="grid gap-2 md:grid-cols-[1fr_auto_1fr_auto_1fr] md:items-stretch">
           <FlowNode
             icon={decision.sourceLabel.includes("Solar") ? SunMedium : Zap}
@@ -509,6 +591,8 @@ function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
           />
         </div>
         <BatteryOptimizationComparison decision={decision} />
+        <BatteryLifecyclePanel decision={decision} />
+        <BatterySensitivityPanel decision={decision} />
         <details className="group rounded-md border border-border">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 p-4 font-semibold">
             <span>ดูเหตุผล ข้อจำกัด และแหล่งคำนวณทั้งหมด</span>
@@ -550,6 +634,186 @@ function BatterySystemDetails({ decision }: { decision: BatteryMvpDecision }) {
         </details>
       </CardContent>
     </Card>
+  );
+}
+
+function BatteryLifecyclePanel({ decision }: { decision: BatteryMvpDecision }) {
+  const milestones = decision.lifecycle.years.filter(
+    (item) =>
+      item.year === 0 ||
+      item.year === 1 ||
+      item.year % 5 === 0 ||
+      item.replacement ||
+      item.year === decision.lifecycle.projectLifeYears,
+  );
+  return (
+    <section
+      aria-labelledby="battery-lifecycle-heading"
+      className="rounded-xl border border-border bg-card p-4"
+    >
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="font-semibold" id="battery-lifecycle-heading">
+            อายุการใช้งานและการเสื่อมของ Battery
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            คำนวณจากการเสื่อม{" "}
+            {formatNumber(decision.lifecycle.degradationPercentPerYear)}% ต่อปี
+            และ reset ความจุเมื่อเปลี่ยน Battery ในปีที่{" "}
+            {decision.lifecycle.replacementYear}
+          </p>
+        </div>
+        <Badge variant="outline">
+          อายุโครงการ {decision.lifecycle.projectLifeYears} ปี
+        </Badge>
+      </div>
+      <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <DetailMetric
+          label="ความจุเริ่มต้น"
+          value={`${formatNumber(decision.capacityKwh)} kWh`}
+        />
+        <DetailMetric
+          label="ความจุปลายโครงการ"
+          value={`${formatNumber(decision.lifecycle.endOfProjectCapacityKwh)} kWh`}
+        />
+        <DetailMetric
+          label="สัดส่วนที่เหลือ"
+          value={`${formatNumber(decision.lifecycle.endOfProjectCapacityPercent)}%`}
+        />
+        <DetailMetric
+          label={`ค่าเปลี่ยนในปีที่ ${decision.lifecycle.replacementYear}`}
+          value={`${formatMoney(decision.lifecycle.replacementCostThb)} บาท`}
+        />
+      </div>
+      <div className="mt-4 grid gap-2" role="list">
+        {milestones.map((item) => (
+          <div
+            className="grid gap-2 rounded-lg border border-border/70 p-3 sm:grid-cols-[5rem_1fr_auto] sm:items-center"
+            key={item.year}
+            role="listitem"
+          >
+            <p className="text-sm font-semibold">
+              ปี {item.year}
+              {item.replacement ? (
+                <Badge className="ml-2" variant="warning">
+                  เปลี่ยน
+                </Badge>
+              ) : null}
+            </p>
+            <div
+              aria-label={`ความจุคงเหลือ ${formatNumber(item.remainingCapacityPercent)}%`}
+              className="h-2 overflow-hidden rounded-full bg-muted"
+              role="img"
+            >
+              <div
+                className="h-full rounded-full bg-primary"
+                style={{
+                  width: `${Math.max(0, Math.min(100, item.remainingCapacityPercent))}%`,
+                }}
+              />
+            </div>
+            <p className="text-right text-xs tabular-nums text-muted-foreground">
+              {formatNumber(item.remainingCapacityKwh)} kWh ·{" "}
+              {formatNumber(item.remainingCapacityPercent)}%
+            </p>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function BatterySensitivityPanel({
+  decision,
+}: {
+  decision: BatteryMvpDecision;
+}) {
+  return (
+    <section
+      aria-labelledby="battery-sensitivity-heading"
+      className="rounded-xl border border-border bg-card p-4"
+    >
+      <div className="flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+        <div>
+          <h3 className="font-semibold" id="battery-sensitivity-heading">
+            ความไวต่อราคาและผลประหยัด
+          </h3>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">
+            เปรียบเทียบ CAPEX, ผลประหยัด, การเสื่อม และ discount rate ด้วย
+            calculation engine เดียวกับคำตอบหลัก
+          </p>
+        </div>
+        <Badge
+          variant={
+            decision.sensitivity.staysViableInDownside ? "success" : "warning"
+          }
+        >
+          {decision.sensitivity.staysViableInDownside
+            ? "ยังคุ้มในกรณีระมัดระวัง"
+            : "ไม่ผ่านกรณีระมัดระวัง"}
+        </Badge>
+      </div>
+      <div className="mt-4 grid gap-3 lg:grid-cols-3">
+        {decision.sensitivity.cases.map((item) => (
+          <article
+            className={`rounded-xl border p-4 ${item.id === "base" ? "border-primary bg-primary/[0.06]" : "border-border bg-muted/20"}`}
+            key={item.id}
+          >
+            <div className="flex items-start justify-between gap-2">
+              <h4 className="font-semibold">{item.label}</h4>
+              {item.id === "base" ? (
+                <Badge variant="information">ฐาน</Badge>
+              ) : null}
+            </div>
+            <dl className="mt-4 grid gap-2 text-sm">
+              <SensitivityRow
+                label="NPV"
+                value={`${formatMoney(item.npvThb)} บาท`}
+              />
+              <SensitivityRow
+                label="คืนทุน"
+                value={
+                  item.simplePaybackYears === null
+                    ? "ไม่คืนทุน"
+                    : `${formatNumber(item.simplePaybackYears)} ปี`
+                }
+              />
+              <SensitivityRow
+                label="ราคา / ผลประหยัด"
+                value={`${formatNumber(item.capexMultiplier * 100)}% / ${formatNumber(item.savingsMultiplier * 100)}%`}
+              />
+              <SensitivityRow
+                label="เสื่อม / Discount"
+                value={`${formatNumber(item.degradationPercentPerYear)}% / ${formatNumber(item.discountRatePercent)}%`}
+              />
+            </dl>
+          </article>
+        ))}
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-2">
+        <DetailMetric
+          label="ช่วง NPV จาก sensitivity"
+          value={`${formatMoney(decision.sensitivity.npvLowThb)} ถึง ${formatMoney(decision.sensitivity.npvHighThb)} บาท`}
+        />
+        <DetailMetric
+          label="CAPEX จุดคุ้มทุนสูงสุด"
+          value={
+            decision.sensitivity.breakEvenCapexThb === null
+              ? "ยังหาไม่ได้จากสมมติฐานนี้"
+              : `${formatMoney(decision.sensitivity.breakEvenCapexThb)} บาท`
+          }
+        />
+      </div>
+    </section>
+  );
+}
+
+function SensitivityRow({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="flex items-start justify-between gap-3">
+      <dt className="text-muted-foreground">{label}</dt>
+      <dd className="text-right font-medium tabular-nums">{value}</dd>
+    </div>
   );
 }
 
@@ -726,12 +990,14 @@ function NumberField({
   label,
   value,
   min,
+  max,
   step,
   onChange,
 }: {
   label: string;
   value: number;
   min: number;
+  max?: number;
   step: number;
   onChange: (value: number) => void;
 }) {
@@ -741,9 +1007,15 @@ function NumberField({
       <input
         className="h-10 rounded-md border border-input bg-background px-3"
         min={min}
+        {...(max === undefined ? {} : { max })}
         onChange={(event) => {
           const next = Number(event.target.value);
-          if (Number.isFinite(next) && next >= min) onChange(next);
+          if (
+            Number.isFinite(next) &&
+            next >= min &&
+            (max === undefined || next <= max)
+          )
+            onChange(next);
         }}
         step={step}
         type="number"
@@ -781,6 +1053,14 @@ function buildBatteryReportDraft(
       { label: "แหล่งชาร์จ", value: decision.sourceLabel },
       { label: "ความมั่นใจ", value: decision.confidenceLabel },
       {
+        label: "อายุโครงการ / การเสื่อม",
+        value: `${decision.lifecycle.projectLifeYears} ปี · ${formatNumber(decision.lifecycle.degradationPercentPerYear)}% ต่อปี`,
+      },
+      {
+        label: "การเปลี่ยน Battery",
+        value: `ปีที่ ${decision.lifecycle.replacementYear} · ${formatMoney(decision.lifecycle.replacementCostThb)} บาท`,
+      },
+      {
         label: "Optimizer",
         value: `${decision.optimization.evaluatedCandidateCount} ทางเลือก · ${decision.optimization.evaluatedCapacitiesKwh.length} ขนาด · ${decision.optimization.evaluatedStrategies.length} กลยุทธ์`,
       },
@@ -810,6 +1090,42 @@ function buildBatteryReportDraft(
             : roundReportNumber(candidate.simplePaybackYears),
         npvThb: roundReportNumber(candidate.npvThb),
       })),
+      ...decision.sensitivity.cases.map((item) => ({
+        case: `Sensitivity: ${item.label}`,
+        capexMultiplierPercent: roundReportNumber(item.capexMultiplier * 100),
+        savingsMultiplierPercent: roundReportNumber(
+          item.savingsMultiplier * 100,
+        ),
+        degradationPercentPerYear: roundReportNumber(
+          item.degradationPercentPerYear,
+        ),
+        discountRatePercent: roundReportNumber(item.discountRatePercent),
+        paybackYears:
+          item.simplePaybackYears === null
+            ? null
+            : roundReportNumber(item.simplePaybackYears),
+        npvThb: roundReportNumber(item.npvThb),
+      })),
+      ...decision.lifecycle.years
+        .filter(
+          (item) =>
+            item.year === 0 ||
+            item.year % 5 === 0 ||
+            item.replacement ||
+            item.year === decision.lifecycle.projectLifeYears,
+        )
+        .map((item) => ({
+          case: `Lifecycle ปี ${item.year}`,
+          remainingCapacityKwh: roundReportNumber(item.remainingCapacityKwh),
+          remainingCapacityPercent: roundReportNumber(
+            item.remainingCapacityPercent,
+          ),
+          replacement: item.replacement ? "เปลี่ยน Battery" : "ไม่มี",
+          netCashFlowThb: roundReportNumber(item.netCashFlowThb),
+          cumulativeDiscountedCashFlowThb: roundReportNumber(
+            item.cumulativeDiscountedCashFlowThb,
+          ),
+        })),
     ],
     recommendations: [
       {
@@ -825,12 +1141,16 @@ function buildBatteryReportDraft(
     references: [
       { label: "Calculation engine", value: decision.engineVersion },
       { label: "Tariff versions", value: decision.tariffVersionIds.join(", ") },
+      {
+        label: "Sensitivity NPV range",
+        value: `${formatMoney(decision.sensitivity.npvLowThb)}–${formatMoney(decision.sensitivity.npvHighThb)} บาท`,
+      },
     ],
   };
 }
 
 type StoredBatteryMvp = {
-  schemaVersion: 2;
+  schemaVersion: 3;
   profileSnapshotId: string;
   settingsFingerprint: string;
   settings: BatteryMvpSettings;
@@ -844,7 +1164,7 @@ function persistBatteryMvp(input: {
 }) {
   try {
     const stored: StoredBatteryMvp = {
-      schemaVersion: 2,
+      schemaVersion: 3,
       profileSnapshotId: input.profileSnapshotId,
       settingsFingerprint: settingsFingerprint(input.settings),
       settings: input.settings,
@@ -862,7 +1182,7 @@ function readStoredBatteryMvp(): StoredBatteryMvp | null {
     if (!raw) return null;
     const value = JSON.parse(raw) as Partial<StoredBatteryMvp>;
     if (
-      value.schemaVersion !== 2 ||
+      value.schemaVersion !== 3 ||
       typeof value.profileSnapshotId !== "string" ||
       typeof value.settingsFingerprint !== "string" ||
       !value.settings ||

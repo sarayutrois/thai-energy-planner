@@ -92,6 +92,83 @@ describe("Battery MVP decision", () => {
     });
   });
 
+  it("projects degradation, replacement, and cash flow across the project life", () => {
+    const decision = evaluateBatteryMvp({
+      profile: buildProfile(),
+      settings: defaultBatteryMvpSettings(),
+      hasBills: true,
+      hasCalibratedBills: true,
+      isSample: false,
+    });
+
+    expect(decision.lifecycle.projectLifeYears).toBe(15);
+    expect(decision.lifecycle.years).toHaveLength(16);
+    expect(decision.lifecycle.years[9]?.remainingCapacityPercent).toBeLessThan(
+      100,
+    );
+    expect(decision.lifecycle.years[10]).toMatchObject({
+      replacement: true,
+      remainingCapacityPercent: 100,
+    });
+    expect(decision.lifecycle.endOfProjectCapacityPercent).toBeCloseTo(
+      90.39,
+      1,
+    );
+    expect(decision.lifecycle.years[10]?.replacementCostThb).toBeGreaterThan(0);
+  });
+
+  it("builds downside, base, and upside sensitivity from the same financial engine", () => {
+    const decision = evaluateBatteryMvp({
+      profile: buildProfile(),
+      settings: defaultBatteryMvpSettings(),
+      hasBills: true,
+      hasCalibratedBills: true,
+      isSample: false,
+    });
+
+    expect(decision.sensitivity.cases.map((item) => item.id)).toEqual([
+      "downside",
+      "base",
+      "upside",
+    ]);
+    expect(decision.sensitivity.cases[1]?.npvThb).toBe(decision.npvThb);
+    expect(decision.sensitivity.npvLowThb).toBeLessThanOrEqual(
+      decision.sensitivity.npvHighThb,
+    );
+    expect(decision.sensitivity.cases[0]?.npvThb).toBeLessThan(
+      decision.sensitivity.cases[2]!.npvThb,
+    );
+  });
+
+  it("uses editable lifecycle assumptions in replacement and financial projections", () => {
+    const decision = evaluateBatteryMvp({
+      profile: buildProfile(),
+      settings: {
+        ...defaultBatteryMvpSettings(),
+        projectLifeYears: 20,
+        degradationPercentPerYear: 4,
+        discountRatePercent: 8,
+        electricityEscalationRatePercent: 3,
+        replacementYear: 12,
+        replacementCostPercent: 60,
+      },
+      hasBills: true,
+      hasCalibratedBills: true,
+      isSample: false,
+    });
+
+    expect(decision.lifecycle.years).toHaveLength(21);
+    expect(decision.lifecycle.replacementYear).toBe(12);
+    expect(decision.lifecycle.replacementCostThb).toBe(
+      decision.optimization.candidates[0]!.capexThb * 0.6,
+    );
+    expect(decision.lifecycle.degradationPercentPerYear).toBe(4);
+    expect(decision.sensitivity.cases[1]).toMatchObject({
+      degradationPercentPerYear: 4,
+      discountRatePercent: 8,
+    });
+  });
+
   it("rejects invalid screening assumptions before running the optimizer", () => {
     expect(() =>
       evaluateBatteryMvp({
@@ -105,6 +182,20 @@ describe("Battery MVP decision", () => {
         isSample: false,
       }),
     ).toThrow("ต้นทุน Battery ต้องมากกว่า 0");
+
+    expect(() =>
+      evaluateBatteryMvp({
+        profile: buildProfile(),
+        settings: {
+          ...defaultBatteryMvpSettings(),
+          projectLifeYears: 10,
+          replacementYear: 12,
+        },
+        hasBills: false,
+        hasCalibratedBills: false,
+        isSample: false,
+      }),
+    ).toThrow("ปีเปลี่ยน Battery ต้องอยู่ภายในอายุโครงการ");
   });
 });
 
