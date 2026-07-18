@@ -721,6 +721,46 @@ test("the guided start and data hub share one production navigation", async ({
   }
 });
 
+test("analysis start continues the Solar footage inside the hero only", async ({
+  page,
+}) => {
+  await page.goto("/analysis/new");
+
+  const hero = page.locator("main > section").first();
+  const video = hero.getByTestId("solar-hero-video");
+  await expect(video).toHaveCount(1);
+  await expect(video.locator('source[type="video/mp4"]')).toHaveAttribute(
+    "src",
+    "/solarcell.mp4",
+  );
+  await expect(video).toHaveAttribute("poster", "/solarcell-poster.jpg");
+  await expect(
+    page.locator("main > section").nth(1).locator("video"),
+  ).toHaveCount(0);
+
+  await expect(
+    page.getByRole("heading", { name: "เป้าหมายของคุณคืออะไร" }),
+  ).toBeVisible();
+  await expect(
+    page.locator(
+      'button[aria-pressed="true"]:not([data-testid="hero-video-toggle"])',
+    ),
+  ).toHaveCount(2);
+});
+
+test("analysis start respects reduced motion while keeping manual playback", async ({
+  page,
+}) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("/analysis/new");
+
+  const toggle = page.getByTestId("hero-video-toggle");
+  await expect(toggle).toBeVisible();
+  await expect(toggle).toHaveAttribute("aria-label", "เล่นวิดีโอพื้นหลัง");
+  await toggle.click();
+  await expect(toggle).toHaveAttribute("aria-label", "หยุดวิดีโอพื้นหลัง");
+});
+
 test("start flow supports keyboard focus and a narrow mobile viewport", async ({
   page,
 }) => {
@@ -735,7 +775,9 @@ test("start flow supports keyboard focus and a narrow mobile viewport", async ({
   await expect(skipLink).toBeFocused();
   await expect(skipLink).toBeVisible();
 
-  const selectedChoices = page.locator('button[aria-pressed="true"]');
+  const selectedChoices = page.locator(
+    'button[aria-pressed="true"]:not([data-testid="hero-video-toggle"])',
+  );
   await expect(selectedChoices).toHaveCount(2);
   const hasHorizontalOverflow = await page.evaluate(
     () => document.documentElement.scrollWidth > window.innerWidth + 1,

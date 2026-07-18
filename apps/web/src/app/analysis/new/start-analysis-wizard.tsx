@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { HeroBackgroundVideo } from "@/components/hero-background-video";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
@@ -205,19 +206,26 @@ export function StartAnalysisWizard({ fresh = false }: { fresh?: boolean }) {
           โดยธีมและการตั้งค่า UI ยังอยู่
         </div>
       ) : null}
-      <section className="relative overflow-hidden border-b border-border/70 bg-card/55">
-        <div className="pointer-events-none absolute inset-y-0 right-0 -z-10 w-1/2 bg-[radial-gradient(circle_at_70%_30%,hsl(var(--primary)/0.12),transparent_55%)]" />
+      <section className="relative isolate overflow-hidden border-b border-white/10 bg-slate-950 text-white">
+        <HeroBackgroundVideo />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(90deg,rgba(2,6,23,0.88)_0%,rgba(2,6,23,0.72)_50%,rgba(2,6,23,0.58)_100%)] dark:bg-[linear-gradient(90deg,rgba(2,6,23,0.92)_0%,rgba(2,6,23,0.78)_50%,rgba(2,6,23,0.66)_100%)]" />
+        <div className="pointer-events-none absolute inset-0 -z-10 bg-[linear-gradient(0deg,rgba(2,6,23,0.62)_0%,transparent_48%,rgba(2,6,23,0.28)_100%)]" />
         <div className="mx-auto grid w-full max-w-7xl gap-8 px-4 py-8 md:px-6 lg:grid-cols-[1.02fr_0.98fr] lg:py-10">
-          <div className="flex flex-col justify-center gap-6">
+          <div className="flex flex-col justify-center gap-6 pr-12 md:pr-0">
             <div className="flex flex-wrap gap-2">
               <Badge>เริ่มวิเคราะห์</Badge>
-              <Badge variant="outline">ใช้เวลาประมาณ 5–10 นาที</Badge>
+              <Badge
+                className="border-white/25 bg-black/25 text-white backdrop-blur-md"
+                variant="outline"
+              >
+                ใช้เวลาประมาณ 5–10 นาที
+              </Badge>
             </div>
             <div className="space-y-4">
-              <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.035em] text-foreground md:text-5xl">
+              <h1 className="max-w-3xl text-4xl font-semibold leading-tight tracking-[-0.035em] text-white drop-shadow-lg md:text-5xl">
                 เริ่มวิเคราะห์ค่าไฟแบบไม่ต้องรู้เทคนิคก่อน
               </h1>
-              <p className="max-w-2xl text-base leading-7 text-muted-foreground">
+              <p className="max-w-2xl text-base leading-7 text-white/80">
                 บอกเป้าหมายและข้อมูลที่มี ระบบจะพาไปทีละขั้น
                 เพื่อให้คุณเห็นคำแนะนำเรื่องค่าไฟ TOU หรือ Solar
                 จากข้อมูลจริงของคุณ
@@ -232,14 +240,14 @@ export function StartAnalysisWizard({ fresh = false }: { fresh?: boolean }) {
                 <ArrowRight aria-hidden="true" className="h-5 w-5" />
               </a>
               <a
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-6 text-base font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/30 bg-black/30 px-6 text-base font-semibold text-white backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white"
                 href={importHref}
               >
                 อัปโหลดไฟล์โหลด
                 <FileSpreadsheet aria-hidden="true" className="h-5 w-5" />
               </a>
               <button
-                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-border bg-card px-6 text-base font-semibold text-foreground transition hover:-translate-y-0.5 hover:bg-muted focus:outline-none focus:ring-2 focus:ring-ring"
+                className="inline-flex h-12 items-center justify-center gap-2 rounded-full border border-white/30 bg-black/30 px-6 text-base font-semibold text-white backdrop-blur-md transition hover:-translate-y-0.5 hover:bg-black/50 focus:outline-none focus:ring-2 focus:ring-white"
                 onClick={startDemoWorkspace}
                 type="button"
               >
@@ -249,7 +257,7 @@ export function StartAnalysisWizard({ fresh = false }: { fresh?: boolean }) {
             </div>
           </div>
 
-          <Card className="shadow-panel">
+          <Card className="border-white/20 bg-card/95 text-card-foreground shadow-panel backdrop-blur-xl">
             <CardHeader>
               <CardTitle>สถานะที่เลือกตอนนี้</CardTitle>
             </CardHeader>
