@@ -24,7 +24,13 @@ import {
 } from "@/lib/analysis-storage";
 import type { BatteryMvpDecision } from "@/lib/battery-mvp";
 import {
+  buildBatteryInstallerRequirements,
+  compareBatteryVendorQuotes,
+  type BatteryVendorQuote,
+} from "@/lib/battery-quotes";
+import {
   buildEcosystemPlan,
+  type EcosystemBatteryDecision,
   type EcosystemModuleInput,
   type EcosystemPlan,
   type EcosystemScenarioSummary,
@@ -431,9 +437,28 @@ function readEcosystemViewState(): EcosystemViewState {
   const batteryCurrent = Boolean(
     storedBattery && profile && storedBattery.profileSnapshotId === profile.id,
   );
-  const battery: EcosystemModuleInput<BatteryMvpDecision> =
+  const batteryQuoteComparison = storedBattery?.quotes
+    ? compareBatteryVendorQuotes(
+        buildBatteryInstallerRequirements(storedBattery.decision),
+        storedBattery.quotes,
+      )
+    : null;
+  const battery: EcosystemModuleInput<EcosystemBatteryDecision> =
     batteryCurrent && storedBattery
-      ? { status: "ready", value: storedBattery.decision }
+      ? {
+          status: "ready",
+          value: {
+            ...storedBattery.decision,
+            ...(batteryQuoteComparison
+              ? {
+                  installerQuoteSummary: {
+                    completeCount: batteryQuoteComparison.completeCount,
+                    passingCount: batteryQuoteComparison.passingCount,
+                  },
+                }
+              : {}),
+          },
+        }
       : { status: storedBattery ? "stale" : "missing", value: null };
 
   const storedEv = readStoredDecision<EvMvpDecision>(evMvpStorageKey);
@@ -514,9 +539,11 @@ function solarSummary(
   };
 }
 
-function readStoredDecision<T>(
-  key: string,
-): { profileSnapshotId: string; decision: T } | null {
+function readStoredDecision<T>(key: string): {
+  profileSnapshotId: string;
+  decision: T;
+  quotes?: BatteryVendorQuote[];
+} | null {
   try {
     const raw = window.localStorage.getItem(key);
     if (!raw) return null;
@@ -524,12 +551,14 @@ function readStoredDecision<T>(
       schemaVersion?: unknown;
       profileSnapshotId?: unknown;
       decision?: unknown;
+      quotes?: unknown;
     };
     if (
       (value.schemaVersion !== 1 &&
         value.schemaVersion !== 2 &&
         value.schemaVersion !== 3 &&
-        value.schemaVersion !== 4) ||
+        value.schemaVersion !== 4 &&
+        value.schemaVersion !== 5) ||
       typeof value.profileSnapshotId !== "string" ||
       !value.decision ||
       typeof value.decision !== "object"
@@ -538,6 +567,9 @@ function readStoredDecision<T>(
     return {
       profileSnapshotId: value.profileSnapshotId,
       decision: value.decision as T,
+      ...(Array.isArray(value.quotes)
+        ? { quotes: value.quotes as BatteryVendorQuote[] }
+        : {}),
     };
   } catch {
     return null;

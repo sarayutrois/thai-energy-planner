@@ -9,10 +9,12 @@ import {
   BatteryCharging,
   CheckCircle2,
   CircleDollarSign,
+  FileCheck2,
   PlugZap,
   RefreshCw,
   ShieldCheck,
   SunMedium,
+  Trash2,
   Zap,
 } from "lucide-react";
 import type { Authority } from "@thai-energy-planner/shared-types";
@@ -28,6 +30,13 @@ import {
   type BatteryMvpDecision,
   type BatteryMvpSettings,
 } from "@/lib/battery-mvp";
+import {
+  buildBatteryInstallerRequirements,
+  compareBatteryVendorQuotes,
+  createEmptyBatteryVendorQuote,
+  type BatteryQuoteComparison,
+  type BatteryVendorQuote,
+} from "@/lib/battery-quotes";
 import { readStoredBillWorkspace } from "@/lib/local-bill-workspace";
 import {
   isSampleLocalLoadProfile,
@@ -87,6 +96,7 @@ export function BatteryRuntimePanel() {
     useState<LocalLoadProfileSnapshot | null>(null);
   const [settings, setSettings] = useState(defaultBatteryMvpSettings);
   const [decision, setDecision] = useState<BatteryMvpDecision | null>(null);
+  const [quotes, setQuotes] = useState<BatteryVendorQuote[]>([]);
   const [hasBills, setHasBills] = useState(false);
   const [billMonthCount, setBillMonthCount] = useState(0);
   const [isHydrated, setIsHydrated] = useState(false);
@@ -133,19 +143,34 @@ export function BatteryRuntimePanel() {
     setProfileSnapshot(snapshot);
     setSettings(restoredSettings);
     setDecision(restoredDecision);
+    setQuotes(restoredDecision ? (stored?.quotes ?? []) : []);
     setHasBills(validBills.length > 0);
     setBillMonthCount(validBills.length);
     setIsHydrated(true);
   }, []);
 
+  const quoteComparison = useMemo(
+    () =>
+      decision
+        ? compareBatteryVendorQuotes(
+            buildBatteryInstallerRequirements(decision),
+            quotes,
+          )
+        : null,
+    [decision, quotes],
+  );
   const reportDraft = useMemo(
-    () => (decision ? buildBatteryReportDraft(decision) : undefined),
-    [decision],
+    () =>
+      decision
+        ? buildBatteryReportDraft(decision, quoteComparison ?? undefined)
+        : undefined,
+    [decision, quoteComparison],
   );
 
   function updateSettings(values: Partial<BatteryMvpSettings>) {
     setSettings((current) => ({ ...current, ...values }));
     setDecision(null);
+    setQuotes([]);
     setError(null);
   }
 
@@ -162,11 +187,13 @@ export function BatteryRuntimePanel() {
         isSample: isSampleLocalLoadProfile(profileSnapshot),
       });
       setDecision(nextDecision);
+      setQuotes([]);
       setError(null);
       persistBatteryMvp({
         profileSnapshotId: profileSnapshot.id,
         settings,
         decision: nextDecision,
+        quotes: [],
       });
     } catch (caught) {
       setDecision(null);
@@ -590,6 +617,21 @@ export function BatteryRuntimePanel() {
             }
           />
           <BatterySystemDetails decision={decision} />
+          {quoteComparison ? (
+            <BatteryQuotePanel
+              comparison={quoteComparison}
+              onChange={(nextQuotes) => {
+                setQuotes(nextQuotes);
+                if (!profileSnapshot) return;
+                persistBatteryMvp({
+                  profileSnapshotId: profileSnapshot.id,
+                  settings,
+                  decision,
+                  quotes: nextQuotes,
+                });
+              }}
+            />
+          ) : null}
           <LocalBillResultContext
             enabled={Boolean(reportDraft && hasBills)}
             moduleName="Battery"
@@ -1182,6 +1224,295 @@ function BatteryOptimizationComparison({
   );
 }
 
+function BatteryQuotePanel({
+  comparison,
+  onChange,
+}: {
+  comparison: BatteryQuoteComparison;
+  onChange: (quotes: BatteryVendorQuote[]) => void;
+}) {
+  const { requirements, quotes } = comparison;
+
+  function patchQuote(id: string, values: Partial<BatteryVendorQuote>) {
+    onChange(
+      quotes.map((quote) =>
+        quote.id === id ? { ...quote, ...values } : quote,
+      ),
+    );
+  }
+
+  return (
+    <Card className="min-w-0">
+      <section aria-labelledby="battery-quotes-heading">
+        <CardHeader>
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <CardTitle
+                className="flex items-center gap-2"
+                id="battery-quotes-heading"
+              >
+                <FileCheck2
+                  aria-hidden="true"
+                  className="h-5 w-5 text-primary"
+                />
+                สเปกขอราคาและเทียบผู้ติดตั้ง
+              </CardTitle>
+              <p className="mt-2 max-w-3xl text-sm leading-6 text-muted-foreground">
+                คัดคุณสมบัติทางเทคนิคให้ผ่านก่อน แล้วจึงเรียงราคาจากต่ำไปสูง
+                ใบเสนอราคาจะไม่เปลี่ยนผลวิเคราะห์ Battery ด้านบน
+              </p>
+            </div>
+            <Button
+              disabled={quotes.length >= 5}
+              onClick={() =>
+                onChange([
+                  ...quotes,
+                  createEmptyBatteryVendorQuote(
+                    `quote-${Date.now()}-${quotes.length + 1}`,
+                  ),
+                ])
+              }
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              เพิ่มใบเสนอราคา
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="grid min-w-0 gap-5">
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            <DetailMetric
+              label="ความจุใช้ได้ขั้นต่ำ"
+              value={`${formatNumber(requirements.minimumUsableCapacityKwh)} kWh`}
+            />
+            <DetailMetric
+              label="กำลังจ่ายต่อเนื่องขั้นต่ำ"
+              value={`${formatNumber(requirements.minimumContinuousPowerKw)} kW`}
+            />
+            <DetailMetric
+              label="วงจรสำรองเมื่อไฟดับ"
+              value={
+                requirements.backupRequired
+                  ? "ต้องรองรับ"
+                  : "ไม่ใช่เงื่อนไขบังคับ"
+              }
+            />
+            <DetailMetric
+              label="ประสิทธิภาพไป-กลับขั้นต่ำ"
+              value={`${formatNumber(requirements.minimumRoundTripEfficiencyPercent)}%`}
+            />
+            <DetailMetric
+              label="รับประกันขั้นต่ำ"
+              value={`${formatNumber(requirements.minimumWarrantyYears)} ปี`}
+            />
+            <DetailMetric
+              label="งบประมาณอ้างอิง"
+              value={`${formatMoney(requirements.referenceBudgetLowThb)}–${formatMoney(requirements.referenceBudgetHighThb)} บาท`}
+            />
+          </div>
+
+          {comparison.completeCount > 0 ? (
+            <div
+              className="rounded-lg border border-primary/20 bg-primary/[0.05] p-4 text-sm"
+              role="status"
+            >
+              ผ่าน technical gate {comparison.passingCount} จาก{" "}
+              {comparison.completeCount} รายการ
+              {comparison.bestQuoteId
+                ? " โดยอันดับ 1 คือใบเสนอราคาที่ผ่านเกณฑ์และมีราคาต่ำสุด"
+                : " — ยังไม่มีใบเสนอราคาที่ผ่านครบทุกข้อ"}
+            </div>
+          ) : (
+            <div className="rounded-lg border border-dashed p-4 text-sm leading-6 text-muted-foreground">
+              เพิ่มใบเสนอราคาได้สูงสุด 5 รายการ ระบบจะคำนวณราคา/ความจุ
+              และราคาต่อพลังงานตามการรับประกันเพื่อช่วยเทียบแบบเดียวกัน
+            </div>
+          )}
+
+          <div className="grid gap-4">
+            {quotes.map((quote, index) => {
+              const isBest = quote.id === comparison.bestQuoteId;
+              return (
+                <fieldset
+                  className="min-w-0 rounded-xl border border-border p-4"
+                  key={quote.id}
+                >
+                  <legend className="px-2 text-sm font-semibold">
+                    ใบเสนอราคา {index + 1}
+                  </legend>
+                  <div className="mb-4 flex flex-wrap items-center justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Badge
+                        variant={
+                          quote.status === "pass"
+                            ? "success"
+                            : quote.status === "fail"
+                              ? "warning"
+                              : "outline"
+                        }
+                      >
+                        {quote.status === "pass"
+                          ? "ผ่านเกณฑ์"
+                          : quote.status === "fail"
+                            ? "ไม่ผ่านเกณฑ์"
+                            : "กรอกข้อมูลให้ครบ"}
+                      </Badge>
+                      {isBest ? (
+                        <Badge variant="information">อันดับ 1</Badge>
+                      ) : null}
+                      {quote.rank && !isBest ? (
+                        <span className="text-xs text-muted-foreground">
+                          อันดับ {quote.rank}
+                        </span>
+                      ) : null}
+                    </div>
+                    <Button
+                      aria-label={`ลบใบเสนอราคา ${index + 1}`}
+                      onClick={() =>
+                        onChange(quotes.filter((item) => item.id !== quote.id))
+                      }
+                      size="sm"
+                      type="button"
+                      variant="ghost"
+                    >
+                      <Trash2 aria-hidden="true" className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                    <TextField
+                      label="ผู้ติดตั้ง"
+                      onChange={(vendor) => patchQuote(quote.id, { vendor })}
+                      value={quote.vendor}
+                    />
+                    <TextField
+                      label="ยี่ห้อ / รุ่น"
+                      onChange={(model) => patchQuote(quote.id, { model })}
+                      value={quote.model}
+                    />
+                    <NumberField
+                      label="ราคารวม (บาท)"
+                      min={0}
+                      onChange={(quotedPriceThb) =>
+                        patchQuote(quote.id, { quotedPriceThb })
+                      }
+                      step={1_000}
+                      value={quote.quotedPriceThb}
+                    />
+                    <NumberField
+                      label="ความจุใช้ได้ (kWh)"
+                      min={0}
+                      onChange={(usableCapacityKwh) =>
+                        patchQuote(quote.id, { usableCapacityKwh })
+                      }
+                      step={0.1}
+                      value={quote.usableCapacityKwh}
+                    />
+                    <NumberField
+                      label="กำลังจ่ายต่อเนื่อง (kW)"
+                      min={0}
+                      onChange={(continuousPowerKw) =>
+                        patchQuote(quote.id, { continuousPowerKw })
+                      }
+                      step={0.1}
+                      value={quote.continuousPowerKw}
+                    />
+                    <NumberField
+                      label="ประสิทธิภาพไป-กลับ (%)"
+                      max={100}
+                      min={0}
+                      onChange={(roundTripEfficiencyPercent) =>
+                        patchQuote(quote.id, { roundTripEfficiencyPercent })
+                      }
+                      step={0.1}
+                      value={quote.roundTripEfficiencyPercent}
+                    />
+                    <NumberField
+                      label="รับประกัน (ปี)"
+                      min={0}
+                      onChange={(warrantyYears) =>
+                        patchQuote(quote.id, { warrantyYears })
+                      }
+                      step={1}
+                      value={quote.warrantyYears}
+                    />
+                    <NumberField
+                      label="รอบชาร์จที่รับประกัน"
+                      min={0}
+                      onChange={(warrantedCycles) =>
+                        patchQuote(quote.id, { warrantedCycles })
+                      }
+                      step={100}
+                      value={quote.warrantedCycles}
+                    />
+                    <label className="flex min-h-10 items-center gap-3 rounded-md border border-input px-3 text-sm font-medium sm:self-end">
+                      <input
+                        checked={quote.supportsBackup}
+                        className="h-4 w-4"
+                        onChange={(event) =>
+                          patchQuote(quote.id, {
+                            supportsBackup: event.target.checked,
+                          })
+                        }
+                        type="checkbox"
+                      />
+                      รองรับวงจรสำรองเมื่อไฟดับ
+                    </label>
+                    <div className="sm:col-span-2 lg:col-span-3">
+                      <TextField
+                        label="หมายเหตุจากใบเสนอราคา"
+                        onChange={(notes) => patchQuote(quote.id, { notes })}
+                        value={quote.notes}
+                      />
+                    </div>
+                  </div>
+
+                  {quote.status !== "incomplete" ? (
+                    <div className="mt-4 grid gap-3 border-t border-border pt-4 sm:grid-cols-3">
+                      <DetailMetric
+                        label="ราคาต่อความจุใช้ได้"
+                        value={`${formatMoney(quote.costPerUsableKwhThb ?? 0)} บาท/kWh`}
+                      />
+                      <DetailMetric
+                        label="พลังงานตามรอบรับประกัน"
+                        value={`${formatNumber(quote.warrantedThroughputKwh ?? 0)} kWh`}
+                      />
+                      <DetailMetric
+                        label="ราคาต่อพลังงานรับประกัน"
+                        value={`${formatNumber(quote.costPerWarrantedKwhThb ?? 0)} บาท/kWh`}
+                      />
+                    </div>
+                  ) : null}
+                  {quote.failures.length > 0 ? (
+                    <ul className="mt-4 list-disc space-y-1 pl-5 text-sm text-warning-foreground">
+                      {quote.failures.map((failure) => (
+                        <li key={failure}>{failure}</li>
+                      ))}
+                    </ul>
+                  ) : null}
+                  {quote.warnings.map((warning) => (
+                    <p
+                      className="mt-3 text-sm text-muted-foreground"
+                      key={warning}
+                    >
+                      {warning}
+                    </p>
+                  ))}
+                </fieldset>
+              );
+            })}
+          </div>
+          <p className="text-xs leading-5 text-muted-foreground">
+            เกณฑ์ 85% และรับประกัน 5 ปีเป็น screening assumption
+            ของเครื่องมือนี้ ควรตรวจ datasheet, เงื่อนไขประกัน,
+            อุปกรณ์ตัดต่อวงจร และขอบเขตติดตั้งจริงก่อนลงนาม
+          </p>
+        </CardContent>
+      </section>
+    </Card>
+  );
+}
+
 function FlowNode({
   icon: Icon,
   label,
@@ -1249,6 +1580,28 @@ function SelectField({
   );
 }
 
+function TextField({
+  label,
+  value,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+}) {
+  return (
+    <label className="grid gap-1.5 text-sm font-medium">
+      <span>{label}</span>
+      <input
+        className="h-10 rounded-md border border-input bg-background px-3"
+        onChange={(event) => onChange(event.target.value)}
+        type="text"
+        value={value}
+      />
+    </label>
+  );
+}
+
 function NumberField({
   label,
   value,
@@ -1290,6 +1643,7 @@ function NumberField({
 
 function buildBatteryReportDraft(
   decision: BatteryMvpDecision,
+  quoteComparison?: BatteryQuoteComparison,
 ): LocalAnalysisReportDraft {
   return {
     module: "battery",
@@ -1310,6 +1664,14 @@ function buildBatteryReportDraft(
         label: "งบประมาณ",
         value: `${formatMoney(decision.budgetLowThb)}–${formatMoney(decision.budgetHighThb)} บาท`,
       },
+      ...(quoteComparison && quoteComparison.completeCount > 0
+        ? [
+            {
+              label: "ใบเสนอราคาที่ผ่านเกณฑ์",
+              value: `${quoteComparison.passingCount} / ${quoteComparison.completeCount} รายการ`,
+            },
+          ]
+        : []),
     ],
     assumptions: [
       { label: "รูปแบบระบบ", value: decision.strategyLabel },
@@ -1415,6 +1777,27 @@ function buildBatteryReportDraft(
         targetResult: scenario.targetMet ? "ถึงเป้าหมาย" : "ต่ำกว่าเป้าหมาย",
         powerResult: scenario.powerSufficient ? "กำลังเพียงพอ" : "กำลังไม่พอ",
       })),
+      ...(quoteComparison?.quotes ?? [])
+        .filter((quote) => quote.status !== "incomplete")
+        .map((quote) => ({
+          case: `ใบเสนอราคาอันดับ ${quote.rank}: ${quote.vendor} ${quote.model}`,
+          technicalGate: quote.status === "pass" ? "ผ่าน" : "ไม่ผ่าน",
+          quotedPriceThb: roundReportNumber(quote.quotedPriceThb),
+          usableCapacityKwh: roundReportNumber(quote.usableCapacityKwh),
+          continuousPowerKw: roundReportNumber(quote.continuousPowerKw),
+          efficiencyPercent: roundReportNumber(
+            quote.roundTripEfficiencyPercent,
+          ),
+          warrantyYears: roundReportNumber(quote.warrantyYears),
+          warrantedCycles: roundReportNumber(quote.warrantedCycles),
+          costPerUsableKwhThb: roundReportNumber(
+            quote.costPerUsableKwhThb ?? 0,
+          ),
+          costPerWarrantedKwhThb: roundReportNumber(
+            quote.costPerWarrantedKwhThb ?? 0,
+          ),
+          issues: quote.failures.join("; "),
+        })),
     ],
     recommendations: [
       {
@@ -1438,30 +1821,41 @@ function buildBatteryReportDraft(
         label: "Operational dispatch trace",
         value: `${decision.operation.intervalCount} ช่วง · ${decision.operation.profileDayCount} วัน · ${formatNumber(decision.operation.equivalentCycles)} equivalent cycles`,
       },
+      ...(quoteComparison
+        ? [
+            {
+              label: "Installer technical gate",
+              value: `${formatNumber(quoteComparison.requirements.minimumUsableCapacityKwh)} kWh usable · ${formatNumber(quoteComparison.requirements.minimumContinuousPowerKw)} kW continuous · efficiency ≥ ${formatNumber(quoteComparison.requirements.minimumRoundTripEfficiencyPercent)}%`,
+            },
+          ]
+        : []),
     ],
   };
 }
 
 type StoredBatteryMvp = {
-  schemaVersion: 4;
+  schemaVersion: 5;
   profileSnapshotId: string;
   settingsFingerprint: string;
   settings: BatteryMvpSettings;
   decision: BatteryMvpDecision;
+  quotes: BatteryVendorQuote[];
 };
 
 function persistBatteryMvp(input: {
   profileSnapshotId: string;
   settings: BatteryMvpSettings;
   decision: BatteryMvpDecision;
+  quotes: BatteryVendorQuote[];
 }) {
   try {
     const stored: StoredBatteryMvp = {
-      schemaVersion: 4,
+      schemaVersion: 5,
       profileSnapshotId: input.profileSnapshotId,
       settingsFingerprint: settingsFingerprint(input.settings),
       settings: input.settings,
       decision: input.decision,
+      quotes: input.quotes,
     };
     window.localStorage.setItem(batteryMvpStorageKey, JSON.stringify(stored));
   } catch {
@@ -1473,16 +1867,25 @@ function readStoredBatteryMvp(): StoredBatteryMvp | null {
   try {
     const raw = window.localStorage.getItem(batteryMvpStorageKey);
     if (!raw) return null;
-    const value = JSON.parse(raw) as Partial<StoredBatteryMvp>;
+    const value = JSON.parse(raw) as Partial<
+      Omit<StoredBatteryMvp, "schemaVersion">
+    > & { schemaVersion?: unknown };
     if (
-      value.schemaVersion !== 4 ||
+      (value.schemaVersion !== 4 && value.schemaVersion !== 5) ||
       typeof value.profileSnapshotId !== "string" ||
       typeof value.settingsFingerprint !== "string" ||
       !value.settings ||
       !value.decision
     )
       return null;
-    return value as StoredBatteryMvp;
+    return {
+      ...(value as Omit<StoredBatteryMvp, "schemaVersion" | "quotes">),
+      schemaVersion: 5,
+      quotes:
+        value.schemaVersion === 5 && Array.isArray(value.quotes)
+          ? value.quotes
+          : [],
+    };
   } catch {
     return null;
   }

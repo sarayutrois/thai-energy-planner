@@ -363,10 +363,21 @@
 
 ## Battery Phase 3 — Operational dispatch and resilience
 
-- สถานะ: เสร็จและตรวจสอบใน local; ยังไม่ commit, push หรือ deploy
+- สถานะ: เสร็จและ deploy production แล้วใน commit `bad0c65`
 - ย่อ dispatch trace ของตัวเลือกที่ optimizer เลือกเป็นรูปแบบการทำงานเฉลี่ย 24 ชั่วโมง แสดงโหลด ไฟจากโครงข่าย กำลังชาร์จ/คายประจุ และ SOC โดยไม่จำลองสูตรซ้ำจาก calculation engine
 - เพิ่มตัวชี้วัดพลังงานชาร์จและคายประจุ แหล่งชาร์จ Equivalent cycles ช่วง SOC และผลต่อ Peak พร้อมเตือนอย่างตรงไปตรงมาเมื่อกลยุทธ์ชาร์จทำให้ Peak เพิ่ม
 - เพิ่ม stress test ไฟดับกลางคืน กลางวัน และช่วงเย็นจาก SOC ณ เวลาเริ่มเหตุการณ์ เทียบโหลดจำเป็น กำลังจ่าย และเป้าหมายชั่วโมงสำรอง
 - ส่ง operational profile และ outage scenarios ไปยังรายงานและ Ecosystem ผ่าน Battery storage schema version 4
 - เพิ่ม accessible chart summary, semantic headings, progress labels และ regression ตรวจขอบเขตการ์ด Phase 3 บน viewport 390 px
 - ผลการทดสอบ: lint/typecheck ผ่าน, unit/integration 296 tests ผ่าน, full E2E 32/32 ผ่าน, production build 53 routes ผ่าน และ visual QA ทั้ง Mobile/Dark mode ไม่พบ horizontal overflow หรือ console error
+
+## Battery Phase 4 — Installer-ready specification and quote comparison
+
+- สถานะ: เสร็จและตรวจสอบครบใน local พร้อมเผยแพร่บน branch `staging`
+- แปลงผล Battery ที่เลือกเป็นสเปกขั้นต่ำสำหรับส่งให้ผู้ติดตั้ง: usable capacity, continuous power, backup/islanding, efficiency, warranty และงบประมาณอ้างอิง
+- รองรับบันทึกและเปรียบเทียบใบเสนอราคาสูงสุด 5 รายการ โดยใช้ technical gate ก่อนเรียงราคา เพื่อไม่ให้ข้อเสนอที่ราคาถูกแต่สเปกไม่ถึงขึ้นเป็นอันดับแรก
+- แสดงราคาเทียบฐานเดียวกันทั้งบาทต่อ usable kWh และบาทต่อ warranted throughput พร้อมแจ้งราคาที่เกินงบประมาณแบบจำลอง
+- เก็บใบเสนอราคาใน Battery storage schema version 5 และส่งผล comparison เข้า report/Ecosystem โดยไม่เปลี่ยน optimizer หรือ flow การเลือกเป้าหมายเดิม
+- เพิ่ม unit regression สำหรับเกณฑ์คัดกรอง/การจัดอันดับ และ E2E สำหรับการกรอกใบเสนอราคา accessibility กับ viewport 390 px
+- ผลการตรวจ local: lint/typecheck ผ่าน, unit/integration 301 tests ผ่าน, full E2E 32/32 ผ่าน และ production build 53 routes ผ่าน; หน้า Battery 248 kB First Load JS โดย Phase 4 เพิ่มประมาณ 3 kB
+- Visual QA ผ่านทั้ง Mobile 390 px, Desktop และ Dark mode โดยไม่พบ horizontal overflow; console จากแท็บใหม่ไม่มี warning/error

@@ -60,8 +60,15 @@ export type EcosystemPlanInput = {
   hasLoadProfile: boolean;
   scenario: EcosystemModuleInput<EcosystemScenarioSummary>;
   solar: EcosystemModuleInput<EcosystemSolarSummary>;
-  battery: EcosystemModuleInput<BatteryMvpDecision>;
+  battery: EcosystemModuleInput<EcosystemBatteryDecision>;
   ev: EcosystemModuleInput<EvMvpDecision>;
+};
+
+export type EcosystemBatteryDecision = BatteryMvpDecision & {
+  installerQuoteSummary?: {
+    completeCount: number;
+    passingCount: number;
+  };
 };
 
 export function buildEcosystemPlan(input: EcosystemPlanInput): EcosystemPlan {
@@ -260,7 +267,7 @@ function buildPhases(input: EcosystemPlanInput): EcosystemPhase[] {
             : "ทางเลือก",
       action:
         input.battery.status === "ready" && battery
-          ? `${battery.verdictLabel} · ${formatNumber(battery.capacityKwh)} kWh สำหรับ ${battery.strategyLabel}`
+          ? `${battery.verdictLabel} · ${formatNumber(battery.capacityKwh)} kWh สำหรับ ${battery.strategyLabel}${battery.installerQuoteSummary?.completeCount ? ` · ใบเสนอราคาผ่านเกณฑ์ ${battery.installerQuoteSummary.passingCount}/${battery.installerQuoteSummary.completeCount}` : ""}`
           : "ประเมิน Battery หลังยืนยัน Solar และรูปแบบชาร์จ EV",
       budgetLowThb: battery?.budgetLowThb ?? null,
       budgetHighThb: battery?.budgetHighThb ?? null,

@@ -564,6 +564,29 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
     page.getByRole("heading", { name: "Stress test เมื่อไฟดับ" }),
   ).toBeVisible();
   await expect(
+    page.getByRole("heading", { name: "สเปกขอราคาและเทียบผู้ติดตั้ง" }),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "เพิ่มใบเสนอราคา" }).click();
+  const batteryQuote = page.getByRole("group", { name: "ใบเสนอราคา 1" });
+  await batteryQuote.getByLabel("ผู้ติดตั้ง").fill("ผู้ติดตั้งทดสอบ");
+  await batteryQuote.getByLabel("ยี่ห้อ / รุ่น").fill("Battery Test 10");
+  await batteryQuote.getByLabel("ราคารวม (บาท)").fill("300000");
+  await batteryQuote.getByLabel("ความจุใช้ได้ (kWh)").fill("10");
+  await batteryQuote.getByLabel("กำลังจ่ายต่อเนื่อง (kW)").fill("5");
+  await batteryQuote.getByLabel("ประสิทธิภาพไป-กลับ (%)").fill("90");
+  await batteryQuote.getByLabel("รับประกัน (ปี)").fill("10");
+  await batteryQuote.getByLabel("รอบชาร์จที่รับประกัน").fill("6000");
+  await batteryQuote.getByLabel("รองรับวงจรสำรองเมื่อไฟดับ").check();
+  await expect(
+    batteryQuote.getByText("ผ่านเกณฑ์", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    batteryQuote.getByText("อันดับ 1", { exact: true }),
+  ).toBeVisible();
+  await expect(
+    page.getByText("ผ่าน technical gate 1 จาก 1 รายการ"),
+  ).toBeVisible();
+  await expect(
     page.getByRole("img", {
       name: "กราฟการทำงานเฉลี่ย 24 ชั่วโมง แสดงโหลด ไฟจากโครงข่าย กำลังชาร์จหรือคายประจุ และระดับพลังงาน Battery",
     }),
@@ -596,6 +619,20 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   expect(phaseThreeBounds.left).toBeGreaterThanOrEqual(0);
   expect(phaseThreeBounds.right).toBeLessThanOrEqual(
     phaseThreeBounds.viewportWidth + 1,
+  );
+  const phaseFourBounds = await page
+    .locator('section[aria-labelledby="battery-quotes-heading"]')
+    .evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return {
+        left: bounds.left,
+        right: bounds.right,
+        viewportWidth: window.innerWidth,
+      };
+    });
+  expect(phaseFourBounds.left).toBeGreaterThanOrEqual(0);
+  expect(phaseFourBounds.right).toBeLessThanOrEqual(
+    phaseFourBounds.viewportWidth + 1,
   );
   expect(
     await page.evaluate(
