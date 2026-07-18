@@ -5,12 +5,12 @@ import { PageHeader } from "@/components/ui/page-layout";
 
 export default function LoadDashboardPage() {
   return (
-    <main className="min-h-screen bg-muted/20">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <PageHeader
-          eyebrow="ตรวจสอบความพร้อม"
-          title="ตรวจสอบข้อมูลการใช้ไฟ"
-          description="ดูว่าระบบกำลังใช้ข้อมูลชุดใด ความน่าเชื่อถือระดับใด และควรเพิ่มข้อมูลอะไรต่อก่อนตัดสินใจ"
+          eyebrow="My energy workspace"
+          title="แผนพลังงานของคุณในที่เดียว"
+          description="ดูสถานะข้อมูล รูปแบบการใช้ไฟ และสิ่งที่ควรทำต่อ ก่อนเปรียบเทียบ TOU หรือประเมิน Solar"
         />
         <ProjectLoadProfileSync />
         <EnergyOverviewDashboard />

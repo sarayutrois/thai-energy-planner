@@ -3,8 +3,8 @@ import { PageHeader } from "@/components/ui/page-layout";
 
 export default function AppliancesPage() {
   return (
-    <main className="min-h-screen bg-muted/20">
-      <section className="mx-auto w-full max-w-7xl px-4 py-6 md:px-6 lg:py-9">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-6 md:px-6 lg:px-8 lg:py-9">
         <PageHeader
           eyebrow="ข้อมูลของฉัน · ค่าประมาณ"
           title="สร้างรูปแบบการใช้ไฟรายวัน"

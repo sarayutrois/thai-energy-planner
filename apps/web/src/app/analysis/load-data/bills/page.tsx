@@ -17,8 +17,8 @@ export default async function BillsPage({
   );
 
   return (
-    <main className="min-h-screen">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <PageHeader
           eyebrow="ข้อมูลของฉัน · บิลค่าไฟ"
           title="กรอกบิลค่าไฟย้อนหลัง"

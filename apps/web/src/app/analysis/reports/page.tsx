@@ -9,8 +9,8 @@ import { AnalysisGoalBanner } from "@/components/analysis-goal-banner";
 
 export default function AnalysisReportsPage() {
   return (
-    <main className="min-h-screen">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <PageHeader
           eyebrow="ผลลัพธ์ · รายงาน"
           title="รายงานผลวิเคราะห์"
@@ -28,7 +28,7 @@ export default function AnalysisReportsPage() {
               รายงานจะแสดงเฉพาะผลที่มีข้อมูลต้นทางและสมมติฐานย้อนหลังได้
             </p>
           </div>
-          <Card>
+          <Card className="energy-panel-neutral">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
                 <ShieldCheck

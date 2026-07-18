@@ -260,7 +260,7 @@ export function CanonicalScenarioPanel() {
 
   return (
     <section className="mt-6 grid min-w-0 max-w-full gap-6 overflow-hidden">
-      <Card className="border-primary/30 bg-primary/5">
+      <Card className="energy-panel-load border-primary/25">
         <CardHeader>
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div>

@@ -35,8 +35,8 @@ const methods = [
 
 export default function LoadDataPage() {
   return (
-    <main className="min-h-screen bg-muted/20">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <PageHeader
           eyebrow="ข้อมูลของฉัน"
           title="เริ่มจากข้อมูลการใช้ไฟที่คุณมี"
@@ -50,7 +50,7 @@ export default function LoadDataPage() {
               className="block rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
             >
               <Card
-                className={`h-full transition hover:-translate-y-0.5 hover:border-primary hover:shadow-md ${method.recommended ? "border-primary/50" : ""}`}
+                className={`energy-panel h-full transition hover:-translate-y-0.5 hover:border-primary hover:shadow-float ${method.recommended ? "energy-panel-load border-primary/50" : "energy-panel-neutral"}`}
               >
                 <CardHeader>
                   <div className="flex items-center justify-between">
@@ -73,7 +73,7 @@ export default function LoadDataPage() {
             </a>
           ))}
         </div>
-        <div className="mt-6 rounded-lg border border-border bg-card p-4 text-sm text-muted-foreground">
+        <div className="energy-panel-neutral mt-6 rounded-xl border p-4 text-sm text-muted-foreground shadow-panel">
           <strong className="text-foreground">ยังไม่มีรูปแบบการใช้ไฟ?</strong>{" "}
           เริ่มจากรายการเครื่องใช้ไฟฟ้าได้ ระบบจะระบุชัดเจนว่าเป็นผลประมาณการ
           และคุณสามารถเพิ่มข้อมูลจากบิลภายหลังเพื่อเพิ่มความน่าเชื่อถือ

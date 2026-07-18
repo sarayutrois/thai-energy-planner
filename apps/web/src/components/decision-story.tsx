@@ -39,10 +39,10 @@ export function DecisionStory({
       aria-label="คำตอบหลักจากผลการวิเคราะห์"
       data-testid="decision-answer"
       className={cn(
-        "relative isolate scroll-mt-24 overflow-hidden rounded-[2rem] border-2 bg-card shadow-float",
-        tone === "positive" && "border-success/45",
-        tone === "caution" && "border-warning/60",
-        tone === "neutral" && "border-primary/35",
+        "relative isolate scroll-mt-24 overflow-hidden rounded-[1.5rem] border bg-card shadow-float",
+        tone === "positive" && "energy-panel-success border-success/40",
+        tone === "caution" && "energy-panel-solar border-warning/45",
+        tone === "neutral" && "energy-panel-tou border-primary/30",
       )}
     >
       <div
@@ -54,7 +54,7 @@ export function DecisionStory({
         className="pointer-events-none absolute -right-24 -top-24 -z-10 h-72 w-72 rounded-full bg-primary/10 blur-3xl"
       />
 
-      <div className="grid gap-7 p-6 pt-8 lg:grid-cols-[1.2fr_0.8fr] lg:p-8 lg:pt-10">
+      <div className="grid gap-7 p-6 pt-8 lg:grid-cols-[1.25fr_0.75fr] lg:p-8 lg:pt-10">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
             <p className="inline-flex items-center gap-2 rounded-full bg-primary px-3.5 py-2 text-sm font-semibold text-primary-foreground shadow-sm">

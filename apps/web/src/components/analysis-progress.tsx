@@ -160,7 +160,7 @@ export function AnalysisProgress() {
       aria-label="ความคืบหน้าการวิเคราะห์"
       className="overflow-x-hidden border-b border-border bg-background"
     >
-      <div className="mx-auto w-full min-w-0 max-w-7xl px-4 py-3 md:px-6">
+      <div className="mx-auto w-full min-w-0 max-w-[90rem] px-4 py-3 md:px-6 lg:px-8">
         <div className="flex items-center justify-between gap-4">
           <p className="shrink-0 text-xs font-semibold text-foreground">
             แผนวิเคราะห์ของคุณ

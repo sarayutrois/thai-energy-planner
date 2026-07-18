@@ -206,7 +206,7 @@ export function ScenarioView({
       </details>
 
       <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-        <Card>
+        <Card className="energy-panel-tou shadow-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BadgeCheck aria-hidden="true" className="h-5 w-5 text-primary" />
@@ -249,7 +249,7 @@ export function ScenarioView({
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="energy-panel-neutral shadow-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Info aria-hidden="true" className="h-5 w-5 text-primary" />
@@ -351,7 +351,7 @@ export function ScenarioView({
         </Card>
       </div>
 
-      <Card>
+      <Card className="energy-panel-neutral shadow-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <ReceiptText aria-hidden="true" className="h-5 w-5 text-primary" />

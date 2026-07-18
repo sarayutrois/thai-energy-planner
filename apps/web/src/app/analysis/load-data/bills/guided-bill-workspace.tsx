@@ -215,7 +215,7 @@ export function GuidedBillWorkspace({
 
   return (
     <div className="mt-6 grid gap-5">
-      <Card>
+      <Card className="energy-panel-load shadow-panel">
         <CardHeader>
           <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
             <div>
@@ -609,7 +609,7 @@ export function GuidedBillWorkspace({
 
       {hasBillData ? (
         <div className="grid gap-4 lg:grid-cols-[1fr_0.95fr]">
-          <Card>
+          <Card className="energy-panel-neutral shadow-panel">
             <CardHeader>
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <CardTitle>คำแนะนำตามเป้าหมาย</CardTitle>
@@ -637,7 +637,7 @@ export function GuidedBillWorkspace({
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="energy-panel-success shadow-panel">
             <CardHeader>
               <CardTitle>ไปต่อหลังกรอกบิล</CardTitle>
             </CardHeader>

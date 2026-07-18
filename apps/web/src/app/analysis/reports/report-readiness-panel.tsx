@@ -190,7 +190,7 @@ export function ReportReadinessPanel() {
 
   return (
     <>
-      <Card>
+      <Card className="energy-panel-neutral shadow-panel">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <FileWarning aria-hidden="true" className="h-5 w-5 text-primary" />

@@ -4,8 +4,8 @@ import { AnalysisGoalBanner } from "@/components/analysis-goal-banner";
 
 export default function ScenariosPage() {
   return (
-    <main className="min-h-screen">
-      <section className="mx-auto w-full min-w-0 max-w-7xl overflow-hidden px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full min-w-0 max-w-[90rem] overflow-hidden px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <PageHeader
           eyebrow="การวิเคราะห์ · ค่าไฟและ TOU"
           title="เปรียบเทียบค่าไฟจากรูปแบบการใช้ไฟของคุณ"

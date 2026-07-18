@@ -14,15 +14,16 @@ export function AnalysisDataTrustCard({
     .slice(0, compact ? 2 : 4);
   const tone =
     trust.level === "high"
-      ? "border-success/50 bg-success/5"
+      ? "energy-panel-success border-success/40"
       : trust.level === "medium"
-        ? "border-primary/40 bg-primary/5"
-        : "border-warning/60 bg-warning/10";
+        ? "energy-panel-load border-primary/30"
+        : "energy-panel-solar border-warning/45";
 
   return (
     <section
       aria-label="ความน่าเชื่อถือของข้อมูล"
-      className={`min-w-0 rounded-xl border p-4 ${tone}`}
+      id="data-trust"
+      className={`min-w-0 scroll-mt-24 rounded-[1.35rem] border p-4 shadow-panel md:p-5 ${tone}`}
     >
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div className="min-w-0">

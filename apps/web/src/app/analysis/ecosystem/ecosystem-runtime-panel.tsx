@@ -138,7 +138,7 @@ export function EcosystemRuntimePanel() {
         };
   return (
     <div className="mt-6 grid min-w-0 gap-6">
-      <Card className="overflow-hidden border-2 border-primary/35 bg-gradient-to-br from-primary/[0.09] via-card to-information/[0.07]">
+      <Card className="energy-panel-success overflow-hidden border-2 border-primary/35 shadow-float">
         <CardHeader>
           <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
             <div className="min-w-0">
@@ -218,8 +218,8 @@ export function EcosystemRuntimePanel() {
                 key={item.key}
                 className={
                   item.status === "ready"
-                    ? "border-success/35"
-                    : "border-warning/40"
+                    ? "energy-panel-success border-success/35"
+                    : "energy-panel-neutral border-warning/40"
                 }
               >
                 <CardContent className="pt-5 md:pt-6">

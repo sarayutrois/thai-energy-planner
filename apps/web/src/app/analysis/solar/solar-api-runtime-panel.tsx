@@ -584,13 +584,15 @@ function RuntimeMetrics({
   const benefitBreakdown = getSolarBenefitBreakdown(comparison);
   const recommendationTone =
     systemRecommendation.verdict === "recommend"
-      ? "border-success bg-success/10"
+      ? "energy-panel-success border-success/40"
       : systemRecommendation.verdict === "not_recommended"
-        ? "border-warning bg-warning/10"
-        : "border-primary/40 bg-primary/5";
+        ? "energy-panel-solar border-warning/45"
+        : "energy-panel-load border-primary/30";
   return (
     <>
-      <section className={`rounded-xl border p-5 ${recommendationTone}`}>
+      <section
+        className={`rounded-[1.5rem] border p-5 shadow-float md:p-6 ${recommendationTone}`}
+      >
         <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
           <div>
             <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
@@ -619,10 +621,12 @@ function RuntimeMetrics({
         </div>
         <div className="mt-5 grid grid-cols-2 gap-x-4 gap-y-5 lg:grid-cols-4">
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="ระบบที่แนะนำ"
             value={systemRecommendation.systemTypeLabel}
           />
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="ขนาด Solar"
             value={
               systemRecommendation.systemSizeKwp === null
@@ -631,6 +635,7 @@ function RuntimeMetrics({
             }
           />
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="จำนวนแผงโดยประมาณ"
             value={
               systemRecommendation.panelCount === null
@@ -639,6 +644,7 @@ function RuntimeMetrics({
             }
           />
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="Inverter โดยประมาณ"
             value={
               systemRecommendation.inverterSizeKw === null
@@ -646,16 +652,23 @@ function RuntimeMetrics({
                 : `${formatNumber(systemRecommendation.inverterSizeKw)} kW`
             }
           />
-          <Info label="แบตเตอรี่" value={systemRecommendation.batteryLabel} />
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
+            label="แบตเตอรี่"
+            value={systemRecommendation.batteryLabel}
+          />
+          <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="งบติดตั้งเบื้องต้น"
             value={formatRecommendationBudget(systemRecommendation)}
           />
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="ระยะคืนทุน"
             value={systemRecommendation.combinedPaybackLabel}
           />
           <Info
+            className="rounded-xl border border-border/60 bg-background/75 p-3"
             label="ข้อมูลที่ใช้ตัดสินใจ"
             value={
               snapshot.calibration
@@ -894,9 +907,17 @@ function Metric({ label, value }: { label: string; value: string }) {
     </div>
   );
 }
-function Info({ label, value }: { label: string; value: string }) {
+function Info({
+  label,
+  value,
+  className,
+}: {
+  label: string;
+  value: string;
+  className?: string;
+}) {
   return (
-    <div>
+    <div className={className}>
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 font-medium">{value}</p>
     </div>

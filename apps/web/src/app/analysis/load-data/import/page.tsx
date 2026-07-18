@@ -3,6 +3,7 @@ import { AnalysisStartContextCard } from "@/components/analysis-start-context-ca
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LoadProfileImporter } from "@/components/load-profile-importer";
+import { PageHeader } from "@/components/ui/page-layout";
 import {
   getAnalysisStartContext,
   type AnalysisStartSearchParams,
@@ -19,25 +20,21 @@ export default async function ImportLoadPage({
   );
 
   return (
-    <main className="min-h-screen">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <div className="mb-5 flex flex-wrap gap-2">
           <Badge>นำเข้าข้อมูลจาก CSV หรือ XLSX</Badge>
           <Badge variant="outline">Asia/Bangkok</Badge>
         </div>
-        <h1 className="text-3xl font-semibold tracking-normal">
-          นำเข้าข้อมูลการใช้ไฟ
-        </h1>
-        <p className="mt-3 max-w-3xl leading-7 text-muted-foreground">
-          รองรับ CSV/XLSX พร้อมการจับคู่คอลัมน์ข้อมูล ช่วงเวลา 15/30/60 นาที
-          และตัวอย่างข้อมูลก่อนนำเข้าจริง
-          ระบบต้องการข้อมูลวันและเวลาร่วมกับพลังงานไฟฟ้า (kWh) หรือกำลังไฟฟ้า
-          (kW)
-        </p>
+        <PageHeader
+          eyebrow="ข้อมูลของฉัน · มิเตอร์"
+          title="นำเข้าข้อมูลการใช้ไฟ"
+          description="รองรับ CSV/XLSX พร้อมการจับคู่คอลัมน์ ช่วงเวลา 15, 30 หรือ 60 นาที และแสดงตัวอย่างก่อนนำเข้าจริง โดยต้องมีวันเวลาร่วมกับพลังงาน (kWh) หรือกำลังไฟฟ้า (kW)"
+        />
 
         <AnalysisStartContextCard {...startContext} />
 
-        <Card className="mt-6">
+        <Card className="energy-panel-load mt-6 shadow-panel">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <FileUp aria-hidden="true" className="h-5 w-5 text-primary" />

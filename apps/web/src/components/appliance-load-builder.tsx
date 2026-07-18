@@ -764,7 +764,7 @@ export function ApplianceLoadBuilder({
 
   return (
     <div className="grid min-w-0 grid-cols-1 gap-6">
-      <div className="flex flex-col gap-3 rounded-xl border border-border bg-muted/35 p-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="energy-panel-load flex flex-col gap-3 rounded-xl border p-4 shadow-panel sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-sm font-semibold">
             สร้าง Load Profile จากข้อมูลเครื่องใช้ไฟฟ้า
@@ -797,7 +797,7 @@ export function ApplianceLoadBuilder({
         </div>
       ) : null}
 
-      <section className="rounded-2xl border border-border bg-card p-4 shadow-panel md:p-6">
+      <section className="energy-panel-neutral rounded-2xl border p-4 shadow-panel md:p-6">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h2 className="text-lg font-semibold">1. เพิ่มเครื่องใช้ไฟฟ้า</h2>
@@ -1108,7 +1108,7 @@ export function ApplianceLoadBuilder({
         )}
       </section>
 
-      <section className="rounded-2xl border border-border bg-card p-4 shadow-panel md:p-6">
+      <section className="energy-panel-load rounded-2xl border p-4 shadow-panel md:p-6">
         <h2 className="text-lg font-semibold">2. ตรวจสอบผลการคำนวณ</h2>
         <p className="mt-1 text-sm font-medium text-muted-foreground">
           {applianceSourceLabel(mode)}

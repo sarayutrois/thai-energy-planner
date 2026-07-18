@@ -63,8 +63,8 @@ export function SolarPageShell({
   children: ReactNode;
 }) {
   return (
-    <main className="min-h-screen">
-      <section className="mx-auto w-full max-w-7xl px-4 py-8 md:px-6 lg:py-10">
+    <main className="energy-workspace-bg min-h-screen">
+      <section className="mx-auto w-full max-w-[90rem] px-4 py-8 md:px-6 lg:px-8 lg:py-10">
         <PageHeader
           eyebrow={
             <>
@@ -77,7 +77,7 @@ export function SolarPageShell({
           title="จำลองการติดตั้งโซลาร์เซลล์บนหลังคา"
           description="ประเมินสัดส่วนไฟ Solar ที่ใช้เอง ระยะเวลาคืนทุน ขนาดระบบที่เหมาะสม และความไวของผลลัพธ์ โดยไม่ใช่ใบเสนอราคาหรือการรับประกันผลประหยัด"
         />
-        <div className="mt-5 rounded-2xl border border-border/80 bg-card/70 p-4 shadow-panel md:p-5">
+        <div className="energy-panel-neutral mt-5 rounded-[1.35rem] border border-border/80 p-4 shadow-panel md:p-5">
           <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-semibold uppercase tracking-[0.14em] text-primary">
