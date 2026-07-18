@@ -171,6 +171,19 @@ export function LocalAnalysisReportCards() {
                         : "ผลลัพธ์ล้าสมัย"}
                     </Badge>
                     <Badge variant="outline">{report.moduleLabel}</Badge>
+                    {report.dataTrust ? (
+                      <Badge
+                        variant={
+                          report.dataTrust.level === "high"
+                            ? "success"
+                            : report.dataTrust.level === "low"
+                              ? "warning"
+                              : "information"
+                        }
+                      >
+                        {report.dataTrust.label} · {report.dataTrust.score}/100
+                      </Badge>
+                    ) : null}
                     {report.sourceProfile?.isSample ? (
                       <Badge variant="warning">ข้อมูลตัวอย่าง</Badge>
                     ) : null}
@@ -178,7 +191,7 @@ export function LocalAnalysisReportCards() {
                 </div>
               </CardHeader>
               <CardContent className="grid flex-1 gap-4">
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-4">
                   <Metric
                     label="สร้างเมื่อ"
                     value={new Date(report.createdAt).toLocaleDateString(
@@ -192,6 +205,14 @@ export function LocalAnalysisReportCards() {
                   <Metric
                     label="คุณภาพข้อมูล"
                     value={report.sourceBill.dataQualityLabel}
+                  />
+                  <Metric
+                    label="ความน่าเชื่อถือ"
+                    value={
+                      report.dataTrust
+                        ? `${report.dataTrust.score}/100`
+                        : "ยังไม่มีคะแนน"
+                    }
                   />
                 </div>
                 {report.sourceProfile ? (

@@ -20,6 +20,7 @@ import {
 } from "@/lib/local-analysis-dataset";
 import { readLocalBillReportSnapshot } from "@/lib/local-bill-report";
 import { readActiveProject } from "@/lib/active-project";
+import { assessAnalysisDataTrust } from "@/lib/analysis-data-trust";
 import {
   readStoredBillWorkspace,
   storedBillWorkspaceMatchesProject,
@@ -180,6 +181,16 @@ export function saveLocalAnalysisReport({
         })),
       })
     : null;
+  const dataTrust = assessAnalysisDataTrust({
+    profileSnapshot,
+    bills: billSnapshot.rows.map((row) => ({
+      month: row.month,
+      energyKwh: row.energyKwh,
+      totalCostThb: row.totalCostThb,
+      authority: row.authority,
+      meterMode: row.meterMode,
+    })),
+  });
   const report: LocalAnalysisReportSnapshot = {
     ...draft,
     id: `${localAnalysisReportIdPrefix}${draft.module}-${Date.now()}`,
@@ -194,6 +205,7 @@ export function saveLocalAnalysisReport({
       averageMonthlyCostThb: billSnapshot.averageMonthlyCostThb,
       dataQualityLabel: billSnapshot.dataQualityLabel,
     },
+    dataTrust,
     sourceDataset: createAnalysisDatasetFingerprint({
       billSnapshot,
       profileSnapshot: readLocalLoadProfileSnapshot(),

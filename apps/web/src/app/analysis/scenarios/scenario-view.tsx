@@ -15,11 +15,14 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ScenarioComparisonCharts } from "@/components/scenario-comparison-charts";
 import { DecisionStory } from "@/components/decision-story";
+import type { AnalysisDataTrust } from "@/lib/analysis-data-trust";
 
 export function ScenarioView({
   comparison,
+  dataTrust,
 }: {
   comparison: ScenarioComparisonResult;
+  dataTrust: AnalysisDataTrust;
 }) {
   const allScenarios = [comparison.baseline, ...comparison.scenarios];
   const shifted = comparison.scenarios.find(
@@ -54,12 +57,24 @@ export function ScenarioView({
             value: `${comparison.dataQuality.metrics.intervalDays} วัน`,
           },
         ]}
-        limitations={comparison.dataQuality.limitations
-          .slice(0, 2)
-          .map((limitation) => formatDataLimitation(limitation, comparison))}
-        nextAction={formatDecisionNextAction(comparison)}
-        confidence={`ความน่าเชื่อถือ ${formatDataQuality(comparison.dataQuality.level)} · ${comparison.dataQuality.score}/100`}
-        tone={comparison.dataQuality.level === "LOW" ? "caution" : "positive"}
+        limitations={
+          dataTrust.issues.length
+            ? dataTrust.issues
+                .slice(0, 2)
+                .map((issue) => `${issue.title}: ${issue.detail}`)
+            : comparison.dataQuality.limitations
+                .slice(0, 2)
+                .map((limitation) =>
+                  formatDataLimitation(limitation, comparison),
+                )
+        }
+        nextAction={
+          dataTrust.level === "low"
+            ? dataTrust.nextAction
+            : formatDecisionNextAction(comparison)
+        }
+        confidence={`${dataTrust.label} · ${dataTrust.score}/100`}
+        tone={dataTrust.level === "low" ? "caution" : "positive"}
         actions={
           <>
             <Link
@@ -288,6 +303,50 @@ export function ScenarioView({
                 </ul>
               ) : null}
             </div>
+            <div className="rounded-md border border-border p-4">
+              <div className="flex items-center gap-2 font-semibold">
+                <BadgeCheck aria-hidden="true" className="h-4 w-4" />
+                อัตราค่าไฟที่ใช้คำนวณ
+              </div>
+              <dl className="mt-3 grid gap-2">
+                <BreakEvenRow
+                  label="เวอร์ชัน"
+                  value={bestScenario.calculationTrace.tariffVersionLabel}
+                />
+                <BreakEvenRow
+                  label="มีผลตั้งแต่"
+                  value={formatReferenceDate(
+                    bestScenario.calculationTrace.tariffEffectiveFrom,
+                  )}
+                />
+                <BreakEvenRow
+                  label="สถานะ"
+                  value={formatTariffStatus(
+                    bestScenario.calculationTrace.tariffStatus,
+                  )}
+                />
+                <BreakEvenRow
+                  label="ตรวจสอบล่าสุด"
+                  value={
+                    bestScenario.calculationTrace.tariffVerifiedAt
+                      ? formatReferenceDate(
+                          bestScenario.calculationTrace.tariffVerifiedAt,
+                        )
+                      : "ยังไม่มีวันที่ยืนยันแยกต่างหาก"
+                  }
+                />
+              </dl>
+              {bestScenario.calculationTrace.sourceUrl ? (
+                <a
+                  className="mt-3 inline-flex text-sm font-medium text-primary underline-offset-4 hover:underline"
+                  href={bestScenario.calculationTrace.sourceUrl}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  เปิดแหล่งอ้างอิงอัตราค่าไฟ
+                </a>
+              ) : null}
+            </div>
           </CardContent>
         </Card>
       </div>
@@ -305,6 +364,22 @@ export function ScenarioView({
       </Card>
     </div>
   );
+}
+
+function formatReferenceDate(value: string) {
+  const date = new Date(
+    value.length === 10 ? `${value}T00:00:00+07:00` : value,
+  );
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("th-TH-u-ca-gregory", { dateStyle: "medium" });
+}
+
+function formatTariffStatus(value: string) {
+  if (value === "published") return "ประกาศใช้แล้ว";
+  if (value === "verified") return "ตรวจสอบแล้ว";
+  if (value === "retired") return "ยกเลิกใช้แล้ว";
+  return "ฉบับร่าง";
 }
 
 function BreakdownTable({ scenario }: { scenario: ScenarioResult }) {

@@ -10,6 +10,8 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalysisDataTrustCard } from "@/components/analysis-data-trust-card";
+import { assessAnalysisDataTrust } from "@/lib/analysis-data-trust";
 import {
   localLoadProfileMatchesProject,
   readLocalLoadProfileSnapshot,
@@ -305,13 +307,20 @@ export function SolarApiRuntimePanel({
       </Card>
     );
 
-  const hasBills = readSavedBills(activeProject?.id).length > 0;
+  const savedBills = readSavedBills(activeProject?.id);
+  const savedBillInputs = readSavedBillInputs(activeProject?.id);
+  const hasBills = savedBills.length > 0;
+  const dataTrust = assessAnalysisDataTrust({
+    profileSnapshot: snapshot,
+    bills: savedBillInputs,
+  });
   const dataStatus = getSolarDataStatus(snapshot, hasBills);
   const systemRecommendation = calculatedResult
     ? buildSolarSystemRecommendation({
         analysis: calculatedResult.analysis,
         settings: activeSettings,
         hasCalibratedBills: Boolean(snapshot.calibration && hasBills),
+        dataTrustLevel: dataTrust.level,
       })
     : undefined;
   const reportDraft = calculatedResult
@@ -365,6 +374,7 @@ export function SolarApiRuntimePanel({
         </div>
       </CardHeader>
       <CardContent className="grid gap-4">
+        <AnalysisDataTrustCard compact trust={dataTrust} />
         {!calculatedResult ? (
           <div className="rounded-xl border border-primary/25 bg-background p-4">
             <p className="font-semibold">ข้อมูลที่จะใช้ในการประเมินครั้งนี้</p>
@@ -935,6 +945,31 @@ function readSavedBills(projectId?: string) {
         /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) &&
         Number.isFinite(row.billThb) &&
         row.billThb > 0,
+    )
+    .slice(0, 12);
+}
+function readSavedBillInputs(projectId?: string) {
+  const workspace = readStoredBillWorkspace();
+  if (
+    workspace?.mode !== "user" ||
+    !storedBillWorkspaceMatchesProject(workspace, projectId)
+  )
+    return [];
+  return workspace.rows
+    .map((row) => ({
+      month: row.month,
+      energyKwh: Number(row.energyKwh),
+      totalCostThb: Number(row.totalCostThb),
+      authority: row.authority,
+      meterMode: row.meterMode,
+    }))
+    .filter(
+      (row) =>
+        /^\d{4}-(0[1-9]|1[0-2])$/.test(row.month) &&
+        Number.isFinite(row.energyKwh) &&
+        row.energyKwh >= 0 &&
+        Number.isFinite(row.totalCostThb) &&
+        row.totalCostThb >= 0,
     )
     .slice(0, 12);
 }

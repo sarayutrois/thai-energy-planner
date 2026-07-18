@@ -426,6 +426,14 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
       name: "เปรียบเทียบจาก Load Profile ที่บันทึกไว้",
     }),
   ).toBeVisible();
+  const scenarioTrust = page.getByRole("region", {
+    name: "ความน่าเชื่อถือของข้อมูล",
+  });
+  await expect(scenarioTrust).toBeVisible();
+  await expect(scenarioTrust).toContainText("1 เดือน");
+  await expect(scenarioTrust).toContainText("ยังไม่ยืนยันปรับ");
+  await expect(page.getByText("อัตราค่าไฟที่ใช้คำนวณ")).toBeVisible();
+  await expect(page.getByText("มีผลตั้งแต่", { exact: true })).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(
@@ -452,6 +460,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await page.goto("/analysis/solar");
   await expect(
     page.getByRole("heading", { name: "ตรวจข้อมูลก่อนเริ่มประเมิน Solar" }),
+  ).toBeVisible();
+  await expect(
+    page.getByRole("region", { name: "ความน่าเชื่อถือของข้อมูล" }),
   ).toBeVisible();
   await expect(
     page.getByRole("heading", { name: "ผลการประเมิน Solar จากข้อมูลที่เลือก" }),
@@ -619,6 +630,9 @@ test("Flow C: user bills and a saved Load Profile produce current reports", asyn
   await expect(openReportLink).toBeVisible();
   await openReportLink.click();
   await page.waitForURL("**/analysis/reports/**");
+  await expect(
+    page.getByRole("region", { name: "ความน่าเชื่อถือของข้อมูล" }),
+  ).toBeVisible();
   await page.setViewportSize({ width: 390, height: 844 });
   expect(
     await page.evaluate(

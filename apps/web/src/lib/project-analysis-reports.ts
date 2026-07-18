@@ -71,6 +71,7 @@ export function isLocalAnalysisReportSnapshot(
     isSourceBill(sourceBill) &&
     isMetricArray(report.metrics) &&
     isMetricArray(report.assumptions) &&
+    (report.dataTrust === undefined || isDataTrust(report.dataTrust)) &&
     Array.isArray(report.resultRows) &&
     report.resultRows.every(isRecord) &&
     Array.isArray(report.recommendations) &&
@@ -79,6 +80,29 @@ export function isLocalAnalysisReportSnapshot(
         isRecord(item) &&
         typeof item.title === "string" &&
         typeof item.description === "string",
+    )
+  );
+}
+
+function isDataTrust(value: unknown) {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.score === "number" &&
+    value.score >= 0 &&
+    value.score <= 100 &&
+    ["low", "medium", "high"].includes(String(value.level)) &&
+    typeof value.label === "string" &&
+    typeof value.summary === "string" &&
+    typeof value.nextAction === "string" &&
+    Array.isArray(value.issues) &&
+    value.issues.every(
+      (issue) =>
+        isRecord(issue) &&
+        typeof issue.code === "string" &&
+        ["info", "warning", "critical"].includes(String(issue.severity)) &&
+        typeof issue.title === "string" &&
+        typeof issue.detail === "string" &&
+        typeof issue.action === "string",
     )
   );
 }

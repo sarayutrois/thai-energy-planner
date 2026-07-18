@@ -54,6 +54,11 @@ describe("project analysis report restore", () => {
         reports: [
           { id: "report-1", analysisRunId: "run-1", metadata: {} },
           { metadata },
+          {
+            id: "report-2",
+            analysisRunId: "run-2",
+            metadata: { ...metadata, dataTrust: { score: 900 } },
+          },
         ],
       }),
     ).toEqual([]);

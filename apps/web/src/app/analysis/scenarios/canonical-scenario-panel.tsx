@@ -14,6 +14,8 @@ import type {
 } from "@thai-energy-planner/shared-types";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalysisDataTrustCard } from "@/components/analysis-data-trust-card";
+import { assessAnalysisDataTrust } from "@/lib/analysis-data-trust";
 import {
   hydrateLocalLoadProfileSnapshot,
   isSampleLocalLoadProfile,
@@ -37,7 +39,10 @@ import {
   readStoredBillWorkspace,
   storedBillWorkspaceMatchesProject,
 } from "@/lib/local-bill-workspace";
-import type { LocalAnalysisReportDraft } from "@/lib/local-analysis-snapshot";
+import type {
+  LocalAnalysisReportDraft,
+  StoredBillWorkspace,
+} from "@/lib/local-analysis-snapshot";
 
 export function CanonicalScenarioPanel() {
   const [snapshot, setSnapshot] = useState<LocalLoadProfileSnapshot | null>(
@@ -53,6 +58,8 @@ export function CanonicalScenarioPanel() {
   >("residential");
   const [showHistory, setShowHistory] = useState(false);
   const [hasBillContext, setHasBillContext] = useState(false);
+  const [billWorkspace, setBillWorkspace] =
+    useState<StoredBillWorkspace | null>(null);
   const [activeProject, setActiveProject] = useState<ActiveProject | null>(
     null,
   );
@@ -67,11 +74,15 @@ export function CanonicalScenarioPanel() {
     const refreshAccountProfiles = () => {
       const project = readActiveProject(window.localStorage);
       setActiveProject(project);
+      const storedWorkspace = readStoredBillWorkspace();
+      const matchingWorkspace =
+        storedWorkspace?.mode === "user" &&
+        storedBillWorkspaceMatchesProject(storedWorkspace, project?.id)
+          ? storedWorkspace
+          : null;
+      setBillWorkspace(matchingWorkspace);
       setHasBillContext(
-        storedBillWorkspaceMatchesProject(
-          readStoredBillWorkspace(),
-          project?.id,
-        ) && Boolean(readLocalBillReportSnapshot()),
+        Boolean(matchingWorkspace) && Boolean(readLocalBillReportSnapshot()),
       );
       const query = project
         ? `?projectId=${encodeURIComponent(project.id)}`
@@ -110,6 +121,26 @@ export function CanonicalScenarioPanel() {
   );
   const profile: CanonicalLoadProfile | null =
     activeSnapshot?.canonicalProfile ?? null;
+  const dataTrust = useMemo(
+    () =>
+      assessAnalysisDataTrust({
+        profileSnapshot: activeSnapshot,
+        bills: (billWorkspace?.rows ?? [])
+          .map((row) => ({
+            month: row.month,
+            energyKwh: Number(row.energyKwh),
+            totalCostThb: Number(row.totalCostThb),
+            authority: row.authority,
+            meterMode: row.meterMode,
+          }))
+          .filter(
+            (bill) =>
+              Number.isFinite(bill.energyKwh) &&
+              Number.isFinite(bill.totalCostThb),
+          ),
+      }),
+    [activeSnapshot, billWorkspace],
+  );
 
   const result = useMemo(() => {
     if (!profile) return null;
@@ -358,12 +389,13 @@ export function CanonicalScenarioPanel() {
           </div>
         </CardContent>
       </Card>
+      <AnalysisDataTrustCard compact trust={dataTrust} />
       {result && "error" in result ? (
         <p className="text-sm text-destructive">{result.error}</p>
       ) : null}
       {result && !("error" in result) ? (
         <>
-          <ScenarioView comparison={result} />
+          <ScenarioView comparison={result} dataTrust={dataTrust} />
           <section className="rounded-xl border border-primary/30 bg-primary/[0.06] p-4">
             <p className="text-xs font-semibold uppercase tracking-wide text-primary">
               ขั้นต่อไปที่แนะนำ
@@ -432,6 +464,10 @@ function buildScenarioReportDraft(
         value: profile.intervals.length.toLocaleString("th-TH"),
       },
       { label: "อัตราค่าไฟ", value: best.calculationTrace.tariffVersionLabel },
+      {
+        label: "อัตรามีผลตั้งแต่",
+        value: formatReportDate(best.calculationTrace.tariffEffectiveFrom),
+      },
     ],
     resultRows: [result.baseline, ...result.scenarios].map((row) => ({
       plan: formatScenarioReportPlan(row.name),
@@ -451,8 +487,27 @@ function buildScenarioReportDraft(
         label: "รุ่นอัตราค่าไฟที่ใช้",
         value: best.calculationTrace.tariffVersionLabel,
       },
+      {
+        label: "สถานะอัตรา",
+        value: best.calculationTrace.tariffStatus,
+      },
+      ...(best.calculationTrace.sourceUrl
+        ? [
+            {
+              label: "แหล่งอ้างอิงอัตราค่าไฟ",
+              value: best.calculationTrace.sourceUrl,
+            },
+          ]
+        : []),
     ],
   };
+}
+
+function formatReportDate(value: string) {
+  const date = new Date(`${value}T00:00:00+07:00`);
+  return Number.isNaN(date.getTime())
+    ? value
+    : date.toLocaleDateString("th-TH-u-ca-gregory", { dateStyle: "medium" });
 }
 
 function profileSourceLabel(kind: string) {

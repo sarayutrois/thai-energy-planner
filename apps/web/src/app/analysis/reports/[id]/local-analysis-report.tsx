@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalysisDataTrustCard } from "@/components/analysis-data-trust-card";
 import {
   deleteLocalAnalysisReport,
   getCurrentAnalysisDataset,
@@ -303,6 +304,10 @@ export function LocalAnalysisReport({ id }: { id: string }) {
               ) : null}
             </CardContent>
           </Card>
+        ) : null}
+
+        {report.dataTrust ? (
+          <AnalysisDataTrustCard trust={report.dataTrust} />
         ) : null}
 
         {report.sections?.map((section) => (

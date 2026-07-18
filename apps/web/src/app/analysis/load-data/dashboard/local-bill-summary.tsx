@@ -27,6 +27,8 @@ import {
 } from "@thai-energy-planner/calculation-engine";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { AnalysisDataTrustCard } from "@/components/analysis-data-trust-card";
+import { assessAnalysisDataTrust } from "@/lib/analysis-data-trust";
 import {
   localBillReportId,
   type StoredBillWorkspace,
@@ -180,6 +182,14 @@ export function LocalBillSummary() {
     unexplainedPercent,
     isCalibrated,
   });
+  const dataTrust = useMemo(
+    () =>
+      assessAnalysisDataTrust({
+        profileSnapshot: snapshot,
+        bills: validation.bills,
+      }),
+    [snapshot, validation.bills],
+  );
   const billHref = `/analysis/load-data/bills${workspace ? `?audience=${workspace.audience}&source=bills` : ""}`;
   const savedBillQuery = workspace
     ? `?audience=${workspace.audience}&source=bills`
@@ -326,6 +336,8 @@ export function LocalBillSummary() {
             value={`${formatNumber(averageMonthlyCost)} บาท`}
           />
         </div>
+
+        <AnalysisDataTrustCard trust={dataTrust} />
 
         {calibration ? (
           <section className="rounded-md border border-primary/40 bg-primary/5 p-4">

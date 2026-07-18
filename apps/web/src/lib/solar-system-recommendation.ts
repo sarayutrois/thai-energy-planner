@@ -29,13 +29,17 @@ export function buildSolarSystemRecommendation(input: {
   analysis: SolarAnalysisResult;
   settings: SolarAssumptionSettings;
   hasCalibratedBills: boolean;
+  dataTrustLevel?: "low" | "medium" | "high";
 }): SolarSystemRecommendation {
   const { analysis, settings } = input;
   const recommended = analysis.sizing.recommended;
   const modelScore = finiteOr(analysis.modelQuality?.score, 0);
-  const confidence = getConfidence(modelScore, input.hasCalibratedBills);
-  const backupRequirementConfirmed =
-    settings.backupRequirement !== "unknown";
+  const confidence = getConfidence(
+    modelScore,
+    input.hasCalibratedBills,
+    input.dataTrustLevel,
+  );
+  const backupRequirementConfirmed = settings.backupRequirement !== "unknown";
 
   if (!recommended) {
     return {
@@ -64,6 +68,9 @@ export function buildSolarSystemRecommendation(input: {
       limitations: buildBaseLimitations({
         analysis,
         hasCalibratedBills: input.hasCalibratedBills,
+        ...(input.dataTrustLevel === undefined
+          ? {}
+          : { dataTrustLevel: input.dataTrustLevel }),
       }),
       nextAction:
         "เพิ่มข้อมูลบิลและการใช้ไฟช่วงกลางวัน ตรวจเงาบัง แล้วลองประเมินใหม่ก่อนขอใบเสนอราคา",
@@ -108,6 +115,9 @@ export function buildSolarSystemRecommendation(input: {
   const baseLimitations = buildBaseLimitations({
     analysis,
     hasCalibratedBills: input.hasCalibratedBills,
+    ...(input.dataTrustLevel === undefined
+      ? {}
+      : { dataTrustLevel: input.dataTrustLevel }),
   });
 
   return {
@@ -184,6 +194,7 @@ export function buildSolarSystemRecommendation(input: {
 function buildBaseLimitations(input: {
   analysis: SolarAnalysisResult;
   hasCalibratedBills: boolean;
+  dataTrustLevel?: "low" | "medium" | "high";
 }) {
   const limitations = [
     "ต้องสำรวจพื้นที่หลังคา เงาบัง โครงสร้าง ระบบไฟ 1/3 เฟส และเงื่อนไขเชื่อมต่อกับการไฟฟ้าก่อนติดตั้งจริง",
@@ -196,13 +207,21 @@ function buildBaseLimitations(input: {
     limitations.push(
       "คุณภาพข้อมูลของแบบจำลองยังไม่สูง ผลขนาดระบบและงบอาจเปลี่ยนเมื่อมีข้อมูลหน้างาน",
     );
+  if (input.dataTrustLevel === "low")
+    limitations.push(
+      "คะแนนความน่าเชื่อถือของข้อมูลอยู่ในระดับต่ำ จึงยังไม่ควรยืนยันขนาดระบบหรือวงเงินลงทุน",
+    );
   return limitations;
 }
 
 function getConfidence(
   modelScore: number,
   hasCalibratedBills: boolean,
+  dataTrustLevel?: "low" | "medium" | "high",
 ): "low" | "medium" | "high" {
+  if (dataTrustLevel === "low") return "low";
+  if (dataTrustLevel === "medium")
+    return modelScore >= 45 || hasCalibratedBills ? "medium" : "low";
   if (modelScore >= 60 && hasCalibratedBills) return "high";
   if (modelScore >= 45 || hasCalibratedBills) return "medium";
   return "low";

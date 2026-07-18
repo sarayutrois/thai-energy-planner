@@ -80,6 +80,13 @@ describe("phase 4 scenario engine", () => {
     expect(result.baseline.tariffMode).toBe("normal");
     expect(result.baseline.baseEnergyCharge).toBeGreaterThan(0);
     expect(result.baseline.grandTotal).toBeGreaterThan(0);
+    expect(result.baseline.calculationTrace.tariffEffectiveFrom).toBe(
+      demoNormalTariff.effectiveFrom,
+    );
+    expect(result.baseline.calculationTrace.tariffEffectiveTo).toBe(
+      demoNormalTariff.effectiveTo,
+    );
+    expect(result.baseline.calculationTrace).toHaveProperty("tariffVerifiedAt");
   });
 
   it("calculates a Current TOU scenario with peak and off-peak kWh", () => {

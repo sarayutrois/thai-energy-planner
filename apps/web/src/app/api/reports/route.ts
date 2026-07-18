@@ -42,6 +42,7 @@ const localReportPayloadSchema = z
     sourceDataset: jsonValueSchema.optional(),
     sourceProfile: jsonValueSchema.optional(),
     billCalibration: jsonValueSchema.optional(),
+    dataTrust: jsonValueSchema.optional(),
     resultRows: z.array(z.record(jsonValueSchema)).max(500).optional(),
     recommendations: z.array(jsonValueSchema).max(100).optional(),
     metrics: z.array(jsonValueSchema).max(100).optional(),

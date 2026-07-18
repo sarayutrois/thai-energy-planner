@@ -1,4 +1,5 @@
 import type { AnalysisAudience } from "./analysis-start";
+import type { AnalysisDataTrust } from "./analysis-data-trust";
 
 export const billWorkspaceStorageKey = "thai-energy-planner.bill-workspace.v1";
 export const billReportStorageKey = "thai-energy-planner.bill-report.v1";
@@ -137,4 +138,5 @@ export type LocalAnalysisReportSnapshot = LocalAnalysisReportDraft & {
         warnings: string[];
       }
     | undefined;
+  dataTrust?: AnalysisDataTrust | undefined;
 };

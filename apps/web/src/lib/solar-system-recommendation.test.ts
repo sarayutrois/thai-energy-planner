@@ -24,8 +24,7 @@ describe("Solar system recommendation", () => {
   it("recommends an on-grid system without a battery when backup is not needed", () => {
     const result = buildSolarSystemRecommendation({
       analysis: analysisWithRecommendation(),
-      settings: getSolarAssumptionDraft({ backupRequirement: "none" })
-        .settings,
+      settings: getSolarAssumptionDraft({ backupRequirement: "none" }).settings,
       hasCalibratedBills: true,
     });
 
@@ -49,6 +48,21 @@ describe("Solar system recommendation", () => {
     expect(result.systemTypeLabel).toContain("รอยืนยัน");
     expect(result.limitations.some((item) => item.includes("ไฟสำรอง"))).toBe(
       true,
+    );
+  });
+
+  it("does not report high confidence when the underlying data trust is low", () => {
+    const result = buildSolarSystemRecommendation({
+      analysis: analysisWithRecommendation(),
+      settings: getSolarAssumptionDraft({ backupRequirement: "none" }).settings,
+      hasCalibratedBills: true,
+      dataTrustLevel: "low",
+    });
+
+    expect(result.confidence).toBe("low");
+    expect(result.verdict).toBe("consider");
+    expect(result.limitations).toContain(
+      "คะแนนความน่าเชื่อถือของข้อมูลอยู่ในระดับต่ำ จึงยังไม่ควรยืนยันขนาดระบบหรือวงเงินลงทุน",
     );
   });
 

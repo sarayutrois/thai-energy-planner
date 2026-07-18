@@ -125,6 +125,9 @@ export type ScenarioResult = {
     tariffVersionId: string;
     tariffVersionLabel: string;
     tariffStatus: string;
+    tariffEffectiveFrom: string;
+    tariffEffectiveTo: string | null;
+    tariffVerifiedAt: string | null;
     sourceUrl: string | null;
     tariffSnapshot: unknown;
     lineItems: TariffCalculationResult["lineItems"];
@@ -445,6 +448,9 @@ export function calculateScenario(input: {
       tariffVersionId: tariffResult.tariffVersionId,
       tariffVersionLabel: tariffResult.tariffVersionLabel,
       tariffStatus: tariffResult.tariffStatus,
+      tariffEffectiveFrom: tariffResult.tariffSnapshot.effectiveFrom,
+      tariffEffectiveTo: tariffResult.tariffSnapshot.effectiveTo,
+      tariffVerifiedAt: tariffResult.verifiedAt,
       sourceUrl: tariffResult.sourceUrl,
       tariffSnapshot: tariffResult.tariffSnapshot,
       lineItems: tariffResult.lineItems,
